@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { CityCover, FinanceSummary, ItineraryItem, PendingItem, Stop, Transport, Trip } from "@/types/trip";
+import type { CityCover, Expense, FinanceSummary, ItineraryItem, PendingItem, Stop, Transport, Trip } from "@/types/trip";
 
 function checked<T>(result: { data: T | null; error: { message: string } | null }, context: string): T {
   if (result.error) throw new Error(`${context}: ${result.error.message}`);
@@ -46,6 +46,14 @@ export async function getTripFinanceSummary(tripId: string): Promise<FinanceSumm
   return checked(await supabase.from("v_trip_finance_summary").select("*").eq("trip_id", tripId).maybeSingle(), "Não foi possível carregar o resumo financeiro") as FinanceSummary | null;
 }
 
+export async function getTripExpenses(tripId: string, limit = 8): Promise<Expense[]> {
+  const supabase = await createClient();
+  return checked(
+    await supabase.from("expenses").select("*").eq("trip_id", tripId).eq("is_transfer", false).order("occurred_at", { ascending: false }).limit(limit),
+    "Não foi possível carregar os gastos"
+  ) as Expense[];
+}
+
 export async function getTripCityCovers(tripId: string): Promise<CityCover[]> {
   const supabase = await createClient();
   return checked(
@@ -89,8 +97,8 @@ export async function getTripPlaces(tripId: string) {
 export async function getTripMoreData(tripId: string) {
   const supabase = await createClient();
   const [reservations, documents, members, integrations] = await Promise.all([
-    supabase.from("reservations").select("*").eq("trip_id", tripId),
-    supabase.from("documents").select("*").eq("trip_id", tripId),
+    supabase.from("reservations").select("*").eq("trip_id", tripId).order("created_at", { ascending: false }),
+    supabase.from("documents").select("*").eq("trip_id", tripId).order("created_at", { ascending: false }),
     supabase.from("trip_members").select("*").eq("trip_id", tripId),
     supabase.from("integration_connections").select("*").eq("trip_id", tripId),
   ]);
