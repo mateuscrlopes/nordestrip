@@ -3,6 +3,7 @@ import { RestoreRecord } from "@/components/actions/restore-record";
 import { PageHeader } from "@/components/layout/page-header";
 import { RecordStatus, pendingStatusOptions, reservationStatusOptions } from "@/components/actions/record-status";
 import { LogoutButton } from "@/components/navigation/logout-button";
+import { PendingItemCreator } from "@/components/pending/pending-item-creator";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
 import { getTripArchivedRecords, getTripMoreData, getTripPendingItems, getTripStops } from "@/lib/queries/trips";
 import { formatDateTime, formatMoney } from "@/lib/utils/format";
@@ -210,6 +211,17 @@ export default async function MorePage() {
                 <ChevronRight size={17} className="settings-chevron" />
               </summary>
               <div className="settings-detail">
+                {trip && (
+                  <div className="mb-3">
+                    <PendingItemCreator
+                      tripId={trip.id}
+                      stops={stops.map((stop) => ({
+                        id: stop.id,
+                        name: stop.city || stop.name || "Cidade",
+                      }))}
+                    />
+                  </div>
+                )}
                 {pending.length ? (
                   <div className="pending-manage-list">
                     {pending.map((item) => {
