@@ -13,10 +13,10 @@ export function GlobalAdd() {
       <button
         onClick={() => setOpen(true)}
         aria-label="Adicionar"
-        className="fixed right-5 z-30 grid size-[52px] place-items-center rounded-full border border-white/30 bg-petrol text-white shadow-[0_10px_28px_rgba(18,56,68,.18)] hover:bg-[#0d303a] active:scale-[.97] md:right-[calc(50%-20rem)]"
-        style={{ bottom: "calc(max(.75rem, env(safe-area-inset-bottom)) + 5.5rem)" }}
+        className="fixed right-6 z-[45] grid size-[46px] place-items-center rounded-full border border-white/35 bg-petrol text-white shadow-[0_8px_22px_rgba(18,56,68,.16)] hover:bg-[#0d303a] active:scale-[.97] md:right-[calc(50%-19rem)]"
+        style={{ bottom: "calc(max(.45rem, env(safe-area-inset-bottom)) + 4.65rem)" }}
       >
-        <Plus size={22} />
+        <Plus size={20} />
       </button>
 
       {open && (
