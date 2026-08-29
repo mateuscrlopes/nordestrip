@@ -97,7 +97,7 @@ export async function getStopDetails(stopId: string) {
 
 export async function getTripPlaces(tripId: string) {
   const supabase = await createClient();
-  return checked(await supabase.from("places").select("*").eq("trip_id", tripId).is("archived_at", null).not("latitude", "is", null).not("longitude", "is", null), "Não foi possível carregar os lugares") as Record<string, unknown>[];
+  return checked(await supabase.from("places").select("*").eq("trip_id", tripId).is("archived_at", null).order("created_at", { ascending: false }), "Não foi possível carregar os lugares") as Record<string, unknown>[];
 }
 
 export async function getTripMoreData(tripId: string) {
