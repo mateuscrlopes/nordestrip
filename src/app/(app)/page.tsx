@@ -1,6 +1,6 @@
 import { getCurrentTrip } from "@/lib/queries/current-trip";
-import { getTripCityCovers, getTripFinanceSummary, getTripPendingItems, getTripTransports } from "@/lib/queries/trips";
-import { formatDate, formatDateTime, formatMoney } from "@/lib/utils/format";
+import { getTripCityCovers, getTripFinanceSummary, getTripPendingItems, getTripPreferences, getTripTransports } from "@/lib/queries/trips";
+import { formatDate, formatDateTime, formatMoney, formatTime } from "@/lib/utils/format";
 import type { CityCover } from "@/types/trip";
 import {
   ArrowRight,
@@ -70,11 +70,12 @@ export default async function HomePage() {
     );
   }
 
-  const [pending, transports, finance, cityCovers] = await Promise.all([
+  const [pending, transports, finance, cityCovers, preferences] = await Promise.all([
     getTripPendingItems(trip.id),
     getTripTransports(trip.id),
     getTripFinanceSummary(trip.id),
     getTripCityCovers(trip.id),
+    getTripPreferences(trip.id),
   ]);
 
   const today = dateKeyInTimeZone(new Date());
@@ -90,6 +91,15 @@ export default async function HomePage() {
       || nextTransport.mode
       || "Deslocamento"
     : null;
+  const nextBufferMinutes = nextTransport
+    ? nextTransport.mode === "flight"
+      ? preferences?.airport_buffer_minutes ?? 120
+      : preferences?.terminal_buffer_minutes ?? 45
+    : null;
+  const nextCheckpointDeadline = nextTransport?.departure_at && nextBufferMinutes != null
+    ? new Date(new Date(nextTransport.departure_at).getTime() - nextBufferMinutes * 60_000).toISOString()
+    : null;
+  const nextCheckpointLabel = nextTransport?.mode === "flight" ? "aeroporto" : "terminal";
 
   const routeCovers = [...cityCovers].sort((a, b) => (a.sequence ?? 999) - (b.sequence ?? 999));
   const routeRange = routeCovers.length > 1
@@ -166,6 +176,11 @@ export default async function HomePage() {
                 </span>
               )}
             </div>
+            {nextCheckpointDeadline && (
+              <p className="mt-3 text-[12px] leading-5 text-white/70">
+                Estar no {nextCheckpointLabel} até {formatTime(nextCheckpointDeadline)}. O tempo para chegar até lá ainda não está incluído.
+              </p>
+            )}
           </div>
         </section>
       )}
@@ -209,7 +224,7 @@ export default async function HomePage() {
         <Link href="/dinheiro" className="money-panel block">
           <p className="text-[12px] font-medium text-petrol/65">Disponível para usar</p>
           {finance?.available_to_use == null ? (
-            <p className="mt-2 text-[16px] font-semibold tracking-[-.02em]">Fundo da viagem ainda não conectado</p>
+            <p className="mt-2 text-[16px] font-semibold tracking-[-.02em]">Saldo do fundo ainda não definido</p>
           ) : (
             <p className="mt-1 text-[1.7rem] font-semibold tracking-[-.045em]">
               {formatMoney(finance.available_to_use)}
