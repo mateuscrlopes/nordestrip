@@ -42,7 +42,9 @@ export type PendingItem = {
   trip_id: string;
   stop_id?: string | null;
   title: string;
+  description?: string | null;
   status: PendingStatus;
+  priority?: "low" | "medium" | "high" | null;
   due_at?: string | null;
 };
 
@@ -62,6 +64,8 @@ export type Transport = {
   mode?: string | null;
   status?: string | null;
   operator?: string | null;
+  amount?: number | null;
+  notes?: string | null;
 };
 
 export type FinanceSummary = {
