@@ -137,6 +137,7 @@ export function GlobalAdd({
         name: value(form, "name"),
         category: nullable(form, "category"),
         source: "manual",
+        address: nullable(form, "address"),
         source_url: nullable(form, "source_url"),
         notes: nullable(form, "notes"),
       };
@@ -326,6 +327,7 @@ export function GlobalAdd({
                     <label className="add-field"><span>Nome</span><input name="name" required placeholder="Ex.: restaurante, praia, passeio" /></label>
                     <CityField stops={stops} defaultStopId={contextualStopId} />
                     <label className="add-field"><span>Categoria</span><input name="category" placeholder="Ex.: restaurante, atração, logística" /></label>
+                    <label className="add-field"><span>Endereço</span><input name="address" placeholder="Rua, bairro ou referência" /></label>
                     <label className="add-field"><span>Link</span><input name="source_url" type="url" inputMode="url" placeholder="Instagram, Maps, site..." /></label>
                     <label className="add-field"><span>Nota</span><textarea name="notes" rows={3} placeholder="Por que vale olhar depois?" /></label>
                   </>
