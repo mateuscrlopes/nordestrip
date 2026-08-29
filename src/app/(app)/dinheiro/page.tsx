@@ -1,8 +1,9 @@
 import { RecordActions } from "@/components/actions/record-actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { ManualFundEditor } from "@/components/finance/manual-fund-editor";
 import { RecordStatus, expenseStatusOptions } from "@/components/actions/record-status";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
-import { getTripExpenses, getTripFinanceSummary } from "@/lib/queries/trips";
+import { getTripExpenses, getTripFinanceSummary, getTripManualFund } from "@/lib/queries/trips";
 import { formatDateTime, formatMoney } from "@/lib/utils/format";
 import { CreditCard, ReceiptText, ShieldCheck, Wallet } from "lucide-react";
 
@@ -22,9 +23,13 @@ const paymentLabels: Record<string, string> = {
 
 export default async function MoneyPage() {
   const { trip } = await getCurrentTrip();
-  const [finance, expenses] = trip
-    ? await Promise.all([getTripFinanceSummary(trip.id), getTripExpenses(trip.id)])
-    : [null, []];
+  const [finance, expenses, manualFund] = trip
+    ? await Promise.all([
+        getTripFinanceSummary(trip.id),
+        getTripExpenses(trip.id),
+        getTripManualFund(trip.id),
+      ])
+    : [null, [], null];
 
   return (
     <>
@@ -52,6 +57,12 @@ export default async function MoneyPage() {
             <span className="finance-hero-icon"><Wallet size={20} /></span>
           </div>
         </section>
+
+        {trip && (
+          <section>
+            <ManualFundEditor tripId={trip.id} fund={manualFund} />
+          </section>
+        )}
 
         <section>
           <div className="section-heading">
