@@ -45,9 +45,9 @@ export default async function MoneyPage() {
               <p className="text-[12px] font-medium text-petrol/65">Disponível para usar</p>
               {finance?.available_to_use == null ? (
                 <>
-                  <h2 className="mt-2">Fundo ainda não conectado</h2>
+                  <h2 className="mt-2">Saldo do fundo ainda não definido</h2>
                   <p className="mt-2 max-w-md text-[13px] leading-5 text-muted">
-                    O saldo aparecerá aqui quando a conta da viagem estiver vinculada.
+                    Defina um saldo manual ou conecte uma conta da viagem para calcular o disponível.
                   </p>
                 </>
               ) : (
