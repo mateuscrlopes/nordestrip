@@ -11,10 +11,13 @@ export type Stop = {
   trip_id: string;
   city?: string | null;
   name?: string | null;
+  state_code?: string | null;
   sequence?: number | null;
   sort_order?: number | null;
   start_date?: string | null;
   end_date?: string | null;
+  status?: string | null;
+  notes?: string | null;
 };
 
 export type CityCover = {
