@@ -31,11 +31,11 @@ export async function getTripItinerary(tripId: string): Promise<ItineraryItem[]>
 }
 export async function getTripPendingItems(tripId: string): Promise<PendingItem[]> {
   const supabase = await createClient();
-  return checked(await supabase.from("pending_items").select("*").eq("trip_id", tripId).neq("status", "completed").order("due_date"), "Não foi possível carregar as pendências") as PendingItem[];
+  return checked(await supabase.from("pending_items").select("*").eq("trip_id", tripId).in("status", ["pending", "checking"]).order("due_at", { nullsFirst: false }), "Não foi possível carregar as pendências") as PendingItem[];
 }
 export async function getTripTransports(tripId: string): Promise<Transport[]> {
   const supabase = await createClient();
-  return checked(await supabase.from("transport_segments").select("*").eq("trip_id", tripId).order("departure_at"), "Não foi possível carregar os transportes") as Transport[];
+  return checked(await supabase.from("transport_segments").select("*").eq("trip_id", tripId).order("departure_date", { nullsFirst: false }).order("departure_at", { nullsFirst: false }), "Não foi possível carregar os transportes") as Transport[];
 }
 export async function getTripFinanceSummary(tripId: string): Promise<FinanceSummary | null> {
   const supabase = await createClient();
@@ -45,17 +45,18 @@ export async function getStopDetails(stopId: string) {
   const supabase = await createClient();
   const stop = checked(await supabase.from("stops").select("*").eq("id", stopId).single(), "Não foi possível carregar a cidade") as Stop;
   const [accommodation, luggage, activities, pending, inbound, outbound] = await Promise.all([
-    supabase.from("accommodations").select("*").eq("stop_id", stopId).maybeSingle(),
-    supabase.from("luggage_plans").select("*").eq("stop_id", stopId).maybeSingle(),
+    supabase.from("accommodations").select("*, place:places(*)").eq("stop_id", stopId).maybeSingle(),
+    supabase.from("luggage_plans").select("*").eq("stop_id", stopId),
     supabase.from("itinerary_items").select("*").eq("stop_id", stopId).order("start_time"),
-    supabase.from("pending_items").select("*").eq("stop_id", stopId).neq("status", "completed"),
+    supabase.from("pending_items").select("*").eq("stop_id", stopId).in("status", ["pending", "checking"]).order("due_at", { nullsFirst: false }),
     supabase.from("transport_segments").select("*").eq("destination_stop_id", stopId).order("arrival_at").limit(1).maybeSingle(),
     supabase.from("transport_segments").select("*").eq("origin_stop_id", stopId).order("departure_at").limit(1).maybeSingle(),
   ]);
   for (const [label, result] of [["hospedagem", accommodation], ["bagagem", luggage], ["atividades", activities], ["pendências", pending], ["chegada", inbound], ["saída", outbound]] as const) {
     if (result.error) throw new Error(`Não foi possível carregar ${label}: ${result.error.message}`);
   }
-  return { stop, accommodation: accommodation.data, luggage: luggage.data, activities: activities.data ?? [], pending: pending.data ?? [], inbound: inbound.data, outbound: outbound.data };
+  const luggagePlans = luggage.data ?? [];
+  return { stop, accommodation: accommodation.data, arrivalLuggage: luggagePlans.find((plan) => plan.phase === "arrival") ?? null, departureLuggage: luggagePlans.find((plan) => plan.phase === "departure") ?? null, activities: activities.data ?? [], pending: pending.data ?? [], inbound: inbound.data, outbound: outbound.data };
 }
 
 export async function getTripPlaces(tripId: string) {
