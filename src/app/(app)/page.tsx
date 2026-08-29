@@ -1,19 +1,211 @@
-import { PageHeader } from "@/components/layout/page-header";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
 import { getTripFinanceSummary, getTripPendingItems, getTripTransports } from "@/lib/queries/trips";
 import { formatDate, formatDateTime, formatMoney } from "@/lib/utils/format";
+import {
+  ArrowRight,
+  Banknote,
+  CalendarDays,
+  CheckCircle2,
+  ChevronRight,
+  ClipboardList,
+  Route,
+  TicketCheck,
+} from "lucide-react";
 import Link from "next/link";
 
+const transportStatus: Record<string, string> = {
+  idea: "Em análise",
+  planned: "Planejado",
+  quoted: "Cotado",
+  reserved: "Reservado",
+  purchased: "Comprado",
+  confirmed: "Confirmado",
+  completed: "Concluído",
+  cancelled: "Cancelado",
+};
+
 export default async function HomePage() {
-  const { trip, trips } = await getCurrentTrip();
-  if (!trip) return <><PageHeader eyebrow="Nordest Trip" title="Nenhuma viagem por aqui" description="Quando você entrar em uma viagem, os próximos passos aparecerão aqui."/></>;
-  const [pending, transports, finance] = await Promise.all([getTripPendingItems(trip.id), getTripTransports(trip.id), getTripFinanceSummary(trip.id)]);
+  const { trip } = await getCurrentTrip();
+
+  if (!trip) {
+    return (
+      <section className="home-hero min-h-[220px] rounded-[32px] p-6">
+        <div className="flex items-center gap-3">
+          <span className="brand-mark"><Route size={20} strokeWidth={1.9} /></span>
+          <span className="brand-name">Nordestrip</span>
+        </div>
+        <h1 className="mt-12 text-[1.8rem] font-semibold tracking-[-.04em]">Nenhuma viagem por aqui</h1>
+        <p className="mt-2 max-w-sm text-sm leading-6 text-muted">Quando você entrar em uma viagem, os próximos passos aparecerão aqui.</p>
+      </section>
+    );
+  }
+
+  const [pending, transports, finance] = await Promise.all([
+    getTripPendingItems(trip.id),
+    getTripTransports(trip.id),
+    getTripFinanceSummary(trip.id),
+  ]);
+
   const today = new Date().toISOString().slice(0, 10);
-  const nextTransport = transports.find((item) => item.departure_at ? new Date(item.departure_at) >= new Date() : !item.departure_date || item.departure_date >= today);
-  return <><PageHeader eyebrow={trips.length > 1 ? "Viagem atual" : "Sua viagem"} title={trip.name}/><div className="space-y-7">
-    {pending[0] && <section><p className="eyebrow mb-2">Próxima decisão</p><Link href="/mais" className="card block p-5"><h2 className="text-lg font-semibold">{pending[0].title}</h2>{pending[0].due_at && <p className="mt-2 text-sm text-muted">Prazo: {formatDateTime(pending[0].due_at)}</p>}</Link></section>}
-    <section><p className="eyebrow mb-2">Dinheiro</p><Link href="/dinheiro" className="card block p-5"><p className="text-sm text-muted">Disponível para usar</p>{finance?.available_to_use == null ? <p className="mt-2 font-medium">Fundo da viagem ainda não conectado</p> : <p className="mt-1 text-2xl font-semibold tracking-tight">{formatMoney(finance.available_to_use)}</p>}</Link></section>
-    {nextTransport && <section><p className="eyebrow mb-2">Próximo deslocamento</p><div className="card p-5"><h2 className="text-lg font-semibold">{[nextTransport.origin_label, nextTransport.destination_label].filter(Boolean).join(" para ") || nextTransport.mode || "Transporte"}</h2>{nextTransport.departure_at ? <p className="mt-2 text-sm text-muted">Saída em {formatDateTime(nextTransport.departure_at)}</p> : nextTransport.departure_date ? <p className="mt-2 text-sm text-muted">Saída em {formatDate(nextTransport.departure_date)}</p> : null}</div></section>}
-    {pending.length > 1 && <section><div className="mb-2 flex justify-between"><p className="eyebrow">Alertas</p><Link href="/mais" className="text-xs font-semibold text-petrol">Ver pendências</Link></div><div className="card divide-y divide-petrol/5 px-5">{pending.slice(1,4).map((item) => <p key={item.id} className="py-4 text-sm font-medium">{item.title}</p>)}</div></section>}
-  </div></>;
+  const nextTransport = transports.find((item) =>
+    item.departure_at
+      ? new Date(item.departure_at) >= new Date()
+      : !item.departure_date || item.departure_date >= today
+  );
+
+  const tripDates = [formatDate(trip.start_date), formatDate(trip.end_date)].filter(Boolean).join(" — ");
+  const routeTitle = nextTransport
+    ? [nextTransport.origin_label, nextTransport.destination_label].filter(Boolean).join(" → ")
+      || nextTransport.mode
+      || "Deslocamento"
+    : null;
+
+  const shortcuts = [
+    { href: "/roteiro", label: "Roteiro", icon: CalendarDays },
+    { href: "/mais", label: "Reservas", icon: TicketCheck },
+    { href: "/dinheiro", label: "Dinheiro", icon: Banknote },
+    { href: "/mais", label: "Pendências", icon: ClipboardList },
+  ];
+
+  const coverStyle = trip.cover_url
+    ? {
+        backgroundImage: `linear-gradient(180deg, rgba(247,243,236,.08), rgba(247,243,236,.72)), url("${trip.cover_url.replace(/"/g, "%22")}")`,
+      }
+    : undefined;
+
+  return (
+    <div className="space-y-7">
+      <section className="home-hero overflow-hidden rounded-[32px] p-6" style={coverStyle}>
+        <div className="relative z-10">
+          <div className="flex items-center gap-3">
+            <span className="brand-mark"><Route size={20} strokeWidth={1.9} /></span>
+            <span className="brand-name">Nordestrip</span>
+          </div>
+
+          <div className="mt-12 max-w-md">
+            <p className="text-[13px] font-medium text-petrol/70">{tripDates || "Planejamento da viagem"}</p>
+            <h1 className="mt-1 text-[2rem] font-semibold leading-tight tracking-[-.045em]">{trip.name}</h1>
+          </div>
+        </div>
+      </section>
+
+      {nextTransport && (
+        <section>
+          <div className="section-heading">
+            <h2>Próximo deslocamento</h2>
+          </div>
+          <div className="transport-feature">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[13px] font-medium text-white/65">
+                  {nextTransport.operator || "Transporte"}
+                </p>
+                <h3 className="mt-2 text-[1.35rem] font-semibold leading-tight tracking-[-.035em] text-white">
+                  {routeTitle}
+                </h3>
+              </div>
+              <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-white/10 text-white">
+                <ArrowRight size={19} />
+              </span>
+            </div>
+
+            <div className="mt-7 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-white/78">
+              {nextTransport.departure_at ? (
+                <span>{formatDateTime(nextTransport.departure_at)}</span>
+              ) : nextTransport.departure_date ? (
+                <span>{formatDate(nextTransport.departure_date)}</span>
+              ) : null}
+              {nextTransport.status && (
+                <span className="rounded-full bg-white/10 px-2.5 py-1 text-[12px] font-medium text-white/90">
+                  {transportStatus[nextTransport.status] || nextTransport.status}
+                </span>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <nav aria-label="Atalhos da viagem">
+        <div className="shortcut-grid">
+          {shortcuts.map(({ href, label, icon: Icon }) => (
+            <Link key={label} href={href} className="shortcut-item">
+              <span className="shortcut-icon"><Icon size={19} strokeWidth={1.8} /></span>
+              <span>{label}</span>
+            </Link>
+          ))}
+        </div>
+      </nav>
+
+      {pending[0] && (
+        <section>
+          <div className="section-heading">
+            <h2>Próxima decisão</h2>
+          </div>
+          <Link href="/mais" className="decision-row group">
+            <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-sand/28 text-petrol">
+              <CheckCircle2 size={18} strokeWidth={1.8} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-semibold leading-5">{pending[0].title}</span>
+              {pending[0].due_at && (
+                <span className="mt-1 block text-[12px] text-muted">Prazo: {formatDateTime(pending[0].due_at)}</span>
+              )}
+            </span>
+            <ChevronRight size={18} className="mt-1 shrink-0 text-muted transition group-hover:translate-x-0.5" />
+          </Link>
+        </section>
+      )}
+
+      <section>
+        <div className="section-heading">
+          <h2>Dinheiro</h2>
+          <Link href="/dinheiro">Ver detalhes</Link>
+        </div>
+        <Link href="/dinheiro" className="money-panel block">
+          <p className="text-[12px] font-medium text-petrol/65">Disponível para usar</p>
+          {finance?.available_to_use == null ? (
+            <p className="mt-2 text-[16px] font-semibold tracking-[-.02em]">Fundo da viagem ainda não conectado</p>
+          ) : (
+            <p className="mt-1 text-[1.7rem] font-semibold tracking-[-.045em]">
+              {formatMoney(finance.available_to_use)}
+            </p>
+          )}
+
+          {(finance?.future_commitments ?? 0) > 0 || (finance?.protected_reserve ?? 0) > 0 ? (
+            <div className="mt-5 grid grid-cols-2 gap-3 border-t border-petrol/8 pt-4">
+              {(finance?.future_commitments ?? 0) > 0 && (
+                <div>
+                  <p className="text-[11px] text-muted">Compromissos</p>
+                  <p className="mt-1 text-sm font-semibold">{formatMoney(finance?.future_commitments)}</p>
+                </div>
+              )}
+              {(finance?.protected_reserve ?? 0) > 0 && (
+                <div>
+                  <p className="text-[11px] text-muted">Reserva protegida</p>
+                  <p className="mt-1 text-sm font-semibold">{formatMoney(finance?.protected_reserve)}</p>
+                </div>
+              )}
+            </div>
+          ) : null}
+        </Link>
+      </section>
+
+      {pending.length > 1 && (
+        <section className="pb-2">
+          <div className="section-heading">
+            <h2>Alertas</h2>
+            <Link href="/mais">Ver todos</Link>
+          </div>
+          <div className="divide-y divide-petrol/8 rounded-[22px] bg-surface/72 px-5">
+            {pending.slice(1, 4).map((item) => (
+              <Link key={item.id} href="/mais" className="flex items-center justify-between gap-4 py-4">
+                <span className="text-sm font-medium">{item.title}</span>
+                <ChevronRight size={17} className="shrink-0 text-muted" />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
 }
