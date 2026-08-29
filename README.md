@@ -1,4 +1,4 @@
-# Nordest Trip
+# Nordestrip
 
 Fundação mobile-first de uma central de comando compartilhada para viagens. A aplicação usa somente os dados permitidos pelas políticas de RLS do projeto Supabase.
 
@@ -32,6 +32,5 @@ As rotas internas são protegidas pelo middleware. O servidor valida o usuário 
 ## Verificações
 
 ```bash
-npm run lint
 npm run build
 ```
