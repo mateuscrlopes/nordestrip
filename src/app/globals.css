@@ -1180,3 +1180,97 @@ input:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Inline record status controls */
+
+.record-status {
+  display: inline-grid;
+  gap: .25rem;
+}
+
+.record-status label {
+  display: block;
+}
+
+.record-status select {
+  min-height: 34px;
+  max-width: 100%;
+  border: 1px solid rgba(18, 56, 68, .10);
+  border-radius: 13px;
+  padding: .45rem 1.85rem .45rem .65rem;
+  color: #123844;
+  background-color: rgba(220, 232, 235, .45);
+  font-size: .68rem;
+  font-weight: 650;
+  outline: none;
+}
+
+.record-status--compact select {
+  min-height: 29px;
+  border-radius: 999px;
+  padding-top: .32rem;
+  padding-bottom: .32rem;
+  font-size: .63rem;
+}
+
+.record-status select:focus {
+  border-color: rgba(18, 56, 68, .42);
+  box-shadow: 0 0 0 3px rgba(220, 232, 235, .55);
+}
+
+.record-status select:disabled {
+  opacity: .58;
+}
+
+.record-status-error {
+  color: #7a2f2f;
+  font-size: .58rem;
+}
+
+.pending-manage-list {
+  display: grid;
+}
+
+.pending-manage-row {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .45rem 0;
+}
+
+.pending-manage-row + .pending-manage-row {
+  border-top: 1px solid rgba(18, 56, 68, .06);
+}
+
+.pending-manage-row > span {
+  min-width: 0;
+  flex: 1;
+  color: #17282e;
+  font-size: .72rem;
+  font-weight: 600;
+}
+
+.expense-row-actions {
+  display: grid;
+  flex: 0 0 auto;
+  justify-items: end;
+  gap: .35rem;
+}
+
+.expense-row-actions > strong {
+  font-size: .76rem;
+}
+
+@media (max-width: 420px) {
+  .pending-manage-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .expense-row {
+    align-items: flex-start;
+  }
+}
