@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { CityCover, Expense, FinanceSummary, ItineraryItem, PendingItem, Stop, Transport, Trip, TripFinanceSettings, TripPreferences } from "@/types/trip";
+import type { ChangeLogEntry, CityCover, Expense, FinanceSummary, ItineraryItem, PendingItem, Stop, Transport, Trip, TripFinanceSettings, TripPreferences } from "@/types/trip";
 
 function checked<T>(result: { data: T | null; error: { message: string } | null }, context: string): T {
   if (result.error) throw new Error(`${context}: ${result.error.message}`);
@@ -179,4 +179,18 @@ export async function getTripFinanceSettings(tripId: string): Promise<TripFinanc
     await supabase.from("trip_finance_settings").select("*").eq("trip_id", tripId).maybeSingle(),
     "Não foi possível carregar as configurações financeiras"
   ) as TripFinanceSettings | null;
+}
+
+
+export async function getTripChangeLog(tripId: string, limit = 30): Promise<ChangeLogEntry[]> {
+  const supabase = await createClient();
+  return checked(
+    await supabase
+      .from("change_log")
+      .select("id,trip_id,user_id,entity_type,entity_id,action,summary,created_at")
+      .eq("trip_id", tripId)
+      .order("created_at", { ascending: false })
+      .limit(limit),
+    "Não foi possível carregar o histórico de alterações"
+  ) as ChangeLogEntry[];
 }
