@@ -1,13 +1,265 @@
-import { PageHeader } from "@/components/layout/page-header";
-import { getStopDetails } from "@/lib/queries/trips";
+import { getStopDetails, getTripCityCovers } from "@/lib/queries/trips";
 import { formatDate, formatDateTime, valueText } from "@/lib/utils/format";
+import {
+  ArrowRight,
+  CheckCircle2,
+  ChevronRight,
+  Clock3,
+  Hotel,
+  Luggage,
+  MapPin,
+  Plane,
+} from "lucide-react";
 import { notFound } from "next/navigation";
-function Panel({ title, children }: { title: string; children: React.ReactNode }) { return <section><p className="eyebrow mb-2">{title}</p><div className="card p-5 text-sm leading-6">{children}</div></section>; }
-export default async function CityPage({ params }: { params: Promise<{ stopId: string }> }) { const { stopId } = await params; let data; try { data = await getStopDetails(stopId); } catch (error) { if (error instanceof Error && error.message.includes("0 rows")) notFound(); throw error; } const { stop, accommodation, arrivalLuggage, departureLuggage, activities, pending, inbound, outbound } = data; const city = stop.city || stop.name || "Cidade"; const accommodationPlace = accommodation?.place && !Array.isArray(accommodation.place) ? accommodation.place : null; return <><PageHeader eyebrow="Cidade" title={city}/><div className="space-y-6">
-  <Panel title="Chegada">{inbound ? <><p className="font-medium">{valueText(inbound.origin_label) || valueText(inbound.mode) || "Transporte definido"}</p>{inbound.arrival_at ? <p className="text-muted">{formatDateTime(inbound.arrival_at)}</p> : inbound.arrival_date ? <p className="text-muted">{formatDate(inbound.arrival_date)}</p> : null}</> : <p className="text-muted">Chegada pendente.</p>}</Panel>
-  <Panel title="Hospedagem">{accommodation ? <><p className="font-medium">{valueText(accommodation.name) || "Hospedagem definida"}</p>{accommodationPlace?.address && <p className="text-muted">{String(accommodationPlace.address)}</p>}</> : <p className="text-muted">Hospedagem pendente.</p>}</Panel>
-  <Panel title="Estratégia de bagagem"><div className="space-y-3"><div><p className="font-medium">Na chegada</p><p className={arrivalLuggage ? "" : "text-muted"}>{arrivalLuggage ? valueText(arrivalLuggage.notes) || valueText(arrivalLuggage.strategy) || "Estratégia registrada." : "Pendente."}</p></div><div><p className="font-medium">Na saída</p><p className={departureLuggage ? "" : "text-muted"}>{departureLuggage ? valueText(departureLuggage.notes) || valueText(departureLuggage.strategy) || "Estratégia registrada." : "Pendente."}</p></div></div></Panel>
-  <Panel title="Atividades">{activities.length ? <ul className="space-y-2">{activities.map((item) => <li key={String(item.id)}>{String(item.title ?? item.name ?? "Atividade")}</li>)}</ul> : <p className="text-muted">Nenhuma atividade adicionada.</p>}</Panel>
-  <Panel title="Pendências">{pending.length ? <ul className="space-y-2">{pending.map((item) => <li key={String(item.id)}>{String(item.title)}</li>)}</ul> : <p className="text-muted">Nenhuma pendência aberta.</p>}</Panel>
-  <Panel title="Saída">{outbound ? <><p className="font-medium">{valueText(outbound.destination_label) || valueText(outbound.mode) || "Transporte definido"}</p>{outbound.departure_at ? <p className="text-muted">{formatDateTime(outbound.departure_at)}</p> : outbound.departure_date ? <p className="text-muted">{formatDate(outbound.departure_date)}</p> : null}</> : <p className="text-muted">Saída pendente.</p>}</Panel>
-  </div></>; }
+
+function scheduleLabel(scheduleType?: string | null, isAnchor?: boolean | null) {
+  if (scheduleType === "exact" && isAnchor) return "Horário fixo";
+  if (scheduleType === "window") return "Janela";
+  if (scheduleType === "period") return "Período";
+  if (scheduleType === "from") return "A partir de";
+  if (scheduleType === "until") return "Até";
+  return "Flexível";
+}
+
+function transportLabel(mode?: unknown) {
+  if (mode === "flight") return "Voo";
+  if (mode === "bus") return "Ônibus";
+  if (mode === "car") return "Carro";
+  if (mode === "transfer") return "Transfer";
+  return valueText(mode) || "Deslocamento";
+}
+
+export default async function CityPage({
+  params,
+}: {
+  params: Promise<{ stopId: string }>;
+}) {
+  const { stopId } = await params;
+
+  let data;
+  try {
+    data = await getStopDetails(stopId);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("0 rows")) notFound();
+    throw error;
+  }
+
+  const {
+    stop,
+    accommodation,
+    arrivalLuggage,
+    departureLuggage,
+    activities,
+    pending,
+    inbound,
+    outbound,
+  } = data;
+
+  const covers = await getTripCityCovers(stop.trip_id);
+  const cover = covers.find((item) => item.stop_id === stop.id);
+  const city = stop.city || stop.name || "Cidade";
+  const accommodationPlace =
+    accommodation?.place && !Array.isArray(accommodation.place) ? accommodation.place : null;
+
+  const heroStyle = cover
+    ? {
+        backgroundImage: `linear-gradient(180deg, rgba(7,28,35,.08), rgba(7,28,35,.72)), url("${cover.image_url.replace(/"/g, "%22")}")`,
+      }
+    : undefined;
+
+  return (
+    <div className="space-y-7">
+      <section className={`city-hero ${cover ? "has-cover" : ""}`} style={heroStyle}>
+        <div className="relative z-10 flex min-h-[190px] flex-col justify-end">
+          <p className={cover ? "text-white/80" : "text-petrol/65"}>
+            {stop.start_date ? formatDate(stop.start_date) : "Data pendente"}
+            {stop.end_date ? ` — ${formatDate(stop.end_date)}` : ""}
+          </p>
+          <h1 className={cover ? "text-white" : ""}>{city}</h1>
+        </div>
+      </section>
+
+      <section>
+        <div className="section-heading">
+          <h2>Chegada</h2>
+        </div>
+        <div className="operational-strip">
+          <span className="operational-icon"><Plane size={18} /></span>
+          <div className="min-w-0 flex-1">
+            {inbound ? (
+              <>
+                <p className="font-semibold">
+                  {valueText(inbound.origin_label) || transportLabel(inbound.mode)}
+                  {valueText(inbound.origin_label) ? ` → ${city}` : ""}
+                </p>
+                <p className="mt-1 text-[12px] text-muted">
+                  {inbound.arrival_at
+                    ? formatDateTime(inbound.arrival_at)
+                    : inbound.arrival_date
+                      ? formatDate(inbound.arrival_date)
+                      : transportLabel(inbound.mode)}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-semibold">Chegada ainda não definida</p>
+                <p className="mt-1 text-[12px] text-muted">Nenhum deslocamento de chegada registrado.</p>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div className="section-heading">
+          <h2>Bagagem</h2>
+        </div>
+        <div className="luggage-grid">
+          <div className="luggage-item">
+            <Luggage size={17} />
+            <div>
+              <p>Na chegada</p>
+              <span>
+                {arrivalLuggage
+                  ? valueText(arrivalLuggage.notes) || valueText(arrivalLuggage.strategy) || "Estratégia registrada"
+                  : "Pendente"}
+              </span>
+            </div>
+          </div>
+          <div className="luggage-item">
+            <Luggage size={17} />
+            <div>
+              <p>Na saída</p>
+              <span>
+                {departureLuggage
+                  ? valueText(departureLuggage.notes) || valueText(departureLuggage.strategy) || "Estratégia registrada"
+                  : "Pendente"}
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div className="section-heading">
+          <h2>Hospedagem</h2>
+        </div>
+        <div className="accommodation-panel">
+          <span className="operational-icon operational-icon--light"><Hotel size={18} /></span>
+          <div className="min-w-0 flex-1">
+            {accommodation ? (
+              <>
+                <p className="font-semibold">{valueText(accommodation.name) || "Hospedagem definida"}</p>
+                {accommodationPlace?.address && (
+                  <p className="mt-1 text-[12px] text-muted">{String(accommodationPlace.address)}</p>
+                )}
+                {accommodation.notes && (
+                  <p className="mt-2 text-[12px] leading-5 text-muted">{String(accommodation.notes)}</p>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="font-semibold">Hospedagem pendente</p>
+                <p className="mt-1 text-[12px] text-muted">Nenhuma hospedagem registrada para esta cidade.</p>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div className="section-heading">
+          <h2>Roteiro na cidade</h2>
+        </div>
+        {activities.length ? (
+          <div className="day-timeline">
+            {activities.map((item) => {
+              const fixed = item.schedule_type === "exact" && item.is_anchor === true;
+              const time = item.start_time ? String(item.start_time).slice(0, 5) : null;
+
+              return (
+                <div key={String(item.id)} className="day-timeline-row">
+                  <div className="day-timeline-marker" aria-hidden="true">
+                    <span className={fixed ? "is-fixed" : ""} />
+                    <i />
+                  </div>
+                  <div className="min-w-0 flex-1 pb-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-[15px] font-semibold leading-5">
+                          {String(item.title ?? item.name ?? "Atividade")}
+                        </p>
+                        <p className="mt-1 text-[12px] text-muted">
+                          {scheduleLabel(item.schedule_type, item.is_anchor)}
+                        </p>
+                      </div>
+                      {time && (
+                        <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium text-petrol">
+                          <Clock3 size={13} />
+                          {time}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="empty-surface">
+            <MapPin size={20} />
+            <p>Nenhuma atividade adicionada.</p>
+          </div>
+        )}
+      </section>
+
+      {pending.length > 0 && (
+        <section>
+          <div className="section-heading">
+            <h2>Pendências</h2>
+          </div>
+          <div className="divide-y divide-petrol/8 border-y border-petrol/8">
+            {pending.map((item) => (
+              <div key={String(item.id)} className="flex items-center gap-3 py-4">
+                <CheckCircle2 size={17} className="shrink-0 text-petrol" />
+                <p className="min-w-0 flex-1 text-[14px] font-medium">{String(item.title)}</p>
+                <ChevronRight size={17} className="shrink-0 text-muted" />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="pb-2">
+        <div className="section-heading">
+          <h2>Saída</h2>
+        </div>
+        <div className="operational-strip">
+          <span className="operational-icon"><ArrowRight size={18} /></span>
+          <div className="min-w-0 flex-1">
+            {outbound ? (
+              <>
+                <p className="font-semibold">
+                  {city}
+                  {valueText(outbound.destination_label) ? ` → ${valueText(outbound.destination_label)}` : ""}
+                </p>
+                <p className="mt-1 text-[12px] text-muted">
+                  {outbound.departure_at
+                    ? formatDateTime(outbound.departure_at)
+                    : outbound.departure_date
+                      ? formatDate(outbound.departure_date)
+                      : transportLabel(outbound.mode)}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-semibold">Saída ainda não definida</p>
+                <p className="mt-1 text-[12px] text-muted">Nenhum próximo deslocamento registrado.</p>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}

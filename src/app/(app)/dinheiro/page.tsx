@@ -2,5 +2,102 @@ import { PageHeader } from "@/components/layout/page-header";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
 import { getTripFinanceSummary } from "@/lib/queries/trips";
 import { formatMoney } from "@/lib/utils/format";
-const fields = [["available_to_use","Disponível para usar"],["fund_balance","Fundo da viagem"],["future_commitments","Compromissos futuros"],["protected_reserve","Reserva protegida"],["net_spent","Gasto líquido"],["allocated_card_limit","Limite de cartão alocado"],["active_card_holds","Bloqueios temporários"]] as const;
-export default async function MoneyPage() { const { trip } = await getCurrentTrip(); const finance = trip ? await getTripFinanceSummary(trip.id) : null; const present = fields.filter(([key]) => typeof finance?.[key] === "number"); return <><PageHeader eyebrow={trip?.name} title="Dinheiro" description="Uma leitura clara do fundo comum, compromissos e gastos da viagem."/>{present.length ? <div className="card divide-y divide-petrol/5 px-5">{present.map(([key,label]) => <div key={key} className="flex items-baseline justify-between gap-5 py-4"><p className="text-sm text-muted">{label}</p><p className="font-semibold">{formatMoney(finance?.[key] as number)}</p></div>)}</div> : <div className="card p-6"><h2 className="font-semibold">Fundo da viagem ainda não conectado</h2><p className="mt-2 text-sm leading-6 text-muted">Quando uma conta for vinculada, o resumo financeiro aparecerá aqui sem confundir limite de cartão com orçamento disponível.</p></div>}<p className="mt-5 text-xs leading-5 text-muted">Limite de cartão alocado é uma referência de pagamento e não faz parte do orçamento da viagem.</p></>; }
+import { CreditCard, ReceiptText, ShieldCheck, Wallet } from "lucide-react";
+
+function money(value: number | null | undefined) {
+  return value == null ? null : formatMoney(value);
+}
+
+export default async function MoneyPage() {
+  const { trip } = await getCurrentTrip();
+  const finance = trip ? await getTripFinanceSummary(trip.id) : null;
+
+  return (
+    <>
+      <PageHeader
+        title="Dinheiro"
+        description="Fundo, compromissos e meios de pagamento da viagem."
+      />
+
+      <div className="space-y-7">
+        <section className="finance-hero">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[12px] font-medium text-petrol/65">Disponível para usar</p>
+              {finance?.available_to_use == null ? (
+                <>
+                  <h2 className="mt-2">Fundo ainda não conectado</h2>
+                  <p className="mt-2 max-w-md text-[13px] leading-5 text-muted">
+                    O saldo aparecerá aqui quando a conta da viagem estiver vinculada.
+                  </p>
+                </>
+              ) : (
+                <h2 className="mt-1">{money(finance.available_to_use)}</h2>
+              )}
+            </div>
+            <span className="finance-hero-icon"><Wallet size={20} /></span>
+          </div>
+        </section>
+
+        <section>
+          <div className="section-heading">
+            <h2>Visão da viagem</h2>
+          </div>
+          <div className="finance-metrics">
+            <div>
+              <span>Compromissos futuros</span>
+              <strong>{money(finance?.future_commitments) ?? "—"}</strong>
+            </div>
+            <div>
+              <span>Reserva protegida</span>
+              <strong>{money(finance?.protected_reserve) ?? "—"}</strong>
+            </div>
+            <div>
+              <span>Gasto líquido</span>
+              <strong>{money(finance?.net_spent) ?? "—"}</strong>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div className="section-heading">
+            <h2>Cartão da viagem</h2>
+          </div>
+          <div className="card-payment-panel">
+            <div className="flex items-center gap-3">
+              <span className="operational-icon"><CreditCard size={18} /></span>
+              <div>
+                <p className="text-[12px] text-white/65">Limite alocado</p>
+                <p className="mt-1 text-[1.2rem] font-semibold text-white">
+                  {money(finance?.allocated_card_limit) ?? "Ainda não definido"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4">
+              <span className="text-[12px] text-white/65">Bloqueios temporários</span>
+              <strong className="text-[13px] text-white">
+                {money(finance?.active_card_holds) ?? "—"}
+              </strong>
+            </div>
+          </div>
+        </section>
+
+        <section className="finance-note">
+          <ShieldCheck size={18} />
+          <div>
+            <p>Limite de cartão não é orçamento.</p>
+            <span>O disponível para usar continua sendo a referência principal da viagem.</span>
+          </div>
+        </section>
+
+        {(finance?.net_spent ?? 0) === 0 && (
+          <section className="empty-surface">
+            <ReceiptText size={20} />
+            <p>Nenhum gasto registrado até agora.</p>
+          </section>
+        )}
+      </div>
+    </>
+  );
+}

@@ -1,1 +1,17 @@
-export function PageHeader({ eyebrow, title, description }: { eyebrow?: string; title: string; description?: string }) { return <header className="mb-7 pt-2">{eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}<h1 className="text-[2rem] font-semibold leading-tight tracking-[-.04em]">{title}</h1>{description && <p className="mt-2 max-w-xl text-sm leading-6 text-muted">{description}</p>}</header>; }
+export function PageHeader({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <header className="page-header">
+      {eyebrow && <p className="page-kicker">{eyebrow}</p>}
+      <h1>{title}</h1>
+      {description && <p className="page-description">{description}</p>}
+    </header>
+  );
+}
