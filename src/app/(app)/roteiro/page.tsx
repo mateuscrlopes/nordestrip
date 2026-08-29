@@ -31,6 +31,7 @@ export default async function ItineraryPage() {
         description="Cidades, dias e deslocamentos da viagem."
       />
       <ItineraryView
+        tripId={trip.id}
         stops={stops}
         days={days}
         pending={pending}
