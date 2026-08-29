@@ -1401,3 +1401,149 @@ input:focus-visible {
     align-items: center;
   }
 }
+
+
+/* Luggage operations and archive history */
+
+.luggage-item--actionable {
+  position: relative;
+  align-items: flex-start;
+}
+
+.luggage-item--actionable small {
+  display: block;
+  margin-top: .35rem;
+  color: #526268;
+  font-size: .61rem;
+  line-height: 1.35;
+}
+
+.luggage-status {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 .48rem;
+  color: #526268;
+  background: rgba(255, 253, 252, .58);
+  font-size: .58rem;
+  font-weight: 650;
+}
+
+.luggage-status--confirmed {
+  color: #123844;
+  background: rgba(220, 232, 235, .8);
+}
+
+.luggage-status--pending,
+.luggage-status--unknown {
+  color: #6c5635;
+  background: rgba(255, 253, 252, .64);
+}
+
+.luggage-status--unavailable {
+  color: #8a3f3f;
+  background: rgba(138, 63, 63, .08);
+}
+
+.luggage-edit-button {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 12px;
+  color: #123844;
+  background: rgba(255, 253, 252, .68);
+}
+
+.luggage-edit-button:hover {
+  background: #fffdfc;
+}
+
+.archive-list {
+  display: grid;
+}
+
+.archive-row {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  min-height: 66px;
+  padding: .7rem 0;
+}
+
+.archive-row + .archive-row {
+  border-top: 1px solid rgba(18, 56, 68, .06);
+}
+
+.archive-row > div > span {
+  display: block;
+  color: #70787a;
+  font-size: .58rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.archive-row > div > strong {
+  display: block;
+  margin-top: .08rem;
+  color: #17282e;
+  font-size: .72rem;
+  line-height: 1.35;
+}
+
+.archive-row > div > small {
+  display: block;
+  margin-top: .15rem;
+  color: #70787a;
+  font-size: .6rem;
+}
+
+.restore-record {
+  display: grid;
+  flex: 0 0 auto;
+  justify-items: end;
+  gap: .2rem;
+}
+
+.restore-record button {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: .35rem;
+  border-radius: 12px;
+  padding: 0 .65rem;
+  color: #123844;
+  background: rgba(220, 232, 235, .52);
+  font-size: .63rem;
+  font-weight: 650;
+}
+
+.restore-record button:disabled {
+  opacity: .55;
+}
+
+.restore-record span {
+  color: #8a3f3f;
+  font-size: .56rem;
+}
+
+.add-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+}
+
+@media (max-width: 420px) {
+  .archive-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .restore-record {
+    justify-items: start;
+  }
+}
