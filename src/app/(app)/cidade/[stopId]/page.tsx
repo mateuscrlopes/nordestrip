@@ -31,6 +31,11 @@ function transportLabel(mode?: unknown) {
   return valueText(mode) || "Deslocamento";
 }
 
+function terminalMapsUrl(name?: unknown, address?: unknown) {
+  const query = [valueText(name), valueText(address)].filter(Boolean).join(", ");
+  return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : null;
+}
+
 export default async function CityPage({
   params,
 }: {
@@ -81,6 +86,14 @@ export default async function CityPage({
     ? new Date(new Date(outbound.departure_at).getTime() - departureBufferMinutes * 60_000).toISOString()
     : null;
   const departureCheckpoint = outbound?.mode === "flight" ? "aeroporto" : "terminal";
+  const inboundTerminalMapsUrl = terminalMapsUrl(
+    inbound?.destination_terminal_name,
+    inbound?.destination_terminal_address
+  );
+  const outboundTerminalMapsUrl = terminalMapsUrl(
+    outbound?.origin_terminal_name,
+    outbound?.origin_terminal_address
+  );
 
   return (
     <div className="space-y-7">
@@ -115,9 +128,21 @@ export default async function CityPage({
                       : transportLabel(inbound.mode)}
                 </p>
                 {(inbound.destination_terminal_name || inbound.destination_terminal_address) && (
-                  <p className="mt-1 text-[12px] leading-5 text-muted">
-                    {[inbound.destination_terminal_name, inbound.destination_terminal_address].filter(Boolean).join(" · ")}
-                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <p className="text-[12px] leading-5 text-muted">
+                      {[inbound.destination_terminal_name, inbound.destination_terminal_address].filter(Boolean).join(" · ")}
+                    </p>
+                    {inboundTerminalMapsUrl && (
+                      <a
+                        href={inboundTerminalMapsUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="map-external-link"
+                      >
+                        Abrir no mapa
+                      </a>
+                    )}
+                  </div>
                 )}
                 {(inbound.has_checked_baggage || inbound.baggage_notes) && (
                   <p className="mt-1 text-[12px] leading-5 text-muted">
@@ -417,9 +442,21 @@ export default async function CityPage({
                       : transportLabel(outbound.mode)}
                 </p>
                 {(outbound.origin_terminal_name || outbound.origin_terminal_address) && (
-                  <p className="mt-1 text-[12px] leading-5 text-muted">
-                    {[outbound.origin_terminal_name, outbound.origin_terminal_address].filter(Boolean).join(" · ")}
-                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <p className="text-[12px] leading-5 text-muted">
+                      {[outbound.origin_terminal_name, outbound.origin_terminal_address].filter(Boolean).join(" · ")}
+                    </p>
+                    {outboundTerminalMapsUrl && (
+                      <a
+                        href={outboundTerminalMapsUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="map-external-link"
+                      >
+                        Abrir no mapa
+                      </a>
+                    )}
+                  </div>
                 )}
                 {terminalDeadline && departureBufferMinutes != null && (
                   <div className="departure-deadline">
