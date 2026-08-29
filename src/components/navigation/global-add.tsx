@@ -169,6 +169,17 @@ export function GlobalAdd({
       const destinationStopId = nullable(form, "destination_stop_id");
       const originStop = stops.find((stop) => stop.id === originStopId);
       const destinationStop = stops.find((stop) => stop.id === destinationStopId);
+      const departureAtRaw = nullable(form, "departure_at");
+      const arrivalAtRaw = nullable(form, "arrival_at");
+      const departureAt = departureAtRaw ? new Date(departureAtRaw) : null;
+      const arrivalAt = arrivalAtRaw ? new Date(arrivalAtRaw) : null;
+
+      if (departureAt && arrivalAt && arrivalAt.getTime() < departureAt.getTime()) {
+        setError("A chegada não pode ser anterior à saída.");
+        setSaving(false);
+        return;
+      }
+
       payload = {
         ...payload,
         origin_stop_id: originStopId,
@@ -177,26 +188,50 @@ export function GlobalAdd({
         destination_label: nullable(form, "destination_label") || destinationStop?.name || null,
         mode: value(form, "mode") || "bus",
         status: value(form, "status") || "planned",
-        departure_date: nullable(form, "departure_date"),
-        arrival_date: nullable(form, "arrival_date"),
+        departure_date: departureAtRaw?.slice(0, 10) || nullable(form, "departure_date"),
+        arrival_date: arrivalAtRaw?.slice(0, 10) || nullable(form, "arrival_date"),
+        departure_at: departureAt ? departureAt.toISOString() : null,
+        arrival_at: arrivalAt ? arrivalAt.toISOString() : null,
+        origin_terminal_name: nullable(form, "origin_terminal_name"),
+        origin_terminal_address: nullable(form, "origin_terminal_address"),
+        destination_terminal_name: nullable(form, "destination_terminal_name"),
+        destination_terminal_address: nullable(form, "destination_terminal_address"),
         operator: nullable(form, "operator"),
+        service_class: nullable(form, "service_class"),
+        booking_reference: nullable(form, "booking_reference"),
         amount: numberOrNull(form, "amount"),
+        source: "manual",
+        source_url: nullable(form, "source_url"),
+        has_checked_baggage: form.get("has_checked_baggage") === "on",
+        baggage_notes: nullable(form, "baggage_notes"),
         notes: nullable(form, "notes"),
       };
     }
 
     if (kind === "accommodation") {
-      table = "accommodations";
+      table = "__accommodation_rpc__";
+      const checkInDate = nullable(form, "check_in_date");
+      const checkOutDate = nullable(form, "check_out_date");
+
+      if (checkInDate && checkOutDate && checkOutDate < checkInDate) {
+        setError("O check-out não pode ser anterior ao check-in.");
+        setSaving(false);
+        return;
+      }
+
       payload = {
-        ...payload,
-        stop_id: value(form, "stop_id"),
-        name: value(form, "name"),
-        accommodation_type: nullable(form, "accommodation_type"),
-        status: value(form, "status") || "researching",
-        check_in_date: nullable(form, "check_in_date"),
-        check_out_date: nullable(form, "check_out_date"),
-        source_url: nullable(form, "source_url"),
-        notes: nullable(form, "notes"),
+        p_trip_id: tripId,
+        p_stop_id: value(form, "stop_id"),
+        p_name: value(form, "name"),
+        p_accommodation_type: nullable(form, "accommodation_type"),
+        p_status: value(form, "status") || "researching",
+        p_address: nullable(form, "address"),
+        p_check_in_date: checkInDate,
+        p_check_out_date: checkOutDate,
+        p_check_in_from: nullable(form, "check_in_from"),
+        p_check_out_until: nullable(form, "check_out_until"),
+        p_source_url: nullable(form, "source_url"),
+        p_notes: nullable(form, "notes"),
       };
     }
 
@@ -255,7 +290,9 @@ export function GlobalAdd({
       };
     }
 
-    const { error: insertError } = await supabase.from(table).insert(payload);
+    const { error: insertError } = table === "__accommodation_rpc__"
+      ? await supabase.rpc("create_accommodation_with_place", payload)
+      : await supabase.from(table).insert(payload);
 
     if (insertError) {
       setError(insertError.message);
@@ -426,13 +463,32 @@ export function GlobalAdd({
                       </label>
                     </div>
                     <div className="add-grid">
-                      <label className="add-field"><span>Saída</span><input name="departure_date" type="date" /></label>
-                      <label className="add-field"><span>Chegada</span><input name="arrival_date" type="date" /></label>
+                      <label className="add-field"><span>Saída exata</span><input name="departure_at" type="datetime-local" /></label>
+                      <label className="add-field"><span>Chegada exata</span><input name="arrival_at" type="datetime-local" /></label>
+                    </div>
+                    <div className="add-grid">
+                      <label className="add-field"><span>Data da saída, se horário pendente</span><input name="departure_date" type="date" /></label>
+                      <label className="add-field"><span>Data da chegada, se horário pendente</span><input name="arrival_date" type="date" /></label>
+                    </div>
+                    <div className="add-grid">
+                      <label className="add-field"><span>Terminal de saída</span><input name="origin_terminal_name" placeholder="Aeroporto, rodoviária..." /></label>
+                      <label className="add-field"><span>Endereço da saída</span><input name="origin_terminal_address" /></label>
+                    </div>
+                    <div className="add-grid">
+                      <label className="add-field"><span>Terminal de chegada</span><input name="destination_terminal_name" /></label>
+                      <label className="add-field"><span>Endereço da chegada</span><input name="destination_terminal_address" /></label>
                     </div>
                     <div className="add-grid">
                       <label className="add-field"><span>Empresa</span><input name="operator" placeholder="Ex.: LATAM, Guanabara" /></label>
+                      <label className="add-field"><span>Classe</span><input name="service_class" placeholder="Executivo, leito, econômica..." /></label>
+                    </div>
+                    <div className="add-grid">
+                      <label className="add-field"><span>Localizador</span><input name="booking_reference" /></label>
                       <label className="add-field"><span>Valor</span><input name="amount" inputMode="decimal" placeholder="0,00" /></label>
                     </div>
+                    <label className="add-field"><span>Link</span><input name="source_url" type="url" inputMode="url" placeholder="ClickBus, companhia, reserva..." /></label>
+                    <label className="add-check"><input name="has_checked_baggage" type="checkbox" /><span>Inclui bagagem despachada ou no bagageiro</span></label>
+                    <label className="add-field"><span>Bagagem</span><textarea name="baggage_notes" rows={2} placeholder="Regras, quantidade, peso ou observações" /></label>
                     <label className="add-field"><span>Nota</span><textarea name="notes" rows={3} /></label>
                   </>
                 )}
@@ -464,9 +520,14 @@ export function GlobalAdd({
                         </select>
                       </label>
                     </div>
+                    <label className="add-field"><span>Endereço</span><input name="address" placeholder="Rua, número, bairro ou referência" /></label>
                     <div className="add-grid">
                       <label className="add-field"><span>Check-in</span><input name="check_in_date" type="date" /></label>
                       <label className="add-field"><span>Check-out</span><input name="check_out_date" type="date" /></label>
+                    </div>
+                    <div className="add-grid">
+                      <label className="add-field"><span>Check-in a partir de</span><input name="check_in_from" type="time" /></label>
+                      <label className="add-field"><span>Check-out até</span><input name="check_out_until" type="time" /></label>
                     </div>
                     <label className="add-field"><span>Link</span><input name="source_url" type="url" inputMode="url" placeholder="Booking, Airbnb, site..." /></label>
                     <label className="add-field"><span>Nota</span><textarea name="notes" rows={3} /></label>
