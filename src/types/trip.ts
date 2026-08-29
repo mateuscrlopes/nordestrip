@@ -1,7 +1,32 @@
-export type Trip = { id: string; name: string; start_date?: string | null; end_date?: string | null };
-export type Stop = { id: string; trip_id: string; city?: string | null; name?: string | null; sequence?: number | null; start_date?: string | null; end_date?: string | null };
+export type Trip = {
+  id: string;
+  name: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  cover_url?: string | null;
+};
+
+export type Stop = {
+  id: string;
+  trip_id: string;
+  city?: string | null;
+  name?: string | null;
+  sequence?: number | null;
+  start_date?: string | null;
+  end_date?: string | null;
+};
+
 export type PendingStatus = "pending" | "checking" | "resolved" | "cancelled";
-export type PendingItem = { id: string; trip_id: string; stop_id?: string | null; title: string; status: PendingStatus; due_at?: string | null };
+
+export type PendingItem = {
+  id: string;
+  trip_id: string;
+  stop_id?: string | null;
+  title: string;
+  status: PendingStatus;
+  due_at?: string | null;
+};
+
 export type Transport = {
   id: string;
   trip_id: string;
@@ -19,6 +44,7 @@ export type Transport = {
   status?: string | null;
   operator?: string | null;
 };
+
 export type FinanceSummary = {
   trip_id: string;
   total_budget: number | null;
@@ -31,5 +57,17 @@ export type FinanceSummary = {
   allocated_card_limit: number | null;
   active_card_holds: number | null;
 };
+
 export type ScheduleType = "none" | "period" | "window" | "from" | "until" | "exact";
-export type ItineraryItem = Record<string, unknown> & { id: string; trip_id?: string; stop_id?: string | null; activity_date?: string | null; title?: string | null; name?: string | null; start_time?: string | null; schedule_type?: ScheduleType | null; is_anchor?: boolean | null };
+
+export type ItineraryItem = Record<string, unknown> & {
+  id: string;
+  trip_id?: string;
+  stop_id?: string | null;
+  activity_date?: string | null;
+  title?: string | null;
+  name?: string | null;
+  start_time?: string | null;
+  schedule_type?: ScheduleType | null;
+  is_anchor?: boolean | null;
+};
