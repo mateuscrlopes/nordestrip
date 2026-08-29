@@ -4,6 +4,7 @@ import { getCurrentTrip } from "@/lib/queries/current-trip";
 import {
   getTripCityCovers,
   getTripItinerary,
+  getTripLuggagePlans,
   getTripPendingItems,
   getTripStops,
   getTripTransports,
@@ -16,12 +17,13 @@ export default async function ItineraryPage() {
     return <PageHeader title="Roteiro" description="Nenhuma viagem selecionada." />;
   }
 
-  const [stops, days, pending, transports, covers] = await Promise.all([
+  const [stops, days, pending, transports, covers, luggagePlans] = await Promise.all([
     getTripStops(trip.id),
     getTripItinerary(trip.id),
     getTripPendingItems(trip.id),
     getTripTransports(trip.id),
     getTripCityCovers(trip.id),
+    getTripLuggagePlans(trip.id),
   ]);
 
   return (
@@ -37,6 +39,7 @@ export default async function ItineraryPage() {
         pending={pending}
         transports={transports}
         covers={covers}
+        luggagePlans={luggagePlans}
       />
     </>
   );
