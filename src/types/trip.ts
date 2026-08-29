@@ -111,3 +111,29 @@ export type ItineraryItem = Record<string, unknown> & {
   schedule_type?: ScheduleType | null;
   is_anchor?: boolean | null;
 };
+
+
+export type TripPreferences = {
+  trip_id: string;
+  pace: "relaxed" | "balanced" | "full";
+  anchor_buffer_minutes: number;
+  terminal_buffer_minutes: number;
+  airport_buffer_minutes: number;
+  wake_prep_minutes: number;
+  suggest_wake_time: boolean;
+  route_reorder_mode: "never" | "suggest" | "flexible_only";
+  live_location_enabled: boolean;
+  api_refresh_mode: "manual" | "manual_when_stale" | "automatic";
+  offline_essential_data: boolean;
+  extra?: Record<string, unknown>;
+  updated_at?: string;
+};
+
+export type TripFinanceSettings = {
+  trip_id: string;
+  total_budget: number | null;
+  protected_reserve: number;
+  discovery_budget: number;
+  currency: string;
+  updated_at?: string;
+};
