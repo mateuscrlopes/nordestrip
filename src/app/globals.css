@@ -3310,3 +3310,34 @@ input:focus-visible {
     width: 100%;
   }
 }
+
+
+.place-date-option.is-recommended {
+  border-color: rgba(18, 56, 68, .20);
+  background: rgba(220, 232, 235, .34);
+}
+
+.place-date-title-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .38rem;
+}
+
+.place-date-title-line em {
+  border-radius: 999px;
+  padding: .14rem .42rem;
+  color: #123844;
+  background: rgba(220, 232, 235, .82);
+  font-size: .51rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.place-date-option div > small {
+  display: block;
+  margin-top: .16rem;
+  color: #70787a;
+  font-size: .53rem;
+  line-height: 1.4;
+}

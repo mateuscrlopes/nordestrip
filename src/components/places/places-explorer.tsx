@@ -1,7 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import type { ItineraryItem, Stop } from "@/types/trip";
+import type { ItineraryItem, Stop, Transport } from "@/types/trip";
 import {
   CalendarPlus,
   Check,
@@ -45,6 +45,18 @@ type CatalogItineraryItem = ItineraryItem & {
   item_type?: string | null;
   priority?: string | null;
   status?: string | null;
+  duration_min?: number | null;
+  duration_max?: number | null;
+};
+
+type DateAssessment = {
+  date: string;
+  score: number;
+  blocked: boolean;
+  label: string;
+  dayItems: CatalogItineraryItem[];
+  fixedCount: number;
+  totalMinutes: number;
 };
 
 const categoryLabels: Record<string, string> = {
@@ -179,16 +191,75 @@ function mealCategory(category?: string | null) {
   return ["restaurant", "cafe", "bakery", "bar"].includes(category || "");
 }
 
+function assessDate(
+  place: CatalogPlace,
+  date: string,
+  stopId: string,
+  itinerary: CatalogItineraryItem[],
+  transports: Transport[]
+): DateAssessment {
+  const dayItems = itinerary.filter(
+    (item) => item.stop_id === stopId && item.activity_date === date && item.status !== "cancelled"
+  );
+  const fixedCount = dayItems.filter((item) => item.is_anchor).length;
+  const totalMinutes = dayItems.reduce((total, item) => {
+    const estimate = item.duration_max ?? item.duration_min ?? (item.is_anchor ? 90 : 60);
+    return total + estimate;
+  }, 0);
+  const hasFullDay = dayItems.some(
+    (item) =>
+      item.priority === "high" &&
+      Math.max(item.duration_max ?? 0, item.duration_min ?? 0) >= 360
+  );
+  const arrivalDay = transports.some(
+    (transport) =>
+      transport.status !== "cancelled" &&
+      transport.destination_stop_id === stopId &&
+      transport.arrival_date === date
+  );
+  const departureDay = transports.some(
+    (transport) =>
+      transport.status !== "cancelled" &&
+      transport.origin_stop_id === stopId &&
+      transport.departure_date === date
+  );
+  const hours = currentHours(place, date);
+  const blocked = hours === "Fechado pelo horário atual";
+
+  if (blocked) {
+    return { date, score: -1000, blocked: true, label: "Fechado neste dia", dayItems, fixedCount, totalMinutes };
+  }
+
+  let score = 100;
+  score -= Math.min(Math.round(totalMinutes / 20), 45);
+  score -= fixedCount * 16;
+  if (hasFullDay) score -= 65;
+  if (arrivalDay) score -= 12;
+  if (departureDay) score -= 20;
+
+  let label = "Mais espaço no roteiro";
+  if (hasFullDay) label = "Dia já tem passeio principal";
+  else if (arrivalDay && departureDay) label = "Chegada e saída no mesmo dia";
+  else if (departureDay) label = "Tem saída da cidade";
+  else if (arrivalDay) label = "Tem chegada à cidade";
+  else if (fixedCount > 0) label = "Tem compromisso com horário";
+  else if (totalMinutes >= 240) label = "Dia já está carregado";
+
+  return { date, score, blocked: false, label, dayItems, fixedCount, totalMinutes };
+}
+
 export function PlacesExplorer({
   tripId,
   stops,
   places,
   itinerary,
+  transports,
 }: {
   tripId: string;
   stops: Stop[];
   places: Record<string, unknown>[];
   itinerary: ItineraryItem[];
+  transports: Transport[];
 }) {
   const router = useRouter();
   const catalog = places as unknown as CatalogPlace[];
@@ -222,6 +293,16 @@ export function PlacesExplorer({
       return categoryMatches && queryMatches;
     });
   }, [category, cityPlaces, query]);
+
+  const selectedDateAssessments = selectedPlace && activeStop
+    ? rangeDates(activeStop.start_date, activeStop.end_date).map((date) =>
+        assessDate(selectedPlace, date, activeStop.id, currentItinerary, transports)
+      )
+    : [];
+  const eligibleDateAssessments = selectedDateAssessments.filter((item) => !item.blocked);
+  const recommendedDate = eligibleDateAssessments.length > 1
+    ? [...eligibleDateAssessments].sort((a, b) => b.score - a.score)[0]?.date ?? null
+    : null;
 
   function chooseStop(stopId: string) {
     setActiveStopId(stopId);
@@ -443,36 +524,41 @@ export function PlacesExplorer({
             </div>
 
             <div className="place-date-options">
-              {rangeDates(activeStop?.start_date, activeStop?.end_date).map((date) => {
-                const dayItems = currentItinerary.filter(
-                  (item) => item.stop_id === activeStopId && item.activity_date === date && item.status !== "cancelled"
-                );
-                const fixedCount = dayItems.filter((item) => item.is_anchor).length;
+              {selectedDateAssessments.map((assessment) => {
+                const { date, dayItems, fixedCount, totalMinutes } = assessment;
                 const alreadyAdded = dayItems.some((item) => item.place_id === selectedPlace.id);
                 const hours = currentHours(selectedPlace, date);
-                const closedByCurrentHours = hours === "Fechado pelo horário atual";
+                const isRecommended = recommendedDate === date;
 
                 return (
-                  <div key={date} className="place-date-option">
+                  <div key={date} className={`place-date-option ${isRecommended ? "is-recommended" : ""}`}>
                     <div className="min-w-0 flex-1">
-                      <strong>{dateLabel(date)}</strong>
+                      <div className="place-date-title-line">
+                        <strong>{dateLabel(date)}</strong>
+                        {isRecommended && <em>Recomendado</em>}
+                      </div>
                       <span>
                         {hours || "Horário a confirmar"}
                         {" · "}
-                        {dayItems.length
-                          ? `${dayItems.length} ${dayItems.length === 1 ? "item" : "itens"} no roteiro${fixedCount ? ` · ${fixedCount} fixo${fixedCount > 1 ? "s" : ""}` : ""}`
-                          : "sem atividades cadastradas"}
+                        {assessment.label}
                       </span>
+                      {dayItems.length > 0 && (
+                        <small>
+                          {dayItems.length} {dayItems.length === 1 ? "item" : "itens"} no roteiro
+                          {fixedCount ? ` · ${fixedCount} com horário fixo` : ""}
+                          {totalMinutes ? ` · até ~${Math.round(totalMinutes / 60)}h planejadas` : ""}
+                        </small>
+                      )}
                     </div>
                     {alreadyAdded ? (
                       <span className="place-date-added"><Check size={14} /> Já está</span>
                     ) : (
                       <button
                         type="button"
-                        disabled={savingDate === date || closedByCurrentHours}
+                        disabled={savingDate === date || assessment.blocked}
                         onClick={() => addToItinerary(selectedPlace, date)}
                       >
-                        {savingDate === date ? "Adicionando..." : closedByCurrentHours ? "Fechado" : "Escolher"}
+                        {savingDate === date ? "Adicionando..." : assessment.blocked ? "Fechado" : "Escolher"}
                       </button>
                     )}
                   </div>
@@ -481,7 +567,7 @@ export function PlacesExplorer({
             </div>
 
             <p className="place-date-note">
-              Os horários exibidos são os publicados atualmente. Antes da viagem, locais com funcionamento variável serão reconfirmados.
+              A recomendação considera o funcionamento publicado, a carga já planejada e se o dia tem chegada ou saída da cidade. O tempo real entre os locais ainda será refinado quando o mapa integrado estiver ativo.
             </p>
             {error && <p className="add-error" role="alert">{error}</p>}
           </section>

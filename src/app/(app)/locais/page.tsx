@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { PlacesExplorer } from "@/components/places/places-explorer";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
-import { getTripItinerary, getTripPlaceCatalog, getTripStops } from "@/lib/queries/trips";
+import { getTripItinerary, getTripPlaceCatalog, getTripStops, getTripTransports } from "@/lib/queries/trips";
 
 export default async function PlacesPage() {
   const { trip } = await getCurrentTrip();
@@ -10,10 +10,11 @@ export default async function PlacesPage() {
     return <PageHeader title="Locais" description="Nenhuma viagem selecionada." />;
   }
 
-  const [stops, places, itinerary] = await Promise.all([
+  const [stops, places, itinerary, transports] = await Promise.all([
     getTripStops(trip.id),
     getTripPlaceCatalog(trip.id),
     getTripItinerary(trip.id),
+    getTripTransports(trip.id),
   ]);
 
   return (
@@ -27,6 +28,7 @@ export default async function PlacesPage() {
         stops={stops}
         places={places}
         itinerary={itinerary}
+        transports={transports}
       />
     </>
   );
