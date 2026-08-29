@@ -105,6 +105,29 @@ export function RecordActions({
       }
     }
 
+    if (table === "transport_segments") {
+      const departureAtRaw = String(form.get("departure_at") ?? "").trim();
+      const arrivalAtRaw = String(form.get("arrival_at") ?? "").trim();
+
+      if (departureAtRaw) payload.departure_date = departureAtRaw.slice(0, 10);
+      if (arrivalAtRaw) payload.arrival_date = arrivalAtRaw.slice(0, 10);
+
+      const departureAt = typeof payload.departure_at === "string" ? new Date(payload.departure_at) : null;
+      const arrivalAt = typeof payload.arrival_at === "string" ? new Date(payload.arrival_at) : null;
+
+      if (departureAt && arrivalAt && arrivalAt.getTime() < departureAt.getTime()) {
+        setError("A chegada não pode ser anterior à saída.");
+        return;
+      }
+
+      const departureDate = typeof payload.departure_date === "string" ? payload.departure_date : null;
+      const arrivalDate = typeof payload.arrival_date === "string" ? payload.arrival_date : null;
+      if (!departureAt && !arrivalAt && departureDate && arrivalDate && arrivalDate < departureDate) {
+        setError("A data de chegada não pode ser anterior à data de saída.");
+        return;
+      }
+    }
+
     setSaving(true);
     setError("");
     const supabase = createClient();
