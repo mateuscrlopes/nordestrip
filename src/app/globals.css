@@ -2821,3 +2821,73 @@ input:focus-visible {
   font-size: .57rem;
   line-height: 1.45;
 }
+
+
+/* Manual fund fallback */
+
+.manual-fund-row {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  gap: .75rem;
+  border: 1px solid rgba(18, 56, 68, .07);
+  border-radius: 20px;
+  padding: .82rem .9rem;
+  background: rgba(255, 253, 252, .72);
+}
+
+.manual-fund-icon {
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 14px;
+  color: #123844;
+  background: rgba(220, 232, 235, .58);
+}
+
+.manual-fund-row strong {
+  display: block;
+  color: #17282e;
+  font-size: .72rem;
+}
+
+.manual-fund-row span:not(.manual-fund-icon) {
+  display: block;
+  margin-top: .18rem;
+  color: #526268;
+  font-size: .61rem;
+  line-height: 1.4;
+}
+
+.manual-fund-row small {
+  display: block;
+  margin-top: .2rem;
+  color: #70787a;
+  font-size: .56rem;
+}
+
+.manual-fund-row > button {
+  display: inline-flex;
+  min-height: 34px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: .35rem;
+  border-radius: 12px;
+  padding: 0 .6rem;
+  color: #123844;
+  background: rgba(220, 232, 235, .5);
+  font-size: .61rem;
+  font-weight: 650;
+}
+
+.manual-fund-note {
+  margin: 0;
+  border-radius: 14px;
+  padding: .68rem .75rem;
+  color: #526268;
+  background: rgba(215, 180, 131, .16);
+  font-size: .62rem;
+  line-height: 1.5;
+}
