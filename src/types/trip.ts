@@ -77,6 +77,19 @@ export type FinanceSummary = {
   active_card_holds: number | null;
 };
 
+export type Expense = {
+  id: string;
+  trip_id: string;
+  stop_id?: string | null;
+  title: string;
+  amount: number;
+  currency: string;
+  payment_method?: string | null;
+  occurred_at: string;
+  status: string;
+  notes?: string | null;
+};
+
 export type ScheduleType = "none" | "period" | "window" | "from" | "until" | "exact";
 
 export type ItineraryItem = Record<string, unknown> & {
