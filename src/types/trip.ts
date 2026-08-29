@@ -149,3 +149,16 @@ export type ChangeLogEntry = {
   summary: string;
   created_at: string;
 };
+
+
+export type LuggagePlanSummary = {
+  id: string;
+  trip_id: string;
+  stop_id: string;
+  phase: "arrival" | "departure";
+  strategy?: string | null;
+  status?: string | null;
+  available_from?: string | null;
+  available_until?: string | null;
+  confirmed_at?: string | null;
+};
