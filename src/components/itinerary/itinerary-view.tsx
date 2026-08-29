@@ -1,5 +1,6 @@
 "use client";
 
+import { RecordStatus, itineraryStatusOptions } from "@/components/actions/record-status";
 import { formatDate } from "@/lib/utils/format";
 import type { CityCover, ItineraryItem, PendingItem, Stop, Transport } from "@/types/trip";
 import { ArrowRight, CalendarDays, ChevronRight, Clock3, MapPin } from "lucide-react";
@@ -185,6 +186,16 @@ export function ItineraryView({
                                 {item.title || item.name || "Atividade"}
                               </p>
                               <p className="mt-1 text-[12px] text-muted">{scheduleLabel(item)}</p>
+                              <div className="mt-2">
+                                <RecordStatus
+                                  table="itinerary_items"
+                                  id={item.id}
+                                  value={String(item.status || "planned")}
+                                  options={itineraryStatusOptions}
+                                  label={`Status de ${item.title || item.name || "atividade"}`}
+                                  compact
+                                />
+                              </div>
                             </div>
                             {time && (
                               <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium text-petrol">
