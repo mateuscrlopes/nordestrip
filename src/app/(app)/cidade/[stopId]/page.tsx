@@ -1,5 +1,6 @@
 import { RecordActions } from "@/components/actions/record-actions";
 import { RecordStatus, accommodationStatusOptions, itineraryStatusOptions, pendingStatusOptions, transportStatusOptions } from "@/components/actions/record-status";
+import { LuggagePlanEditor } from "@/components/logistics/luggage-plan-editor";
 import { getStopDetails, getTripCityCovers } from "@/lib/queries/trips";
 import { formatDate, formatDateTime, valueText } from "@/lib/utils/format";
 import {
@@ -7,7 +8,6 @@ import {
   CheckCircle2,
   Clock3,
   Hotel,
-  Luggage,
   MapPin,
   Plane,
 } from "lucide-react";
@@ -149,28 +149,18 @@ export default async function CityPage({
           <h2>Bagagem</h2>
         </div>
         <div className="luggage-grid">
-          <div className="luggage-item">
-            <Luggage size={17} />
-            <div>
-              <p>Na chegada</p>
-              <span>
-                {arrivalLuggage
-                  ? valueText(arrivalLuggage.notes) || valueText(arrivalLuggage.strategy) || "Estratégia registrada"
-                  : "Pendente"}
-              </span>
-            </div>
-          </div>
-          <div className="luggage-item">
-            <Luggage size={17} />
-            <div>
-              <p>Na saída</p>
-              <span>
-                {departureLuggage
-                  ? valueText(departureLuggage.notes) || valueText(departureLuggage.strategy) || "Estratégia registrada"
-                  : "Pendente"}
-              </span>
-            </div>
-          </div>
+          <LuggagePlanEditor
+            tripId={stop.trip_id}
+            stopId={stop.id}
+            phase="arrival"
+            plan={arrivalLuggage}
+          />
+          <LuggagePlanEditor
+            tripId={stop.trip_id}
+            stopId={stop.id}
+            phase="departure"
+            plan={departureLuggage}
+          />
         </div>
       </section>
 
