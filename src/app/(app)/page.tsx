@@ -123,7 +123,7 @@ export default async function HomePage() {
             <span className="brand-name">Nordestrip</span>
           </div>
 
-          <div className={`hero-caption mt-auto max-w-md pt-10 ${heroHasImage ? "hero-caption--image" : ""}`}>
+          <div className={`hero-caption mt-auto w-full pt-10 ${heroHasImage ? "hero-caption--image" : ""}`}>
             <p className={`text-[13px] font-medium ${heroHasImage ? "text-white/80" : "text-petrol/70"}`}>
               {tripDates || "Planejamento da viagem"}
             </p>
