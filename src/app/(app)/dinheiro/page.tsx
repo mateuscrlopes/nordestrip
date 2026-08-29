@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/layout/page-header";
+import { RecordStatus, expenseStatusOptions } from "@/components/actions/record-status";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
 import { getTripExpenses, getTripFinanceSummary } from "@/lib/queries/trips";
 import { formatDateTime, formatMoney } from "@/lib/utils/format";
@@ -119,7 +120,17 @@ export default async function MoneyPage() {
                       {expense.payment_method ? ` · ${paymentLabels[expense.payment_method] || expense.payment_method}` : ""}
                     </span>
                   </div>
-                  <strong>{formatMoney(expense.amount)}</strong>
+                  <div className="expense-row-actions">
+                    <strong>{formatMoney(expense.amount)}</strong>
+                    <RecordStatus
+                      table="expenses"
+                      id={expense.id}
+                      value={expense.status}
+                      options={expenseStatusOptions}
+                      label={`Status de ${expense.title}`}
+                      compact
+                    />
+                  </div>
                 </div>
               ))}
             </div>
