@@ -1,6 +1,7 @@
 import { RecordActions } from "@/components/actions/record-actions";
 import { RecordStatus, accommodationStatusOptions, itineraryStatusOptions, pendingStatusOptions, transportStatusOptions } from "@/components/actions/record-status";
 import { LuggagePlanEditor } from "@/components/logistics/luggage-plan-editor";
+import { AccommodationEditor } from "@/components/lodging/accommodation-editor";
 import { getStopDetails, getTripCityCovers } from "@/lib/queries/trips";
 import { formatDate, formatDateTime, valueText } from "@/lib/utils/format";
 import {
@@ -25,7 +26,7 @@ function scheduleLabel(scheduleType?: string | null, isAnchor?: boolean | null) 
 function transportLabel(mode?: unknown) {
   if (mode === "flight") return "Voo";
   if (mode === "bus") return "Ônibus";
-  if (mode === "car") return "Carro";
+  if (mode === "car" || mode === "car_rental") return "Carro alugado";
   if (mode === "transfer") return "Transfer";
   return valueText(mode) || "Deslocamento";
 }
@@ -100,6 +101,17 @@ export default async function CityPage({
                       ? formatDate(inbound.arrival_date)
                       : transportLabel(inbound.mode)}
                 </p>
+                {(inbound.destination_terminal_name || inbound.destination_terminal_address) && (
+                  <p className="mt-1 text-[12px] leading-5 text-muted">
+                    {[inbound.destination_terminal_name, inbound.destination_terminal_address].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+                {(inbound.has_checked_baggage || inbound.baggage_notes) && (
+                  <p className="mt-1 text-[12px] leading-5 text-muted">
+                    {inbound.has_checked_baggage ? "Bagagem incluída" : "Bagagem a confirmar"}
+                    {inbound.baggage_notes ? ` · ${String(inbound.baggage_notes)}` : ""}
+                  </p>
+                )}
                 <div className="mt-2 flex items-center gap-2">
                   <RecordStatus
                     table="transport_segments"
@@ -116,19 +128,41 @@ export default async function CityPage({
                     fields={[
                       { name: "origin_label", label: "Origem" },
                       { name: "destination_label", label: "Destino" },
-                      { name: "departure_date", label: "Data de saída", type: "date" },
-                      { name: "arrival_date", label: "Data de chegada", type: "date" },
+                      { name: "departure_at", label: "Saída exata", type: "datetime-local" },
+                      { name: "arrival_at", label: "Chegada exata", type: "datetime-local" },
+                      { name: "departure_date", label: "Data da saída, se horário pendente", type: "date" },
+                      { name: "arrival_date", label: "Data da chegada, se horário pendente", type: "date" },
+                      { name: "origin_terminal_name", label: "Terminal de saída" },
+                      { name: "origin_terminal_address", label: "Endereço da saída" },
+                      { name: "destination_terminal_name", label: "Terminal de chegada" },
+                      { name: "destination_terminal_address", label: "Endereço da chegada" },
                       { name: "operator", label: "Empresa" },
+                      { name: "service_class", label: "Classe" },
+                      { name: "booking_reference", label: "Localizador" },
                       { name: "amount", label: "Valor", type: "number", min: "0", step: "0.01" },
+                      { name: "source_url", label: "Link", type: "url" },
+                      { name: "has_checked_baggage", label: "Inclui bagagem despachada ou no bagageiro", type: "checkbox" },
+                      { name: "baggage_notes", label: "Bagagem", type: "textarea" },
                       { name: "notes", label: "Nota", type: "textarea" },
                     ]}
                     values={{
                       origin_label: inbound.origin_label ?? null,
                       destination_label: inbound.destination_label ?? city,
+                      departure_at: inbound.departure_at ?? null,
+                      arrival_at: inbound.arrival_at ?? null,
                       departure_date: inbound.departure_date ?? null,
                       arrival_date: inbound.arrival_date ?? null,
+                      origin_terminal_name: inbound.origin_terminal_name ?? null,
+                      origin_terminal_address: inbound.origin_terminal_address ?? null,
+                      destination_terminal_name: inbound.destination_terminal_name ?? null,
+                      destination_terminal_address: inbound.destination_terminal_address ?? null,
                       operator: inbound.operator ?? null,
+                      service_class: inbound.service_class ?? null,
+                      booking_reference: inbound.booking_reference ?? null,
                       amount: inbound.amount ?? null,
+                      source_url: inbound.source_url ?? null,
+                      has_checked_baggage: Boolean(inbound.has_checked_baggage),
+                      baggage_notes: inbound.baggage_notes ?? null,
                       notes: inbound.notes ?? null,
                     }}
                   />
@@ -177,6 +211,15 @@ export default async function CityPage({
                 {accommodationPlace?.address && (
                   <p className="mt-1 text-[12px] text-muted">{String(accommodationPlace.address)}</p>
                 )}
+                {(accommodation.check_in_date || accommodation.check_out_date || accommodation.check_in_from || accommodation.check_out_until) && (
+                  <p className="mt-1 text-[12px] leading-5 text-muted">
+                    {accommodation.check_in_date ? `Check-in ${formatDate(accommodation.check_in_date)}` : "Check-in pendente"}
+                    {accommodation.check_in_from ? ` a partir de ${String(accommodation.check_in_from).slice(0, 5)}` : ""}
+                    {" · "}
+                    {accommodation.check_out_date ? `Check-out ${formatDate(accommodation.check_out_date)}` : "Check-out pendente"}
+                    {accommodation.check_out_until ? ` até ${String(accommodation.check_out_until).slice(0, 5)}` : ""}
+                  </p>
+                )}
                 {accommodation.notes && (
                   <p className="mt-2 text-[12px] leading-5 text-muted">{String(accommodation.notes)}</p>
                 )}
@@ -189,24 +232,21 @@ export default async function CityPage({
                     label="Status da hospedagem"
                     compact
                   />
-                  <RecordActions
-                    table="accommodations"
-                    id={String(accommodation.id)}
-                    title={String(accommodation.name || "Hospedagem")}
-                    fields={[
-                      { name: "name", label: "Hospedagem", required: true },
-                      { name: "check_in_date", label: "Check-in", type: "date" },
-                      { name: "check_out_date", label: "Check-out", type: "date" },
-                      { name: "source_url", label: "Link", type: "url" },
-                      { name: "notes", label: "Nota", type: "textarea" },
-                    ]}
-                    values={{
-                      name: accommodation.name ?? "",
+                  <AccommodationEditor
+                    tripId={stop.trip_id}
+                    accommodation={{
+                      id: String(accommodation.id),
+                      name: String(accommodation.name || "Hospedagem"),
+                      accommodation_type: accommodation.accommodation_type ?? null,
+                      status: accommodation.status ?? null,
                       check_in_date: accommodation.check_in_date ?? null,
                       check_out_date: accommodation.check_out_date ?? null,
+                      check_in_from: accommodation.check_in_from ?? null,
+                      check_out_until: accommodation.check_out_until ?? null,
                       source_url: accommodation.source_url ?? null,
                       notes: accommodation.notes ?? null,
                     }}
+                    address={accommodationPlace?.address ? String(accommodationPlace.address) : null}
                   />
                 </div>
               </>
@@ -363,6 +403,17 @@ export default async function CityPage({
                       ? formatDate(outbound.departure_date)
                       : transportLabel(outbound.mode)}
                 </p>
+                {(outbound.origin_terminal_name || outbound.origin_terminal_address) && (
+                  <p className="mt-1 text-[12px] leading-5 text-muted">
+                    {[outbound.origin_terminal_name, outbound.origin_terminal_address].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+                {(outbound.has_checked_baggage || outbound.baggage_notes) && (
+                  <p className="mt-1 text-[12px] leading-5 text-muted">
+                    {outbound.has_checked_baggage ? "Bagagem incluída" : "Bagagem a confirmar"}
+                    {outbound.baggage_notes ? ` · ${String(outbound.baggage_notes)}` : ""}
+                  </p>
+                )}
                 <div className="mt-2 flex items-center gap-2">
                   <RecordStatus
                     table="transport_segments"
@@ -379,19 +430,41 @@ export default async function CityPage({
                     fields={[
                       { name: "origin_label", label: "Origem" },
                       { name: "destination_label", label: "Destino" },
-                      { name: "departure_date", label: "Data de saída", type: "date" },
-                      { name: "arrival_date", label: "Data de chegada", type: "date" },
+                      { name: "departure_at", label: "Saída exata", type: "datetime-local" },
+                      { name: "arrival_at", label: "Chegada exata", type: "datetime-local" },
+                      { name: "departure_date", label: "Data da saída, se horário pendente", type: "date" },
+                      { name: "arrival_date", label: "Data da chegada, se horário pendente", type: "date" },
+                      { name: "origin_terminal_name", label: "Terminal de saída" },
+                      { name: "origin_terminal_address", label: "Endereço da saída" },
+                      { name: "destination_terminal_name", label: "Terminal de chegada" },
+                      { name: "destination_terminal_address", label: "Endereço da chegada" },
                       { name: "operator", label: "Empresa" },
+                      { name: "service_class", label: "Classe" },
+                      { name: "booking_reference", label: "Localizador" },
                       { name: "amount", label: "Valor", type: "number", min: "0", step: "0.01" },
+                      { name: "source_url", label: "Link", type: "url" },
+                      { name: "has_checked_baggage", label: "Inclui bagagem despachada ou no bagageiro", type: "checkbox" },
+                      { name: "baggage_notes", label: "Bagagem", type: "textarea" },
                       { name: "notes", label: "Nota", type: "textarea" },
                     ]}
                     values={{
                       origin_label: outbound.origin_label ?? city,
                       destination_label: outbound.destination_label ?? null,
+                      departure_at: outbound.departure_at ?? null,
+                      arrival_at: outbound.arrival_at ?? null,
                       departure_date: outbound.departure_date ?? null,
                       arrival_date: outbound.arrival_date ?? null,
+                      origin_terminal_name: outbound.origin_terminal_name ?? null,
+                      origin_terminal_address: outbound.origin_terminal_address ?? null,
+                      destination_terminal_name: outbound.destination_terminal_name ?? null,
+                      destination_terminal_address: outbound.destination_terminal_address ?? null,
                       operator: outbound.operator ?? null,
+                      service_class: outbound.service_class ?? null,
+                      booking_reference: outbound.booking_reference ?? null,
                       amount: outbound.amount ?? null,
+                      source_url: outbound.source_url ?? null,
+                      has_checked_baggage: Boolean(outbound.has_checked_baggage),
+                      baggage_notes: outbound.baggage_notes ?? null,
                       notes: outbound.notes ?? null,
                     }}
                   />
