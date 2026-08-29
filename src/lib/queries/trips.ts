@@ -269,3 +269,38 @@ export async function getTripLuggagePlans(tripId: string): Promise<LuggagePlanSu
     "Não foi possível carregar os planos de bagagem"
   ) as LuggagePlanSummary[];
 }
+
+
+export async function getTripManualFund(tripId: string) {
+  const supabase = await createClient();
+  const links = await supabase
+    .from("trip_financial_accounts")
+    .select("financial_account_id,include_balance_in_available")
+    .eq("trip_id", tripId)
+    .eq("purpose", "trip_fund")
+    .is("archived_at", null);
+
+  if (links.error) throw new Error(`Não foi possível carregar o fundo manual: ${links.error.message}`);
+  if (!links.data?.length) return null;
+
+  const accountIds = links.data.map((link) => link.financial_account_id);
+  const accounts = await supabase
+    .from("financial_accounts")
+    .select("id,provider,display_name,current_balance,last_synced_at")
+    .in("id", accountIds)
+    .eq("provider", "manual")
+    .is("archived_at", null);
+
+  if (accounts.error) throw new Error(`Não foi possível carregar o saldo manual: ${accounts.error.message}`);
+
+  const account = accounts.data?.[0];
+  if (!account) return null;
+  const link = links.data.find((item) => item.financial_account_id === account.id);
+
+  return {
+    accountId: account.id,
+    balance: account.current_balance == null ? 0 : Number(account.current_balance),
+    enabled: Boolean(link?.include_balance_in_available),
+    lastSyncedAt: account.last_synced_at ?? null,
+  };
+}
