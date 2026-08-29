@@ -13,7 +13,8 @@ type RestorableTable =
   | "transport_segments"
   | "expenses"
   | "documents"
-  | "places";
+  | "places"
+  | "stops";
 
 export function RestoreRecord({
   table,
