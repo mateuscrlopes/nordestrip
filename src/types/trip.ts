@@ -137,3 +137,15 @@ export type TripFinanceSettings = {
   currency: string;
   updated_at?: string;
 };
+
+
+export type ChangeLogEntry = {
+  id: string;
+  trip_id: string;
+  user_id?: string | null;
+  entity_type: string;
+  entity_id?: string | null;
+  action: "create" | "update" | "archive" | "restore" | "reorder" | "structural_change";
+  summary: string;
+  created_at: string;
+};
