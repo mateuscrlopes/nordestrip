@@ -80,9 +80,10 @@ export default async function HomePage() {
 
   const today = dateKeyInTimeZone(new Date());
   const nextTransport = transports.find((item) =>
-    item.departure_at
+    item.status !== "cancelled"
+    && (item.departure_at
       ? new Date(item.departure_at) >= new Date()
-      : !item.departure_date || item.departure_date >= today
+      : !item.departure_date || item.departure_date >= today)
   );
 
   const tripDates = [formatDate(trip.start_date), formatDate(trip.end_date)].filter(Boolean).join(" — ");
