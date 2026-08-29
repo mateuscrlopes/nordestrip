@@ -114,6 +114,24 @@ export function ItineraryView({
     [luggageReadiness, stops]
   );
 
+  const unresolvedRouteConnections = useMemo(() => {
+    let unresolved = 0;
+
+    for (let index = 0; index < stops.length - 1; index += 1) {
+      const origin = stops[index];
+      const destination = stops[index + 1];
+      const connected = transports.some(
+        (transport) =>
+          transport.status !== "cancelled" &&
+          transport.origin_stop_id === origin.id &&
+          transport.destination_stop_id === destination.id
+      );
+      if (!connected) unresolved += 1;
+    }
+
+    return unresolved;
+  }, [stops, transports]);
+
   const orderReview = useMemo(() => {
     const position = new Map(draftStops.map((stop, index) => [stop.id, index]));
     const transportConflicts = transports.filter((transport) => {
@@ -211,6 +229,13 @@ export function ItineraryView({
             <div className="route-luggage-warning">
               <strong>Bagagem ainda impede fechar a rota em {luggageBlockedCities} {luggageBlockedCities === 1 ? "cidade" : "cidades"}</strong>
               <span>Confirme onde as malas ficam na chegada e na saída antes de considerar o trecho operacionalmente resolvido.</span>
+            </div>
+          )}
+
+          {unresolvedRouteConnections > 0 && !reordering && (
+            <div className="route-luggage-warning">
+              <strong>{unresolvedRouteConnections} {unresolvedRouteConnections === 1 ? "conexão entre cidades ainda está" : "conexões entre cidades ainda estão"} sem deslocamento definido</strong>
+              <span>Registre o transporte entre cidades vizinhas para fechar a sequência operacional da rota.</span>
             </div>
           )}
 
