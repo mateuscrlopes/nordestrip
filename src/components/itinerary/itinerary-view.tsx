@@ -2,6 +2,7 @@
 
 import { RecordActions } from "@/components/actions/record-actions";
 import { RecordStatus, itineraryStatusOptions } from "@/components/actions/record-status";
+import { RouteCityManager } from "@/components/itinerary/route-city-manager";
 import { createClient } from "@/lib/supabase/client";
 import { formatDate } from "@/lib/utils/format";
 import type { CityCover, ItineraryItem, PendingItem, Stop, Transport } from "@/types/trip";
@@ -202,10 +203,13 @@ export function ItineraryView({
                   </button>
                 </div>
               ) : (
-                <button type="button" className="route-edit-primary" onClick={startReordering}>
-                  <ListRestart size={15} />
-                  Reordenar
-                </button>
+                <div className="route-edit-actions">
+                  <RouteCityManager tripId={tripId} mode="add" />
+                  <button type="button" className="route-edit-primary" onClick={startReordering}>
+                    <ListRestart size={15} />
+                    Reordenar
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -262,49 +266,56 @@ export function ItineraryView({
                     {!isLast && <i />}
                   </div>
 
-                  <Link href={`/cidade/${stop.id}`} className="route-stop-card group">
-                    {cover ? (
-                      <div
-                        className="route-stop-image"
-                        style={{ backgroundImage: `url("${cover.image_url.replace(/"/g, "%22")}")` }}
-                      />
-                    ) : (
-                      <div className="route-stop-image route-stop-image--empty">
-                        <MapPin size={20} />
-                      </div>
-                    )}
-
-                    <div className="min-w-0 flex-1 py-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h2>{cityName(stop)}</h2>
-                          {(stop.start_date || stop.end_date) && (
-                            <p className="mt-1 text-[12px] text-muted">
-                              {formatDate(stop.start_date) || "Data pendente"}
-                              {stop.end_date ? ` — ${formatDate(stop.end_date)}` : ""}
-                            </p>
-                          )}
-                        </div>
-                        <ChevronRight size={18} className="mt-1 shrink-0 text-muted transition group-hover:translate-x-0.5" />
-                      </div>
-
-                      {(openPending > 0 || outbound) && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {openPending > 0 && (
-                            <span className="soft-chip soft-chip--sand">
-                              {openPending} {openPending === 1 ? "pendência" : "pendências"}
-                            </span>
-                          )}
-                          {outbound && (
-                            <span className="soft-chip">
-                              <ArrowRight size={12} />
-                              saída definida
-                            </span>
-                          )}
+                  <div className="route-stop-card-wrap">
+                    <Link href={`/cidade/${stop.id}`} className="route-stop-card group">
+                      {cover ? (
+                        <div
+                          className="route-stop-image"
+                          style={{ backgroundImage: `url("${cover.image_url.replace(/"/g, "%22")}")` }}
+                        />
+                      ) : (
+                        <div className="route-stop-image route-stop-image--empty">
+                          <MapPin size={20} />
                         </div>
                       )}
-                    </div>
-                  </Link>
+
+                      <div className="min-w-0 flex-1 py-1 pr-8">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h2>{cityName(stop)}</h2>
+                            {(stop.start_date || stop.end_date) && (
+                              <p className="mt-1 text-[12px] text-muted">
+                                {formatDate(stop.start_date) || "Data pendente"}
+                                {stop.end_date ? ` — ${formatDate(stop.end_date)}` : ""}
+                              </p>
+                            )}
+                          </div>
+                          <ChevronRight size={18} className="mt-1 shrink-0 text-muted transition group-hover:translate-x-0.5" />
+                        </div>
+
+                        {(openPending > 0 || outbound) && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {openPending > 0 && (
+                              <span className="soft-chip soft-chip--sand">
+                                {openPending} {openPending === 1 ? "pendência" : "pendências"}
+                              </span>
+                            )}
+                            {outbound && (
+                              <span className="soft-chip">
+                                <ArrowRight size={12} />
+                                saída definida
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                    {!reordering && (
+                      <div className="route-stop-manage">
+                        <RouteCityManager tripId={tripId} stop={stop} />
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
