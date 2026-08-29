@@ -5,11 +5,17 @@ import { getTripPlaces, getTripStops, getTripTransports } from "@/lib/queries/tr
 import type { Transport } from "@/types/trip";
 import { ExternalLink, MapPin, Navigation } from "lucide-react";
 
-function mapsUrl(latitude: unknown, longitude: unknown, address?: unknown) {
-  const lat = typeof latitude === "number" ? latitude : Number(latitude);
-  const lng = typeof longitude === "number" ? longitude : Number(longitude);
+function coordinateValue(value: unknown) {
+  if (value == null || value === "") return null;
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
-  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+function mapsUrl(latitude: unknown, longitude: unknown, address?: unknown) {
+  const lat = coordinateValue(latitude);
+  const lng = coordinateValue(longitude);
+
+  if (lat != null && lng != null) {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`;
   }
 
@@ -21,7 +27,7 @@ function mapsUrl(latitude: unknown, longitude: unknown, address?: unknown) {
 }
 
 function hasCoordinates(latitude: unknown, longitude: unknown) {
-  return Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude));
+  return coordinateValue(latitude) != null && coordinateValue(longitude) != null;
 }
 
 type OperationalLocation = {
