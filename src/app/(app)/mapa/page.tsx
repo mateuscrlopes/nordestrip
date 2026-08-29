@@ -1,7 +1,8 @@
 import { RecordActions } from "@/components/actions/record-actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
-import { getTripPlaces, getTripStops } from "@/lib/queries/trips";
+import { getTripPlaces, getTripStops, getTripTransports } from "@/lib/queries/trips";
+import type { Transport } from "@/types/trip";
 import { ExternalLink, MapPin, Navigation } from "lucide-react";
 
 function mapsUrl(latitude: unknown, longitude: unknown, address?: unknown) {
@@ -23,12 +24,55 @@ function hasCoordinates(latitude: unknown, longitude: unknown) {
   return Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude));
 }
 
+type OperationalLocation = {
+  id: string;
+  name: string;
+  address: string | null;
+  route: string;
+  kind: "Terminal de saída" | "Terminal de chegada";
+  searchQuery: string;
+};
+
+function transportLocations(transports: Transport[]): OperationalLocation[] {
+  return transports.flatMap((transport) => {
+    const route = [transport.origin_label, transport.destination_label].filter(Boolean).join(" → ") || "Deslocamento";
+    const rows: OperationalLocation[] = [];
+
+    if (transport.origin_terminal_name || transport.origin_terminal_address) {
+      const name = transport.origin_terminal_name || `Saída em ${transport.origin_label || "terminal"}`;
+      rows.push({
+        id: `${transport.id}-origin`,
+        name,
+        address: transport.origin_terminal_address || null,
+        route,
+        kind: "Terminal de saída",
+        searchQuery: [name, transport.origin_label].filter(Boolean).join(", "),
+      });
+    }
+
+    if (transport.destination_terminal_name || transport.destination_terminal_address) {
+      const name = transport.destination_terminal_name || `Chegada em ${transport.destination_label || "terminal"}`;
+      rows.push({
+        id: `${transport.id}-destination`,
+        name,
+        address: transport.destination_terminal_address || null,
+        route,
+        kind: "Terminal de chegada",
+        searchQuery: [name, transport.destination_label].filter(Boolean).join(", "),
+      });
+    }
+
+    return rows;
+  });
+}
+
 export default async function MapPage() {
   const { trip } = await getCurrentTrip();
-  const [places, stops] = trip
-    ? await Promise.all([getTripPlaces(trip.id), getTripStops(trip.id)])
-    : [[], []];
+  const [places, stops, transports] = trip
+    ? await Promise.all([getTripPlaces(trip.id), getTripStops(trip.id), getTripTransports(trip.id)])
+    : [[], [], []];
 
+  const operationalLocations = transportLocations(transports);
   const located = places.filter((place) => hasCoordinates(place.latitude, place.longitude) || Boolean(place.address));
   const references = places.filter((place) => !hasCoordinates(place.latitude, place.longitude) && !place.address);
 
@@ -66,6 +110,50 @@ export default async function MapPage() {
             </div>
           </div>
         </section>
+
+        {operationalLocations.length > 0 && (
+          <section>
+            <div className="section-heading">
+              <h2>Locais operacionais</h2>
+            </div>
+            <div className="place-list">
+              {operationalLocations.map((location) => {
+                const url = mapsUrl(
+                  null,
+                  null,
+                  location.address || location.searchQuery,
+                );
+
+                return (
+                  <div key={location.id} className="place-row">
+                    <span className="operational-icon operational-icon--light"><Navigation size={17} /></span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold">{location.name}</p>
+                      <p className="mt-1 text-[12px] leading-5 text-muted">{location.route}</p>
+                      {location.address ? (
+                        <p className="mt-1 text-[12px] leading-5 text-muted">{location.address}</p>
+                      ) : (
+                        <span className="place-location-chip">Endereço pendente</span>
+                      )}
+                      <span className="place-location-chip">{location.kind}</span>
+                    </div>
+                    {url && (
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={`Abrir ${location.name} no mapa`}
+                        className="map-external-link"
+                      >
+                        <ExternalLink size={16} />
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         <section>
           <div className="section-heading">
