@@ -12,13 +12,14 @@ const links = [
   { href: "/mais", label: "Mais", icon: Menu },
 ];
 
-export function BottomNav() {
+export function BottomNav({ action }: { action?: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 pb-[max(.45rem,env(safe-area-inset-bottom))]">
-      <nav className="pointer-events-auto mx-auto max-w-[610px] rounded-[24px] border border-petrol/8 bg-surface px-2 py-1.5 shadow-[0_10px_28px_rgba(23,40,46,.10)]" aria-label="Navegação principal">
-        <div className="grid grid-cols-5 gap-1">
+      <div className="pointer-events-auto mx-auto flex max-w-[650px] items-center rounded-[24px] border border-petrol/8 bg-surface p-1.5 shadow-[0_10px_28px_rgba(23,40,46,.10)]">
+        <nav className="min-w-0 flex-1" aria-label="Navegação principal">
+          <div className="grid grid-cols-5 gap-1">
           {links.map(({ href, label, icon: Icon }) => {
             const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
 
@@ -34,8 +35,14 @@ export function BottomNav() {
               </Link>
             );
           })}
-        </div>
-      </nav>
+          </div>
+        </nav>
+        {action && (
+          <div className="ml-1 flex h-[48px] w-[50px] shrink-0 items-center justify-center border-l border-petrol/8 pl-1">
+            {action}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
