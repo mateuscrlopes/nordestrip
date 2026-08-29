@@ -5,7 +5,7 @@ import { RecordStatus, itineraryStatusOptions } from "@/components/actions/recor
 import { RouteCityManager } from "@/components/itinerary/route-city-manager";
 import { createClient } from "@/lib/supabase/client";
 import { formatDate } from "@/lib/utils/format";
-import type { CityCover, ItineraryItem, PendingItem, Stop, Transport } from "@/types/trip";
+import type { CityCover, ItineraryItem, LuggagePlanSummary, PendingItem, Stop, Transport } from "@/types/trip";
 import {
   ArrowDown,
   ArrowRight,
@@ -46,6 +46,7 @@ export function ItineraryView({
   pending,
   transports,
   covers,
+  luggagePlans,
 }: {
   tripId: string;
   stops: Stop[];
@@ -53,6 +54,7 @@ export function ItineraryView({
   pending: PendingItem[];
   transports: Transport[];
   covers: CityCover[];
+  luggagePlans: LuggagePlanSummary[];
 }) {
   const router = useRouter();
   const [view, setView] = useState<"cities" | "days">("cities");
@@ -84,6 +86,33 @@ export function ItineraryView({
 
   const displayStops = reordering ? draftStops : stops;
   const changedStops = draftStops.filter((stop, index) => stops[index]?.id !== stop.id).length;
+
+  const luggageReadiness = useMemo(() => {
+    const safeStatuses = new Set(["confirmed", "not_needed"]);
+    const byStop = new Map<string, { arrival: boolean; departure: boolean; unavailable: boolean }>();
+
+    for (const stop of stops) {
+      byStop.set(stop.id, { arrival: false, departure: false, unavailable: false });
+    }
+
+    for (const plan of luggagePlans) {
+      const current = byStop.get(plan.stop_id);
+      if (!current) continue;
+      if (plan.status === "unavailable") current.unavailable = true;
+      if (plan.phase === "arrival" && safeStatuses.has(plan.status || "")) current.arrival = true;
+      if (plan.phase === "departure" && safeStatuses.has(plan.status || "")) current.departure = true;
+    }
+
+    return byStop;
+  }, [luggagePlans, stops]);
+
+  const luggageBlockedCities = useMemo(
+    () => stops.filter((stop) => {
+      const readiness = luggageReadiness.get(stop.id);
+      return !readiness || !readiness.arrival || !readiness.departure || readiness.unavailable;
+    }).length,
+    [luggageReadiness, stops]
+  );
 
   const orderReview = useMemo(() => {
     const position = new Map(draftStops.map((stop, index) => [stop.id, index]));
@@ -177,6 +206,13 @@ export function ItineraryView({
 
       {view === "cities" ? (
         <>
+          {luggageBlockedCities > 0 && !reordering && (
+            <div className="route-luggage-warning">
+              <strong>Bagagem ainda impede fechar a rota em {luggageBlockedCities} {luggageBlockedCities === 1 ? "cidade" : "cidades"}</strong>
+              <span>Confirme onde as malas ficam na chegada e na saída antes de considerar o trecho operacionalmente resolvido.</span>
+            </div>
+          )}
+
           {stops.length > 1 && (
             <div className="route-edit-bar">
               <div>
@@ -257,6 +293,9 @@ export function ItineraryView({
               const cover = coverByStop.get(stop.id);
               const openPending = pending.filter((item) => item.stop_id === stop.id).length;
               const outbound = transports.find((item) => item.origin_stop_id === stop.id);
+              const luggage = luggageReadiness.get(stop.id);
+              const luggageUnavailable = Boolean(luggage?.unavailable);
+              const luggageSafe = Boolean(luggage?.arrival && luggage?.departure && !luggageUnavailable);
               const isLast = index === displayStops.length - 1;
 
               return (
@@ -293,21 +332,22 @@ export function ItineraryView({
                           <ChevronRight size={18} className="mt-1 shrink-0 text-muted transition group-hover:translate-x-0.5" />
                         </div>
 
-                        {(openPending > 0 || outbound) && (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {openPending > 0 && (
-                              <span className="soft-chip soft-chip--sand">
-                                {openPending} {openPending === 1 ? "pendência" : "pendências"}
-                              </span>
-                            )}
-                            {outbound && (
-                              <span className="soft-chip">
-                                <ArrowRight size={12} />
-                                saída definida
-                              </span>
-                            )}
-                          </div>
-                        )}
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {openPending > 0 && (
+                            <span className="soft-chip soft-chip--sand">
+                              {openPending} {openPending === 1 ? "pendência" : "pendências"}
+                            </span>
+                          )}
+                          {outbound && (
+                            <span className="soft-chip">
+                              <ArrowRight size={12} />
+                              saída definida
+                            </span>
+                          )}
+                          <span className={luggageSafe ? "soft-chip" : "soft-chip soft-chip--sand"}>
+                            {luggageUnavailable ? "bagagem indisponível" : luggageSafe ? "bagagem confirmada" : "bagagem pendente"}
+                          </span>
+                        </div>
                       </div>
                     </Link>
                     {!reordering && (
