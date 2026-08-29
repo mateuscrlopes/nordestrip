@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   ChevronRight,
   ClipboardList,
-  Route,
   TicketCheck,
 } from "lucide-react";
 import Link from "next/link";
@@ -155,7 +154,7 @@ export default async function HomePage() {
               </span>
             </div>
 
-            <div className="mt-7 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-white/78">
+            <div className="mt-7 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-white/80">
               {nextTransport.departure_at ? (
                 <span>{formatDateTime(nextTransport.departure_at)}</span>
               ) : nextTransport.departure_date ? (
