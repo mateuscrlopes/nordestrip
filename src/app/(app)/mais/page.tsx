@@ -4,8 +4,9 @@ import { PageHeader } from "@/components/layout/page-header";
 import { RecordStatus, pendingStatusOptions, reservationStatusOptions } from "@/components/actions/record-status";
 import { LogoutButton } from "@/components/navigation/logout-button";
 import { PendingItemCreator } from "@/components/pending/pending-item-creator";
+import { TripSettingsEditor } from "@/components/settings/trip-settings-editor";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
-import { getTripArchivedRecords, getTripMoreData, getTripPendingItems, getTripStops } from "@/lib/queries/trips";
+import { getTripArchivedRecords, getTripFinanceSettings, getTripMoreData, getTripPendingItems, getTripPreferences, getTripStops } from "@/lib/queries/trips";
 import { formatDateTime, formatMoney } from "@/lib/utils/format";
 import {
   ChevronRight,
@@ -50,14 +51,16 @@ const priorityLabel: Record<string, string> = {
 
 export default async function MorePage() {
   const { trip } = await getCurrentTrip();
-  const [pending, more, archived, stops] = trip
+  const [pending, more, archived, stops, preferences, financeSettings] = trip
     ? await Promise.all([
         getTripPendingItems(trip.id),
         getTripMoreData(trip.id),
         getTripArchivedRecords(trip.id),
         getTripStops(trip.id),
+        getTripPreferences(trip.id),
+        getTripFinanceSettings(trip.id),
       ])
-    : [[], { reservations: [], documents: [], members: [], integrations: [] }, [], []];
+    : [[], { reservations: [], documents: [], members: [], integrations: [] }, [], [], null, null];
 
   const stopById = new Map(stops.map((stop) => [stop.id, stop.city || stop.name || "Cidade"]));
 
@@ -347,8 +350,16 @@ export default async function MorePage() {
                 </span>
                 <ChevronRight size={17} className="settings-chevron" />
               </summary>
-              <div className="settings-detail">
-                Ritmo, bagagem, orçamento, alertas e outras preferências serão organizados nesta área.
+              <div className="settings-detail settings-detail--wide">
+                {trip ? (
+                  <TripSettingsEditor
+                    tripId={trip.id}
+                    preferences={preferences}
+                    finance={financeSettings}
+                  />
+                ) : (
+                  "Nenhuma viagem ativa para configurar."
+                )}
               </div>
             </details>
           </div>
