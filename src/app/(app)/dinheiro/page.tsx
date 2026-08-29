@@ -1,3 +1,4 @@
+import { RecordActions } from "@/components/actions/record-actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { RecordStatus, expenseStatusOptions } from "@/components/actions/record-status";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
@@ -122,14 +123,48 @@ export default async function MoneyPage() {
                   </div>
                   <div className="expense-row-actions">
                     <strong>{formatMoney(expense.amount)}</strong>
-                    <RecordStatus
-                      table="expenses"
-                      id={expense.id}
-                      value={expense.status}
-                      options={expenseStatusOptions}
-                      label={`Status de ${expense.title}`}
-                      compact
-                    />
+                    <div className="flex items-center gap-2">
+                      <RecordStatus
+                        table="expenses"
+                        id={expense.id}
+                        value={expense.status}
+                        options={expenseStatusOptions}
+                        label={`Status de ${expense.title}`}
+                        compact
+                      />
+                      <RecordActions
+                        table="expenses"
+                        id={expense.id}
+                        title={expense.title}
+                        fields={[
+                          { name: "title", label: "Descrição", required: true },
+                          { name: "amount", label: "Valor", type: "number", required: true, min: "0", step: "0.01" },
+                          {
+                            name: "payment_method",
+                            label: "Pagamento",
+                            type: "select",
+                            options: [
+                              { value: "trip_fund", label: "Fundo da viagem" },
+                              { value: "credit_card", label: "Cartão de crédito" },
+                              { value: "debit_card", label: "Cartão de débito" },
+                              { value: "pix", label: "Pix" },
+                              { value: "cash", label: "Dinheiro" },
+                              { value: "personal_account", label: "Conta pessoal" },
+                              { value: "other", label: "Outro" },
+                            ],
+                          },
+                          { name: "occurred_at", label: "Quando", type: "datetime-local" },
+                          { name: "notes", label: "Nota", type: "textarea" },
+                        ]}
+                        values={{
+                          title: expense.title,
+                          amount: expense.amount,
+                          payment_method: expense.payment_method ?? null,
+                          occurred_at: expense.occurred_at,
+                          notes: expense.notes ?? null,
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               ))}
