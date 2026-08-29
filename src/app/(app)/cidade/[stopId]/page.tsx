@@ -4,7 +4,6 @@ import { formatDate, formatDateTime, valueText } from "@/lib/utils/format";
 import {
   ArrowRight,
   CheckCircle2,
-  ChevronRight,
   Clock3,
   Hotel,
   Luggage,
