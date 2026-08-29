@@ -194,3 +194,65 @@ export async function getTripChangeLog(tripId: string, limit = 30): Promise<Chan
     "Não foi possível carregar o histórico de alterações"
   ) as ChangeLogEntry[];
 }
+
+
+export async function getTripParticipants(tripId: string, currentUserId: string) {
+  const supabase = await createClient();
+
+  const [membership, members] = await Promise.all([
+    supabase
+      .from("trip_members")
+      .select("id,user_id,role,default_split_percentage,created_at")
+      .eq("trip_id", tripId)
+      .eq("user_id", currentUserId)
+      .maybeSingle(),
+    supabase
+      .from("trip_members")
+      .select("id,user_id,role,default_split_percentage,created_at")
+      .eq("trip_id", tripId)
+      .order("created_at"),
+  ]);
+
+  if (membership.error) throw new Error(`Não foi possível carregar seu acesso: ${membership.error.message}`);
+  if (members.error) throw new Error(`Não foi possível carregar os participantes: ${members.error.message}`);
+
+  const userIds = (members.data ?? []).map((member) => member.user_id);
+  const profiles = userIds.length
+    ? await supabase.from("profiles").select("id,name,avatar_url").in("id", userIds)
+    : { data: [], error: null };
+
+  if (profiles.error) throw new Error(`Não foi possível carregar os perfis: ${profiles.error.message}`);
+
+  const profileById = new Map((profiles.data ?? []).map((profile) => [profile.id, profile]));
+
+  let invites: Record<string, unknown>[] = [];
+  if (membership.data?.role === "owner") {
+    const inviteResult = await supabase
+      .from("trip_invites")
+      .select("id,email,role,status,expires_at,created_at")
+      .eq("trip_id", tripId)
+      .in("status", ["pending", "expired"])
+      .order("created_at", { ascending: false });
+
+    if (inviteResult.error) throw new Error(`Não foi possível carregar os convites: ${inviteResult.error.message}`);
+    invites = inviteResult.data ?? [];
+  }
+
+  return {
+    currentRole: membership.data?.role ?? "member",
+    members: (members.data ?? []).map((member) => {
+      const profile = profileById.get(member.user_id);
+      return {
+        id: member.id,
+        userId: member.user_id,
+        name: profile?.name || "Participante",
+        avatarUrl: profile?.avatar_url || null,
+        role: member.role,
+        defaultSplitPercentage: member.default_split_percentage == null
+          ? null
+          : Number(member.default_split_percentage),
+      };
+    }),
+    invites,
+  };
+}
