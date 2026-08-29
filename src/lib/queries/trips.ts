@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { CityCover, Expense, FinanceSummary, ItineraryItem, PendingItem, Stop, Transport, Trip } from "@/types/trip";
+import type { CityCover, Expense, FinanceSummary, ItineraryItem, PendingItem, Stop, Transport, Trip, TripFinanceSettings, TripPreferences } from "@/types/trip";
 
 function checked<T>(result: { data: T | null; error: { message: string } | null }, context: string): T {
   if (result.error) throw new Error(`${context}: ${result.error.message}`);
@@ -162,4 +162,21 @@ export async function getTripArchivedRecords(tripId: string) {
   ];
 
   return rows.sort((a, b) => String(b.archived_at).localeCompare(String(a.archived_at)));
+}
+
+
+export async function getTripPreferences(tripId: string): Promise<TripPreferences | null> {
+  const supabase = await createClient();
+  return checked(
+    await supabase.from("trip_preferences").select("*").eq("trip_id", tripId).maybeSingle(),
+    "Não foi possível carregar as preferências da viagem"
+  ) as TripPreferences | null;
+}
+
+export async function getTripFinanceSettings(tripId: string): Promise<TripFinanceSettings | null> {
+  const supabase = await createClient();
+  return checked(
+    await supabase.from("trip_finance_settings").select("*").eq("trip_id", tripId).maybeSingle(),
+    "Não foi possível carregar as configurações financeiras"
+  ) as TripFinanceSettings | null;
 }
