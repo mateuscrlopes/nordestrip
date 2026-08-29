@@ -6,7 +6,7 @@ import { LogoutButton } from "@/components/navigation/logout-button";
 import { PendingItemCreator } from "@/components/pending/pending-item-creator";
 import { TripSettingsEditor } from "@/components/settings/trip-settings-editor";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
-import { getTripArchivedRecords, getTripFinanceSettings, getTripMoreData, getTripPendingItems, getTripPreferences, getTripStops } from "@/lib/queries/trips";
+import { getTripArchivedRecords, getTripChangeLog, getTripFinanceSettings, getTripMoreData, getTripPendingItems, getTripPreferences, getTripStops } from "@/lib/queries/trips";
 import { formatDateTime, formatMoney } from "@/lib/utils/format";
 import {
   ChevronRight,
@@ -49,9 +49,18 @@ const priorityLabel: Record<string, string> = {
   high: "Alta",
 };
 
+const changeActionLabel: Record<string, string> = {
+  create: "Adicionado",
+  update: "Atualizado",
+  archive: "Arquivado",
+  restore: "Restaurado",
+  reorder: "Rota reorganizada",
+  structural_change: "Estrutura alterada",
+};
+
 export default async function MorePage() {
   const { trip } = await getCurrentTrip();
-  const [pending, more, archived, stops, preferences, financeSettings] = trip
+  const [pending, more, archived, stops, preferences, financeSettings, changes] = trip
     ? await Promise.all([
         getTripPendingItems(trip.id),
         getTripMoreData(trip.id),
@@ -59,8 +68,9 @@ export default async function MorePage() {
         getTripStops(trip.id),
         getTripPreferences(trip.id),
         getTripFinanceSettings(trip.id),
+        getTripChangeLog(trip.id),
       ])
-    : [[], { reservations: [], documents: [], members: [], integrations: [] }, [], [], null, null];
+    : [[], { reservations: [], documents: [], members: [], integrations: [] }, [], [], null, null, []];
 
   const stopById = new Map(stops.map((stop) => [stop.id, stop.city || stop.name || "Cidade"]));
 
@@ -317,27 +327,49 @@ export default async function MorePage() {
                 </span>
                 <ChevronRight size={17} className="settings-chevron" />
               </summary>
-              <div className="settings-detail">
-                {archived.length ? (
-                  <div className="archive-list">
-                    {archived.map((item) => (
-                      <div key={`${item.table}-${item.id}`} className="archive-row">
-                        <div className="min-w-0 flex-1">
-                          <span>{item.type}</span>
-                          <strong>{item.label}</strong>
-                          {item.archived_at && <small>Arquivado em {formatDateTime(item.archived_at)}</small>}
+              <div className="settings-detail settings-detail--wide">
+                {changes.length > 0 && (
+                  <div className="change-log-block">
+                    <p className="change-log-title">Alterações recentes</p>
+                    <div className="change-log-list">
+                      {changes.map((change) => (
+                        <div key={change.id} className="change-log-row">
+                          <span className="change-log-dot" aria-hidden="true" />
+                          <div className="min-w-0 flex-1">
+                            <strong>{change.summary}</strong>
+                            <small>
+                              {changeActionLabel[change.action] || change.action} · {formatDateTime(change.created_at)}
+                            </small>
+                          </div>
                         </div>
-                        <RestoreRecord
-                          table={item.table}
-                          id={item.id}
-                          label={item.label}
-                        />
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                ) : (
-                  "Itens arquivados aparecem aqui e podem ser restaurados sem perda de dados."
                 )}
+
+                <div className={changes.length ? "archive-block archive-block--separated" : "archive-block"}>
+                  <p className="change-log-title">Arquivados</p>
+                  {archived.length ? (
+                    <div className="archive-list">
+                      {archived.map((item) => (
+                        <div key={`${item.table}-${item.id}`} className="archive-row">
+                          <div className="min-w-0 flex-1">
+                            <span>{item.type}</span>
+                            <strong>{item.label}</strong>
+                            {item.archived_at && <small>Arquivado em {formatDateTime(item.archived_at)}</small>}
+                          </div>
+                          <RestoreRecord
+                            table={item.table}
+                            id={item.id}
+                            label={item.label}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="archive-empty">Nenhum item arquivado. Itens arquivados podem ser restaurados sem perda de dados.</p>
+                  )}
+                </div>
               </div>
             </details>
 
