@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color: #17282e; background: #f7f3ec; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: #f7f3ec; color: #17282e; font-family: Arial, Helvetica, sans-serif; -webkit-font-smoothing: antialiased; }
+button, input { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+.eyebrow { color: #70787a; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.section-title { font-size: 1.35rem; font-weight: 650; letter-spacing: -.025em; }
+.card { border: 1px solid rgba(18,56,68,.07); border-radius: 22px; background: #fffdfc; box-shadow: 0 8px 28px rgba(23,40,46,.04); }
