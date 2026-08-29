@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { RecordStatus, pendingStatusOptions, reservationStatusOptions } from "@/components/actions/record-status";
 import { LogoutButton } from "@/components/navigation/logout-button";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
-import { getTripArchivedRecords, getTripMoreData, getTripPendingItems } from "@/lib/queries/trips";
+import { getTripArchivedRecords, getTripMoreData, getTripPendingItems, getTripStops } from "@/lib/queries/trips";
 import { formatDateTime, formatMoney } from "@/lib/utils/format";
 import {
   ChevronRight,
@@ -41,15 +41,24 @@ function IntegrationSummary({
   return <>{parts.join(" · ")}</>;
 }
 
+const priorityLabel: Record<string, string> = {
+  low: "Baixa",
+  medium: "Média",
+  high: "Alta",
+};
+
 export default async function MorePage() {
   const { trip } = await getCurrentTrip();
-  const [pending, more, archived] = trip
+  const [pending, more, archived, stops] = trip
     ? await Promise.all([
         getTripPendingItems(trip.id),
         getTripMoreData(trip.id),
         getTripArchivedRecords(trip.id),
+        getTripStops(trip.id),
       ])
-    : [[], { reservations: [], documents: [], members: [], integrations: [] }, []];
+    : [[], { reservations: [], documents: [], members: [], integrations: [] }, [], []];
+
+  const stopById = new Map(stops.map((stop) => [stop.id, stop.city || stop.name || "Cidade"]));
 
   return (
     <>
@@ -203,47 +212,61 @@ export default async function MorePage() {
               <div className="settings-detail">
                 {pending.length ? (
                   <div className="pending-manage-list">
-                    {pending.map((item) => (
-                      <div key={item.id} className="pending-manage-row">
-                        <span>{item.title}</span>
-                        <div className="flex items-center gap-2">
-                          <RecordStatus
-                            table="pending_items"
-                            id={item.id}
-                            value={item.status}
-                            options={pendingStatusOptions}
-                            label={`Status de ${item.title}`}
-                            compact
-                          />
-                          <RecordActions
-                            table="pending_items"
-                            id={item.id}
-                            title={item.title}
-                            fields={[
-                              { name: "title", label: "Pendência", required: true },
-                              { name: "description", label: "Descrição", type: "textarea" },
-                              { name: "due_at", label: "Prazo", type: "datetime-local" },
-                              {
-                                name: "priority",
-                                label: "Prioridade",
-                                type: "select",
-                                options: [
-                                  { value: "low", label: "Baixa" },
-                                  { value: "medium", label: "Média" },
-                                  { value: "high", label: "Alta" },
-                                ],
-                              },
-                            ]}
-                            values={{
-                              title: item.title,
-                              description: item.description ?? null,
-                              due_at: item.due_at ?? null,
-                              priority: item.priority ?? "medium",
-                            }}
-                          />
+                    {pending.map((item) => {
+                      const city = item.stop_id ? stopById.get(item.stop_id) : null;
+                      const priority = item.priority || "medium";
+
+                      return (
+                        <div key={item.id} className="pending-manage-row">
+                          <div className="min-w-0 flex-1">
+                            <strong className="pending-manage-title">{item.title}</strong>
+                            <div className="pending-meta">
+                              {city && <span>{city}</span>}
+                              {item.due_at && <span>Prazo {formatDateTime(item.due_at)}</span>}
+                              <span className={`pending-priority pending-priority--${priority}`}>
+                                {priorityLabel[priority] || priority}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <RecordStatus
+                              table="pending_items"
+                              id={item.id}
+                              value={item.status}
+                              options={pendingStatusOptions}
+                              label={`Status de ${item.title}`}
+                              compact
+                            />
+                            <RecordActions
+                              table="pending_items"
+                              id={item.id}
+                              title={item.title}
+                              fields={[
+                                { name: "title", label: "Pendência", required: true },
+                                { name: "description", label: "Descrição", type: "textarea" },
+                                { name: "due_at", label: "Prazo", type: "datetime-local" },
+                                {
+                                  name: "priority",
+                                  label: "Prioridade",
+                                  type: "select",
+                                  options: [
+                                    { value: "low", label: "Baixa" },
+                                    { value: "medium", label: "Média" },
+                                    { value: "high", label: "Alta" },
+                                  ],
+                                },
+                              ]}
+                              values={{
+                                title: item.title,
+                                description: item.description ?? null,
+                                due_at: item.due_at ?? null,
+                                priority,
+                              }}
+                            />
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   "Nenhuma pendência aberta."
