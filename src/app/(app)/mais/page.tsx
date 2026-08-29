@@ -1,6 +1,7 @@
 import { RecordActions } from "@/components/actions/record-actions";
 import { RestoreRecord } from "@/components/actions/restore-record";
 import { PageHeader } from "@/components/layout/page-header";
+import { IntegrationCatalog } from "@/components/integrations/integration-catalog";
 import { RecordStatus, pendingStatusOptions, reservationStatusOptions } from "@/components/actions/record-status";
 import { LogoutButton } from "@/components/navigation/logout-button";
 import { PendingItemCreator } from "@/components/pending/pending-item-creator";
@@ -333,8 +334,8 @@ export default async function MorePage() {
                 </span>
                 <ChevronRight size={17} className="settings-chevron" />
               </summary>
-              <div className="settings-detail">
-                Mercado Pago, Santander, hospedagem, transporte e mapas aparecem aqui conforme forem configurados.
+              <div className="settings-detail settings-detail--wide">
+                <IntegrationCatalog connections={more.integrations} />
               </div>
             </details>
 
