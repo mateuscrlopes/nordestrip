@@ -2,8 +2,8 @@ import { RecordActions } from "@/components/actions/record-actions";
 import { RecordStatus, accommodationStatusOptions, itineraryStatusOptions, pendingStatusOptions, transportStatusOptions } from "@/components/actions/record-status";
 import { LuggagePlanEditor } from "@/components/logistics/luggage-plan-editor";
 import { AccommodationEditor } from "@/components/lodging/accommodation-editor";
-import { getStopDetails, getTripCityCovers } from "@/lib/queries/trips";
-import { formatDate, formatDateTime, valueText } from "@/lib/utils/format";
+import { getStopDetails, getTripCityCovers, getTripPreferences } from "@/lib/queries/trips";
+import { formatDate, formatDateTime, formatTime, valueText } from "@/lib/utils/format";
 import {
   ArrowRight,
   CheckCircle2,
@@ -57,7 +57,10 @@ export default async function CityPage({
     outbound,
   } = data;
 
-  const covers = await getTripCityCovers(stop.trip_id);
+  const [covers, preferences] = await Promise.all([
+    getTripCityCovers(stop.trip_id),
+    getTripPreferences(stop.trip_id),
+  ]);
   const cover = covers.find((item) => item.stop_id === stop.id);
   const city = stop.city || stop.name || "Cidade";
   const accommodationPlace =
@@ -68,6 +71,16 @@ export default async function CityPage({
         backgroundImage: `linear-gradient(180deg, rgba(7,28,35,.08), rgba(7,28,35,.72)), url("${cover.image_url.replace(/"/g, "%22")}")`,
       }
     : undefined;
+
+  const departureBufferMinutes = outbound
+    ? outbound.mode === "flight"
+      ? preferences?.airport_buffer_minutes ?? 120
+      : preferences?.terminal_buffer_minutes ?? 45
+    : null;
+  const terminalDeadline = outbound?.departure_at && departureBufferMinutes != null
+    ? new Date(new Date(outbound.departure_at).getTime() - departureBufferMinutes * 60_000).toISOString()
+    : null;
+  const departureCheckpoint = outbound?.mode === "flight" ? "aeroporto" : "terminal";
 
   return (
     <div className="space-y-7">
@@ -407,6 +420,12 @@ export default async function CityPage({
                   <p className="mt-1 text-[12px] leading-5 text-muted">
                     {[outbound.origin_terminal_name, outbound.origin_terminal_address].filter(Boolean).join(" · ")}
                   </p>
+                )}
+                {terminalDeadline && departureBufferMinutes != null && (
+                  <div className="departure-deadline">
+                    <strong>Estar no {departureCheckpoint} até {formatTime(terminalDeadline)}</strong>
+                    <span>{departureBufferMinutes} min de folga antes da saída. O tempo de trajeto até lá ainda não está incluído.</span>
+                  </div>
                 )}
                 {(outbound.has_checked_baggage || outbound.baggage_notes) && (
                   <p className="mt-1 text-[12px] leading-5 text-muted">
