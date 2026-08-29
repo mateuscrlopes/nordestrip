@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/layout/page-header";
+import { RecordStatus, pendingStatusOptions, reservationStatusOptions } from "@/components/actions/record-status";
 import { LogoutButton } from "@/components/navigation/logout-button";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
 import { getTripMoreData, getTripPendingItems } from "@/lib/queries/trips";
@@ -78,9 +79,18 @@ export default async function MorePage() {
                         <div>
                           <strong>{String(reservation.title)}</strong>
                           <small>
-                            {statusLabel[String(reservation.status)] || String(reservation.status)}
-                            {reservation.supplier ? ` · ${String(reservation.supplier)}` : ""}
+                            {reservation.supplier ? String(reservation.supplier) : "Sem fornecedor"}
                           </small>
+                          <div className="mt-2">
+                            <RecordStatus
+                              table="reservations"
+                              id={String(reservation.id)}
+                              value={String(reservation.status || "estimated")}
+                              options={reservationStatusOptions}
+                              label={`Status de ${String(reservation.title)}`}
+                              compact
+                            />
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           {typeof reservation.total_amount === "number" && (
@@ -145,9 +155,21 @@ export default async function MorePage() {
               </summary>
               <div className="settings-detail">
                 {pending.length ? (
-                  <ul className="space-y-2">
-                    {pending.map((item) => <li key={item.id}>{item.title}</li>)}
-                  </ul>
+                  <div className="pending-manage-list">
+                    {pending.map((item) => (
+                      <div key={item.id} className="pending-manage-row">
+                        <span>{item.title}</span>
+                        <RecordStatus
+                          table="pending_items"
+                          id={item.id}
+                          value={item.status}
+                          options={pendingStatusOptions}
+                          label={`Status de ${item.title}`}
+                          compact
+                        />
+                      </div>
+                    ))}
+                  </div>
                 ) : (
                   "Nenhuma pendência aberta."
                 )}
