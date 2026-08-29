@@ -12,6 +12,7 @@ export type Stop = {
   city?: string | null;
   name?: string | null;
   sequence?: number | null;
+  sort_order?: number | null;
   start_date?: string | null;
   end_date?: string | null;
 };
