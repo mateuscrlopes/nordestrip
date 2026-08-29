@@ -4,9 +4,10 @@ import { PageHeader } from "@/components/layout/page-header";
 import { RecordStatus, pendingStatusOptions, reservationStatusOptions } from "@/components/actions/record-status";
 import { LogoutButton } from "@/components/navigation/logout-button";
 import { PendingItemCreator } from "@/components/pending/pending-item-creator";
+import { ParticipantsManager } from "@/components/participants/participants-manager";
 import { TripSettingsEditor } from "@/components/settings/trip-settings-editor";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
-import { getTripArchivedRecords, getTripChangeLog, getTripFinanceSettings, getTripMoreData, getTripPendingItems, getTripPreferences, getTripStops } from "@/lib/queries/trips";
+import { getCurrentUser, getTripArchivedRecords, getTripChangeLog, getTripFinanceSettings, getTripMoreData, getTripParticipants, getTripPendingItems, getTripPreferences, getTripStops } from "@/lib/queries/trips";
 import { formatDateTime, formatMoney } from "@/lib/utils/format";
 import {
   ChevronRight,
@@ -59,8 +60,9 @@ const changeActionLabel: Record<string, string> = {
 };
 
 export default async function MorePage() {
+  const user = await getCurrentUser();
   const { trip } = await getCurrentTrip();
-  const [pending, more, archived, stops, preferences, financeSettings, changes] = trip
+  const [pending, more, archived, stops, preferences, financeSettings, changes, participants] = trip && user
     ? await Promise.all([
         getTripPendingItems(trip.id),
         getTripMoreData(trip.id),
@@ -69,8 +71,9 @@ export default async function MorePage() {
         getTripPreferences(trip.id),
         getTripFinanceSettings(trip.id),
         getTripChangeLog(trip.id),
+        getTripParticipants(trip.id, user.id),
       ])
-    : [[], { reservations: [], documents: [], members: [], integrations: [] }, [], [], null, null, []];
+    : [[], { reservations: [], documents: [], members: [], integrations: [] }, [], [], null, null, [], { currentRole: "member", members: [], invites: [] }];
 
   const stopById = new Map(stops.map((stop) => [stop.id, stop.city || stop.name || "Cidade"]));
 
@@ -209,8 +212,25 @@ export default async function MorePage() {
                 </span>
                 <ChevronRight size={17} className="settings-chevron" />
               </summary>
-              <div className="settings-detail">
-                Acesso compartilhado e divisão padrão da viagem.
+              <div className="settings-detail settings-detail--wide">
+                {trip && user ? (
+                  <ParticipantsManager
+                    tripId={trip.id}
+                    currentUserId={user.id}
+                    currentRole={participants.currentRole}
+                    members={participants.members}
+                    invites={participants.invites.map((invite) => ({
+                      id: String(invite.id),
+                      email: typeof invite.email === "string" ? invite.email : null,
+                      role: typeof invite.role === "string" ? invite.role : "member",
+                      status: typeof invite.status === "string" ? invite.status : "pending",
+                      expires_at: typeof invite.expires_at === "string" ? invite.expires_at : null,
+                      created_at: typeof invite.created_at === "string" ? invite.created_at : null,
+                    }))}
+                  />
+                ) : (
+                  "Nenhuma viagem ativa para compartilhar."
+                )}
               </div>
             </details>
 
