@@ -4,11 +4,23 @@ import { getCurrentTrip } from "@/lib/queries/current-trip";
 import { getTripPlaces, getTripStops } from "@/lib/queries/trips";
 import { ExternalLink, MapPin, Navigation } from "lucide-react";
 
-function mapsUrl(latitude: unknown, longitude: unknown) {
+function mapsUrl(latitude: unknown, longitude: unknown, address?: unknown) {
   const lat = typeof latitude === "number" ? latitude : Number(latitude);
   const lng = typeof longitude === "number" ? longitude : Number(longitude);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`;
+
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`;
+  }
+
+  if (typeof address === "string" && address.trim()) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address.trim())}`;
+  }
+
+  return null;
+}
+
+function hasCoordinates(latitude: unknown, longitude: unknown) {
+  return Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude));
 }
 
 export default async function MapPage() {
@@ -17,11 +29,14 @@ export default async function MapPage() {
     ? await Promise.all([getTripPlaces(trip.id), getTripStops(trip.id)])
     : [[], []];
 
+  const located = places.filter((place) => hasCoordinates(place.latitude, place.longitude) || Boolean(place.address));
+  const references = places.filter((place) => !hasCoordinates(place.latitude, place.longitude) && !place.address);
+
   return (
     <>
       <PageHeader
         title="Mapa"
-        description="Rota da viagem e lugares que já têm localização salva."
+        description="Rota da viagem e lugares salvos, mesmo antes de terem coordenadas."
       />
 
       <div className="space-y-7">
@@ -32,7 +47,7 @@ export default async function MapPage() {
           <div className="trip-route-strip" aria-label="Sequência de cidades">
             {stops.map((stop, index) => (
               <div key={stop.id} className="trip-route-node">
-                <span>{stop.sequence ?? index + 1}</span>
+                <span>{index + 1}</span>
                 <p>{stop.city || stop.name || "Cidade"}</p>
                 {index < stops.length - 1 && <i aria-hidden="true" />}
               </div>
@@ -46,7 +61,7 @@ export default async function MapPage() {
             <div>
               <h2>Mapa integrado ainda não configurado</h2>
               <p>
-                Os endereços e coordenadas já ficam salvos no Nordestrip. A navegação pode ser aberta no Google Maps pelos lugares abaixo.
+                O Nordestrip já centraliza endereços e referências. Quando houver coordenadas ou endereço, a localização pode ser aberta diretamente no Google Maps.
               </p>
             </div>
           </div>
@@ -54,66 +69,103 @@ export default async function MapPage() {
 
         <section>
           <div className="section-heading">
-            <h2>Lugares salvos</h2>
+            <h2>Lugares com localização</h2>
           </div>
 
-          {places.length > 0 ? (
+          {located.length > 0 ? (
             <div className="place-list">
-              {places.map((place, index) => {
-                const url = mapsUrl(place.latitude, place.longitude);
+              {located.map((place, index) => {
+                const url = mapsUrl(place.latitude, place.longitude, place.address);
                 return (
-                  <div key={String(place.id ?? index)} className="place-row">
-                    <span className="operational-icon operational-icon--light"><MapPin size={17} /></span>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold">{String(place.name ?? place.title ?? "Lugar salvo")}</p>
-                      {place.address ? (
-                        <p className="mt-1 text-[12px] leading-5 text-muted">{String(place.address)}</p>
-                      ) : null}
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {url && (
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noreferrer"
-                          aria-label="Abrir no Google Maps"
-                          className="map-external-link"
-                        >
-                          <ExternalLink size={16} />
-                        </a>
-                      )}
-                      <RecordActions
-                        table="places"
-                        id={String(place.id)}
-                        title={String(place.name ?? place.title ?? "Lugar salvo")}
-                        fields={[
-                          { name: "name", label: "Nome", required: true },
-                          { name: "category", label: "Categoria" },
-                          { name: "address", label: "Endereço" },
-                          { name: "source_url", label: "Link", type: "url" },
-                          { name: "notes", label: "Nota", type: "textarea" },
-                        ]}
-                        values={{
-                          name: String(place.name ?? place.title ?? ""),
-                          category: typeof place.category === "string" ? place.category : null,
-                          address: typeof place.address === "string" ? place.address : null,
-                          source_url: typeof place.source_url === "string" ? place.source_url : null,
-                          notes: typeof place.notes === "string" ? place.notes : null,
-                        }}
-                      />
-                    </div>
-                  </div>
+                  <PlaceRow key={String(place.id ?? index)} place={place} url={url} />
                 );
               })}
             </div>
           ) : (
             <div className="empty-surface">
               <MapPin size={20} />
-              <p>Nenhum lugar com coordenadas salvo ainda.</p>
+              <p>Nenhum endereço ou coordenada salvo ainda.</p>
             </div>
           )}
         </section>
+
+        {references.length > 0 && (
+          <section>
+            <div className="section-heading">
+              <h2>Referências para localizar</h2>
+            </div>
+            <div className="place-list">
+              {references.map((place, index) => (
+                <PlaceRow
+                  key={String(place.id ?? index)}
+                  place={place}
+                  url={typeof place.source_url === "string" ? place.source_url : null}
+                  referenceOnly
+                />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </>
+  );
+}
+
+function PlaceRow({
+  place,
+  url,
+  referenceOnly = false,
+}: {
+  place: Record<string, unknown>;
+  url: string | null;
+  referenceOnly?: boolean;
+}) {
+  return (
+    <div className="place-row">
+      <span className="operational-icon operational-icon--light"><MapPin size={17} /></span>
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold">{String(place.name ?? place.title ?? "Lugar salvo")}</p>
+        {place.address ? (
+          <p className="mt-1 text-[12px] leading-5 text-muted">{String(place.address)}</p>
+        ) : (
+          <p className="mt-1 text-[12px] leading-5 text-muted">
+            {referenceOnly ? "Ainda sem endereço ou coordenadas." : "Localização salva."}
+          </p>
+        )}
+        {referenceOnly && <span className="place-location-chip">Precisa localizar</span>}
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        {url && (
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={referenceOnly ? "Abrir referência" : "Abrir localização"}
+            className="map-external-link"
+          >
+            <ExternalLink size={16} />
+          </a>
+        )}
+        <RecordActions
+          table="places"
+          id={String(place.id)}
+          title={String(place.name ?? place.title ?? "Lugar salvo")}
+          fields={[
+            { name: "name", label: "Nome", required: true },
+            { name: "category", label: "Categoria" },
+            { name: "address", label: "Endereço" },
+            { name: "source_url", label: "Link", type: "url" },
+            { name: "notes", label: "Nota", type: "textarea" },
+          ]}
+          values={{
+            name: String(place.name ?? place.title ?? ""),
+            category: typeof place.category === "string" ? place.category : null,
+            address: typeof place.address === "string" ? place.address : null,
+            source_url: typeof place.source_url === "string" ? place.source_url : null,
+            notes: typeof place.notes === "string" ? place.notes : null,
+          }}
+        />
+      </div>
+    </div>
   );
 }
