@@ -1,7 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { Check, Pencil, X } from "lucide-react";
+import { Check, Copy, Pencil, X } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -53,6 +53,7 @@ export function LuggagePlanEditor({
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
 
   const title = phase === "arrival" ? "Na chegada" : "Na saída";
@@ -64,6 +65,20 @@ export function LuggagePlanEditor({
     if (strategy === "pending") return "Definir onde as malas ficarão.";
     return strategyLabels[strategy] || "Estratégia registrada";
   }, [plan?.notes, strategy]);
+
+  const confirmationMessage = phase === "arrival"
+    ? "Olá! Tenho uma reserva com vocês e gostaria de confirmar se é possível deixar as bagagens na hospedagem antes do horário de check-in. Se sim, a partir de que horário posso deixá-las?"
+    : "Olá! Tenho uma reserva com vocês e gostaria de confirmar se é possível deixar as bagagens na hospedagem após o check-out, até o horário em que eu seguir para o próximo destino. Até que horário vocês conseguem guardá-las?";
+
+  async function copyConfirmationMessage() {
+    try {
+      await navigator.clipboard.writeText(confirmationMessage);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setError("Não foi possível copiar a mensagem automaticamente.");
+    }
+  }
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -143,6 +158,15 @@ export function LuggagePlanEditor({
             </div>
 
             <form onSubmit={save} className="add-form">
+              <button
+                type="button"
+                className="copy-confirmation-button"
+                onClick={copyConfirmationMessage}
+              >
+                <Copy size={15} />
+                {copied ? "Mensagem copiada" : "Copiar mensagem para a hospedagem"}
+              </button>
+
               <label className="add-field">
                 <span>Estratégia</span>
                 <select name="strategy" defaultValue={strategy}>
