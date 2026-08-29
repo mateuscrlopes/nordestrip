@@ -23,7 +23,7 @@ export async function getUserTrips(): Promise<Trip[]> {
 
 export async function getTripStops(tripId: string): Promise<Stop[]> {
   const supabase = await createClient();
-  return checked(await supabase.from("stops").select("*").eq("trip_id", tripId).is("archived_at", null).order("sequence"), "Não foi possível carregar as cidades") as Stop[];
+  return checked(await supabase.from("stops").select("*").eq("trip_id", tripId).is("archived_at", null).order("sort_order").order("sequence"), "Não foi possível carregar as cidades") as Stop[];
 }
 
 export async function getTripItinerary(tripId: string): Promise<ItineraryItem[]> {
