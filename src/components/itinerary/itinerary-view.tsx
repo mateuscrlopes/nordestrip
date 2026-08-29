@@ -293,11 +293,20 @@ export function ItineraryView({
             {displayStops.map((stop, index) => {
               const cover = coverByStop.get(stop.id);
               const openPending = pending.filter((item) => item.stop_id === stop.id).length;
+              const inbound = transports.find((item) => item.destination_stop_id === stop.id && item.status !== "cancelled");
               const outbound = transports.find((item) => item.origin_stop_id === stop.id && item.status !== "cancelled");
               const luggage = luggageReadiness.get(stop.id);
               const luggageUnavailable = Boolean(luggage?.unavailable);
               const luggageSafe = Boolean(luggage?.arrival && luggage?.departure && !luggageUnavailable);
               const isLast = index === displayStops.length - 1;
+              const inboundConfirmed = Boolean(
+                inbound && ["reserved", "purchased", "confirmed", "completed"].includes(inbound.status || "")
+              );
+              const inboundLabel = inbound
+                ? inboundConfirmed
+                  ? "chegada confirmada"
+                  : "chegada em planejamento"
+                : "chegada pendente";
               const outboundConfirmed = Boolean(
                 outbound && ["reserved", "purchased", "confirmed", "completed"].includes(outbound.status || "")
               );
@@ -349,6 +358,10 @@ export function ItineraryView({
                               {openPending} {openPending === 1 ? "pendência" : "pendências"}
                             </span>
                           )}
+                          <span className={inboundConfirmed ? "soft-chip" : "soft-chip soft-chip--sand"}>
+                            <ArrowDown size={12} />
+                            {inboundLabel}
+                          </span>
                           <span className={outboundConfirmed ? "soft-chip" : "soft-chip soft-chip--sand"}>
                             <ArrowRight size={12} />
                             {outboundLabel}
