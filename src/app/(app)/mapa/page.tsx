@@ -1,3 +1,4 @@
+import { RecordActions } from "@/components/actions/record-actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
 import { getTripPlaces, getTripStops } from "@/lib/queries/trips";
@@ -69,17 +70,38 @@ export default async function MapPage() {
                         <p className="mt-1 text-[12px] leading-5 text-muted">{String(place.address)}</p>
                       ) : null}
                     </div>
-                    {url && (
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label="Abrir no Google Maps"
-                        className="map-external-link"
-                      >
-                        <ExternalLink size={16} />
-                      </a>
-                    )}
+                    <div className="flex shrink-0 items-center gap-2">
+                      {url && (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label="Abrir no Google Maps"
+                          className="map-external-link"
+                        >
+                          <ExternalLink size={16} />
+                        </a>
+                      )}
+                      <RecordActions
+                        table="places"
+                        id={String(place.id)}
+                        title={String(place.name ?? place.title ?? "Lugar salvo")}
+                        fields={[
+                          { name: "name", label: "Nome", required: true },
+                          { name: "category", label: "Categoria" },
+                          { name: "address", label: "Endereço" },
+                          { name: "source_url", label: "Link", type: "url" },
+                          { name: "notes", label: "Nota", type: "textarea" },
+                        ]}
+                        values={{
+                          name: String(place.name ?? place.title ?? ""),
+                          category: typeof place.category === "string" ? place.category : null,
+                          address: typeof place.address === "string" ? place.address : null,
+                          source_url: typeof place.source_url === "string" ? place.source_url : null,
+                          notes: typeof place.notes === "string" ? place.notes : null,
+                        }}
+                      />
+                    </div>
                   </div>
                 );
               })}
