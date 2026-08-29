@@ -304,3 +304,17 @@ export async function getTripManualFund(tripId: string) {
     lastSyncedAt: account.last_synced_at ?? null,
   };
 }
+
+
+export async function getTripPlaceCatalog(tripId: string) {
+  const supabase = await createClient();
+  return checked(
+    await supabase
+      .from("places")
+      .select("*, links:place_links(id,platform,url,label,metadata,created_at)")
+      .eq("trip_id", tripId)
+      .is("archived_at", null)
+      .order("name"),
+    "Não foi possível carregar o catálogo de locais"
+  ) as Record<string, unknown>[];
+}

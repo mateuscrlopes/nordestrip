@@ -10,12 +10,14 @@ import { TripSettingsEditor } from "@/components/settings/trip-settings-editor";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
 import { getCurrentUser, getTripArchivedRecords, getTripChangeLog, getTripFinanceSettings, getTripMoreData, getTripParticipants, getTripPendingItems, getTripPreferences, getTripStops } from "@/lib/queries/trips";
 import { formatDateTime, formatMoney } from "@/lib/utils/format";
+import Link from "next/link";
 import {
   ChevronRight,
   ClipboardList,
   ExternalLink,
   FileText,
   History,
+  MapPinned,
   Plug,
   Settings,
   Users,
@@ -86,6 +88,15 @@ export default async function MorePage() {
         <section>
           <p className="settings-group-title">Viagem</p>
           <div className="settings-list">
+            <Link href="/locais" className="settings-link-row">
+              <span className="settings-row-icon"><MapPinned size={17} /></span>
+              <span className="min-w-0 flex-1">
+                <strong>Locais</strong>
+                <small>Atrações, praias, cultura e lugares para encaixar no roteiro</small>
+              </span>
+              <ChevronRight size={17} className="settings-chevron" />
+            </Link>
+
             <details className="group">
               <summary>
                 <span className="settings-row-icon"><FileText size={17} /></span>
