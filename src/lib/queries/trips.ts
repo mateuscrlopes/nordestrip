@@ -70,8 +70,8 @@ export async function getStopDetails(stopId: string) {
     supabase.from("luggage_plans").select("*").eq("stop_id", stopId).is("archived_at", null),
     supabase.from("itinerary_items").select("*").eq("stop_id", stopId).is("archived_at", null).order("start_time"),
     supabase.from("pending_items").select("*").eq("stop_id", stopId).is("archived_at", null).in("status", ["pending", "checking"]).order("due_at", { nullsFirst: false }),
-    supabase.from("transport_segments").select("*").eq("destination_stop_id", stopId).is("archived_at", null).order("arrival_at").limit(1).maybeSingle(),
-    supabase.from("transport_segments").select("*").eq("origin_stop_id", stopId).is("archived_at", null).order("departure_at").limit(1).maybeSingle(),
+    supabase.from("transport_segments").select("*").eq("destination_stop_id", stopId).is("archived_at", null).or("status.is.null,status.neq.cancelled").order("arrival_at").limit(1).maybeSingle(),
+    supabase.from("transport_segments").select("*").eq("origin_stop_id", stopId).is("archived_at", null).or("status.is.null,status.neq.cancelled").order("departure_at").limit(1).maybeSingle(),
   ]);
   for (const [label, result] of [["hospedagem", accommodation], ["bagagem", luggage], ["atividades", activities], ["pendências", pending], ["chegada", inbound], ["saída", outbound]] as const) {
     if (result.error) throw new Error(`Não foi possível carregar ${label}: ${result.error.message}`);
