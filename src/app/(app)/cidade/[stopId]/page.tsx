@@ -1,3 +1,4 @@
+import { RecordStatus, accommodationStatusOptions, itineraryStatusOptions, pendingStatusOptions, transportStatusOptions } from "@/components/actions/record-status";
 import { getStopDetails, getTripCityCovers } from "@/lib/queries/trips";
 import { formatDate, formatDateTime, valueText } from "@/lib/utils/format";
 import {
@@ -99,6 +100,16 @@ export default async function CityPage({
                       ? formatDate(inbound.arrival_date)
                       : transportLabel(inbound.mode)}
                 </p>
+                <div className="mt-2">
+                  <RecordStatus
+                    table="transport_segments"
+                    id={String(inbound.id)}
+                    value={String(inbound.status || "planned")}
+                    options={transportStatusOptions}
+                    label="Status da chegada"
+                    compact
+                  />
+                </div>
               </>
             ) : (
               <>
@@ -156,6 +167,16 @@ export default async function CityPage({
                 {accommodation.notes && (
                   <p className="mt-2 text-[12px] leading-5 text-muted">{String(accommodation.notes)}</p>
                 )}
+                <div className="mt-3">
+                  <RecordStatus
+                    table="accommodations"
+                    id={String(accommodation.id)}
+                    value={String(accommodation.status || "researching")}
+                    options={accommodationStatusOptions}
+                    label="Status da hospedagem"
+                    compact
+                  />
+                </div>
               </>
             ) : (
               <>
@@ -192,6 +213,16 @@ export default async function CityPage({
                         <p className="mt-1 text-[12px] text-muted">
                           {scheduleLabel(item.schedule_type, item.is_anchor)}
                         </p>
+                        <div className="mt-2">
+                          <RecordStatus
+                            table="itinerary_items"
+                            id={String(item.id)}
+                            value={String(item.status || "planned")}
+                            options={itineraryStatusOptions}
+                            label={`Status de ${String(item.title ?? "atividade")}`}
+                            compact
+                          />
+                        </div>
                       </div>
                       {time && (
                         <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium text-petrol">
@@ -223,7 +254,14 @@ export default async function CityPage({
               <div key={String(item.id)} className="flex items-center gap-3 py-4">
                 <CheckCircle2 size={17} className="shrink-0 text-petrol" />
                 <p className="min-w-0 flex-1 text-[14px] font-medium">{String(item.title)}</p>
-                <ChevronRight size={17} className="shrink-0 text-muted" />
+                <RecordStatus
+                  table="pending_items"
+                  id={String(item.id)}
+                  value={String(item.status || "pending")}
+                  options={pendingStatusOptions}
+                  label={`Status de ${String(item.title)}`}
+                  compact
+                />
               </div>
             ))}
           </div>
@@ -250,6 +288,16 @@ export default async function CityPage({
                       ? formatDate(outbound.departure_date)
                       : transportLabel(outbound.mode)}
                 </p>
+                <div className="mt-2">
+                  <RecordStatus
+                    table="transport_segments"
+                    id={String(outbound.id)}
+                    value={String(outbound.status || "planned")}
+                    options={transportStatusOptions}
+                    label="Status da saída"
+                    compact
+                  />
+                </div>
               </>
             ) : (
               <>
