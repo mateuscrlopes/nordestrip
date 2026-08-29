@@ -117,7 +117,7 @@ export async function getTripMoreData(tripId: string) {
 
 export async function getTripArchivedRecords(tripId: string) {
   const supabase = await createClient();
-  const [pending, reservations, itinerary, accommodations, transports, expenses, documents, places] = await Promise.all([
+  const [pending, reservations, itinerary, accommodations, transports, expenses, documents, places, stops] = await Promise.all([
     supabase.from("pending_items").select("id,title,archived_at").eq("trip_id", tripId).not("archived_at", "is", null),
     supabase.from("reservations").select("id,title,archived_at").eq("trip_id", tripId).not("archived_at", "is", null),
     supabase.from("itinerary_items").select("id,title,archived_at").eq("trip_id", tripId).not("archived_at", "is", null),
@@ -126,6 +126,7 @@ export async function getTripArchivedRecords(tripId: string) {
     supabase.from("expenses").select("id,title,archived_at").eq("trip_id", tripId).not("archived_at", "is", null),
     supabase.from("documents").select("id,title,archived_at").eq("trip_id", tripId).not("archived_at", "is", null),
     supabase.from("places").select("id,name,archived_at").eq("trip_id", tripId).not("archived_at", "is", null),
+    supabase.from("stops").select("id,name,archived_at").eq("trip_id", tripId).not("archived_at", "is", null),
   ]);
 
   for (const [label, result] of [
@@ -137,6 +138,7 @@ export async function getTripArchivedRecords(tripId: string) {
     ["gastos", expenses],
     ["documentos", documents],
     ["lugares", places],
+    ["cidades", stops],
   ] as const) {
     if (result.error) throw new Error(`Não foi possível carregar o histórico de ${label}: ${result.error.message}`);
   }
@@ -156,6 +158,7 @@ export async function getTripArchivedRecords(tripId: string) {
     ...(expenses.data ?? []).map((item) => ({ id: item.id, table: "expenses" as const, type: "Gasto", label: item.title, archived_at: item.archived_at })),
     ...(documents.data ?? []).map((item) => ({ id: item.id, table: "documents" as const, type: "Documento", label: item.title, archived_at: item.archived_at })),
     ...(places.data ?? []).map((item) => ({ id: item.id, table: "places" as const, type: "Lugar", label: item.name, archived_at: item.archived_at })),
+    ...(stops.data ?? []).map((item) => ({ id: item.id, table: "stops" as const, type: "Cidade", label: item.name, archived_at: item.archived_at })),
   ];
 
   return rows.sort((a, b) => String(b.archived_at).localeCompare(String(a.archived_at)));
