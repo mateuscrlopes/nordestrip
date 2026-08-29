@@ -10,6 +10,7 @@ import {
   MapPin,
   Search,
   ShieldCheck,
+  Star,
   TriangleAlert,
   X,
 } from "lucide-react";
@@ -173,6 +174,31 @@ function conditionText(place: CatalogPlace) {
   if (!condition || typeof condition !== "object" || Array.isArray(condition)) return null;
   const note = (condition as Record<string, unknown>).note;
   return typeof note === "string" ? note : null;
+}
+
+function ratingText(place: CatalogPlace) {
+  const metadata = metadataFor(place);
+  const rating = typeof metadata.rating === "number" ? metadata.rating : null;
+  const reviews = typeof metadata.review_count === "number" ? metadata.review_count : null;
+  if (rating == null) return null;
+
+  const reviewLabel = reviews == null
+    ? null
+    : new Intl.NumberFormat("pt-BR").format(reviews) + (reviews === 1 ? " avaliação" : " avaliações");
+
+  return { rating: rating.toFixed(1).replace(".", ","), reviewLabel };
+}
+
+function cuisineText(place: CatalogPlace) {
+  const value = metadataFor(place).cuisine;
+  return typeof value === "string" ? value : null;
+}
+
+function mealTagsText(place: CatalogPlace) {
+  const value = metadataFor(place).meal_tags;
+  if (!Array.isArray(value)) return null;
+  const labels = value.filter((item): item is string => typeof item === "string" && item.length > 0);
+  return labels.length ? labels.join(" · ") : null;
 }
 
 function areaText(place: CatalogPlace) {
@@ -424,6 +450,9 @@ export function PlacesExplorer({
             const ConfidenceIcon = confidence.icon;
             const price = priceText(place);
             const condition = conditionText(place);
+            const rating = ratingText(place);
+            const cuisine = cuisineText(place);
+            const mealTags = mealTagsText(place);
             const area = areaText(place);
             const stop = stops.find((item) => item.id === place.stop_id);
             const travelDates = rangeDates(stop?.start_date, stop?.end_date);
@@ -466,9 +495,18 @@ export function PlacesExplorer({
                   </div>
                 )}
 
-                {(price || condition) && (
+                {(rating || price || cuisine || mealTags || condition) && (
                   <div className="place-catalog-facts">
+                    {rating && (
+                      <span className="place-rating">
+                        <Star size={11} />
+                        {rating.rating}
+                        {rating.reviewLabel ? ` · ${rating.reviewLabel}` : ""}
+                      </span>
+                    )}
                     {price && <span>{price}</span>}
+                    {cuisine && <span>{cuisine}</span>}
+                    {mealTags && <span>{mealTags}</span>}
                     {condition && <span className="is-warning">{condition}</span>}
                   </div>
                 )}

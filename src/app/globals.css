@@ -3341,3 +3341,16 @@ input:focus-visible {
   font-size: .53rem;
   line-height: 1.4;
 }
+
+
+.place-catalog-facts .place-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: .28rem;
+  color: #123844;
+  background: rgba(220, 232, 235, .62);
+}
+
+.place-catalog-facts .place-rating svg {
+  flex: 0 0 auto;
+}
