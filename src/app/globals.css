@@ -2775,3 +2775,49 @@ input:focus-visible {
   color: #70787a;
   background: rgba(112, 120, 122, .10);
 }
+
+
+/* Operational route readiness */
+
+.route-luggage-warning {
+  display: grid;
+  gap: .24rem;
+  margin-bottom: .9rem;
+  border: 1px solid rgba(215, 180, 131, .24);
+  border-radius: 18px;
+  padding: .78rem .88rem;
+  background: rgba(215, 180, 131, .15);
+}
+
+.route-luggage-warning strong {
+  color: #17282e;
+  font-size: .72rem;
+  line-height: 1.4;
+}
+
+.route-luggage-warning span {
+  color: #6b6f70;
+  font-size: .61rem;
+  line-height: 1.48;
+}
+
+.departure-deadline {
+  display: grid;
+  gap: .15rem;
+  margin-top: .55rem;
+  border-radius: 14px;
+  padding: .62rem .7rem;
+  background: rgba(220, 232, 235, .48);
+}
+
+.departure-deadline strong {
+  color: #123844;
+  font-size: .67rem;
+  line-height: 1.35;
+}
+
+.departure-deadline span {
+  color: #526268;
+  font-size: .57rem;
+  line-height: 1.45;
+}
