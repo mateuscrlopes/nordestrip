@@ -117,6 +117,7 @@ export function ItineraryView({
   const orderReview = useMemo(() => {
     const position = new Map(draftStops.map((stop, index) => [stop.id, index]));
     const transportConflicts = transports.filter((transport) => {
+      if (transport.status === "cancelled") return false;
       if (!transport.origin_stop_id || !transport.destination_stop_id) return false;
       const origin = position.get(transport.origin_stop_id);
       const destination = position.get(transport.destination_stop_id);
@@ -292,11 +293,21 @@ export function ItineraryView({
             {displayStops.map((stop, index) => {
               const cover = coverByStop.get(stop.id);
               const openPending = pending.filter((item) => item.stop_id === stop.id).length;
-              const outbound = transports.find((item) => item.origin_stop_id === stop.id);
+              const outbound = transports.find((item) => item.origin_stop_id === stop.id && item.status !== "cancelled");
               const luggage = luggageReadiness.get(stop.id);
               const luggageUnavailable = Boolean(luggage?.unavailable);
               const luggageSafe = Boolean(luggage?.arrival && luggage?.departure && !luggageUnavailable);
               const isLast = index === displayStops.length - 1;
+              const outboundConfirmed = Boolean(
+                outbound && ["reserved", "purchased", "confirmed", "completed"].includes(outbound.status || "")
+              );
+              const outboundLabel = outbound
+                ? outboundConfirmed
+                  ? "saída confirmada"
+                  : "saída em planejamento"
+                : isLast
+                  ? "retorno pendente"
+                  : "saída pendente";
 
               return (
                 <div key={stop.id} className="route-stop">
@@ -338,12 +349,10 @@ export function ItineraryView({
                               {openPending} {openPending === 1 ? "pendência" : "pendências"}
                             </span>
                           )}
-                          {outbound && (
-                            <span className="soft-chip">
-                              <ArrowRight size={12} />
-                              saída definida
-                            </span>
-                          )}
+                          <span className={outboundConfirmed ? "soft-chip" : "soft-chip soft-chip--sand"}>
+                            <ArrowRight size={12} />
+                            {outboundLabel}
+                          </span>
                           <span className={luggageSafe ? "soft-chip" : "soft-chip soft-chip--sand"}>
                             {luggageUnavailable ? "bagagem indisponível" : luggageSafe ? "bagagem confirmada" : "bagagem pendente"}
                           </span>
