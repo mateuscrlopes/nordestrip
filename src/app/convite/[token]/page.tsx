@@ -1,20 +1,81 @@
+"use client";
+
 import { AcceptInvite } from "@/components/participants/accept-invite";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/client";
 import { CalendarDays, ShieldCheck, Users } from "lucide-react";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
-export default async function InvitePage({
-  params,
-}: {
-  params: Promise<{ token: string }>;
-}) {
-  const { token } = await params;
-  const supabase = await createClient();
-  const [{ data: preview, error: previewError }, { data: authData }] = await Promise.all([
-    supabase.rpc("get_trip_invite_preview", { p_token: token }).maybeSingle(),
-    supabase.auth.getUser(),
-  ]);
+type InvitePreview = {
+  trip_id: string;
+  trip_name: string;
+  invited_email: string | null;
+  invited_role: string;
+  invite_status: string;
+  invite_expires_at: string | null;
+};
 
-  const invalid = previewError || !preview;
+export default function InvitePage() {
+  const params = useParams<{ token: string }>();
+  const token = params?.token || "";
+  const [preview, setPreview] = useState<InvitePreview | null>(null);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [invalid, setInvalid] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadInvite() {
+      if (!token) {
+        setInvalid(true);
+        setLoading(false);
+        return;
+      }
+
+      const supabase = createClient();
+      const [previewResult, authResult] = await Promise.all([
+        supabase.rpc("get_trip_invite_preview", { p_token: token }),
+        supabase.auth.getUser(),
+      ]);
+
+      if (cancelled) return;
+
+      if (previewResult.error) {
+        setInvalid(true);
+      } else {
+        const row = Array.isArray(previewResult.data)
+          ? previewResult.data[0]
+          : previewResult.data;
+        setPreview((row || null) as InvitePreview | null);
+        setInvalid(!row);
+      }
+
+      setAuthenticated(Boolean(authResult.data.user));
+      setLoading(false);
+    }
+
+    void loadInvite();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  if (loading) {
+    return (
+      <main className="invite-shell">
+        <section className="invite-card">
+          <div className="invite-brand">
+            <span className="invite-ghumat-mark" aria-hidden="true" />
+            <span>Nordestrip</span>
+          </div>
+          <p className="invite-copy">Carregando convite...</p>
+        </section>
+      </main>
+    );
+  }
+
   const status = preview?.invite_status;
 
   return (
@@ -25,7 +86,7 @@ export default async function InvitePage({
           <span>Nordestrip</span>
         </div>
 
-        {invalid ? (
+        {invalid || !preview ? (
           <>
             <p className="invite-eyebrow">Convite</p>
             <h1>Este link não é válido.</h1>
@@ -69,7 +130,7 @@ export default async function InvitePage({
               <strong>{preview.invited_email || "participante"}</strong>
             </div>
 
-            <AcceptInvite token={token} authenticated={Boolean(authData.user)} />
+            <AcceptInvite token={token} authenticated={authenticated} />
           </>
         )}
       </section>
