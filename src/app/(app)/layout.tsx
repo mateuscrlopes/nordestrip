@@ -8,7 +8,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect("/login");
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-[720px] px-5 pb-36 pt-5 md:px-8 md:pt-8">
+    <div className="mx-auto min-h-screen w-full max-w-[720px] px-5 pb-44 pt-5 md:px-8 md:pt-8">
       {children}
       <GlobalAdd />
       <BottomNav />
