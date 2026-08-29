@@ -66,7 +66,7 @@ export async function getStopDetails(stopId: string) {
   const supabase = await createClient();
   const stop = checked(await supabase.from("stops").select("*").eq("id", stopId).single(), "Não foi possível carregar a cidade") as Stop;
   const [accommodation, luggage, activities, pending, inbound, outbound] = await Promise.all([
-    supabase.from("accommodations").select("*, place:places(*)").eq("stop_id", stopId).is("archived_at", null).maybeSingle(),
+    supabase.from("accommodations").select("*, place:places(*)").eq("stop_id", stopId).is("archived_at", null).order("created_at", { ascending: false }),
     supabase.from("luggage_plans").select("*").eq("stop_id", stopId),
     supabase.from("itinerary_items").select("*").eq("stop_id", stopId).is("archived_at", null).order("start_time"),
     supabase.from("pending_items").select("*").eq("stop_id", stopId).is("archived_at", null).in("status", ["pending", "checking"]).order("due_at", { nullsFirst: false }),
@@ -77,9 +77,15 @@ export async function getStopDetails(stopId: string) {
     if (result.error) throw new Error(`Não foi possível carregar ${label}: ${result.error.message}`);
   }
   const luggagePlans = luggage.data ?? [];
+  const accommodations = accommodation.data ?? [];
+  const selectedAccommodation =
+    accommodations.find((item) => ["confirmed", "reserved", "selected"].includes(item.status))
+    ?? accommodations[0]
+    ?? null;
+
   return {
     stop,
-    accommodation: accommodation.data,
+    accommodation: selectedAccommodation,
     arrivalLuggage: luggagePlans.find((plan) => plan.phase === "arrival") ?? null,
     departureLuggage: luggagePlans.find((plan) => plan.phase === "departure") ?? null,
     activities: activities.data ?? [],
@@ -98,7 +104,7 @@ export async function getTripMoreData(tripId: string) {
   const supabase = await createClient();
   const [reservations, documents, members, integrations] = await Promise.all([
     supabase.from("reservations").select("*").eq("trip_id", tripId).is("archived_at", null).order("created_at", { ascending: false }),
-    supabase.from("documents").select("*").eq("trip_id", tripId).order("created_at", { ascending: false }),
+    supabase.from("documents").select("*").eq("trip_id", tripId).is("archived_at", null).order("created_at", { ascending: false }),
     supabase.from("trip_members").select("*").eq("trip_id", tripId),
     supabase.from("integration_connections").select("*").eq("trip_id", tripId),
   ]);
