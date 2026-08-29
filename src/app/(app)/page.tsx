@@ -61,8 +61,8 @@ export default async function HomePage() {
   if (!trip) {
     return (
       <section className="home-hero min-h-[220px] rounded-[32px] p-6">
-        <div className="flex items-center gap-3">
-          <span className="brand-mark"><Route size={20} strokeWidth={1.9} /></span>
+        <div className="hero-brand-lockup">
+          <span className="ghumat-mark" aria-hidden="true" />
           <span className="brand-name">Nordestrip</span>
         </div>
         <h1 className="mt-12 text-[1.8rem] font-semibold tracking-[-.04em]">Nenhuma viagem por aqui</h1>
@@ -111,23 +111,21 @@ export default async function HomePage() {
 
   const coverStyle = heroImage
     ? {
-        backgroundImage: `linear-gradient(180deg, rgba(9,33,41,.12), rgba(9,33,41,.72)), url("${heroImage.replace(/"/g, "%22")}")`,
+        backgroundImage: `url("${heroImage.replace(/"/g, "%22")}")`,
       }
     : undefined;
 
   return (
     <div className="space-y-7">
-      <section className="home-hero overflow-hidden rounded-[32px] p-6" style={coverStyle}>
+      <section className={`home-hero overflow-hidden rounded-[32px] p-6 ${heroHasImage ? "has-cover" : ""}`} style={coverStyle}>
         <div className="relative z-10 flex min-h-[162px] flex-col">
-          <div className="flex items-center gap-3">
-            <span className={`brand-mark ${heroHasImage ? "!bg-white/90 !text-petrol" : ""}`}>
-              <Route size={20} strokeWidth={1.9} />
-            </span>
-            <span className={`brand-name ${heroHasImage ? "text-white" : ""}`}>Nordestrip</span>
+          <div className="hero-brand-lockup">
+            <span className="ghumat-mark" aria-hidden="true" />
+            <span className="brand-name">Nordestrip</span>
           </div>
 
-          <div className="mt-auto max-w-md pt-10">
-            <p className={`text-[13px] font-medium ${heroHasImage ? "text-white/78" : "text-petrol/70"}`}>
+          <div className={`hero-caption mt-auto max-w-md pt-10 ${heroHasImage ? "hero-caption--image" : ""}`}>
+            <p className={`text-[13px] font-medium ${heroHasImage ? "text-white/80" : "text-petrol/70"}`}>
               {tripDates || "Planejamento da viagem"}
             </p>
             <h1 className={`mt-1 text-[2rem] font-semibold leading-tight tracking-[-.045em] ${heroHasImage ? "text-white" : ""}`}>
