@@ -2,9 +2,11 @@ import { PageHeader } from "@/components/layout/page-header";
 import { LogoutButton } from "@/components/navigation/logout-button";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
 import { getTripMoreData, getTripPendingItems } from "@/lib/queries/trips";
+import { formatMoney } from "@/lib/utils/format";
 import {
   ChevronRight,
   ClipboardList,
+  ExternalLink,
   FileText,
   Plug,
   Settings,
@@ -35,6 +37,15 @@ function IntegrationSummary({
   return <>{parts.join(" · ")}</>;
 }
 
+const statusLabel: Record<string, string> = {
+  estimated: "Estimado",
+  quoted: "Cotado",
+  reserved: "Reservado",
+  purchased: "Comprado",
+  paid: "Pago",
+  cancelled: "Cancelado",
+};
+
 export default async function MorePage() {
   const { trip } = await getCurrentTrip();
   const [pending, more] = trip
@@ -59,9 +70,53 @@ export default async function MorePage() {
                 <ChevronRight size={17} className="settings-chevron" />
               </summary>
               <div className="settings-detail">
-                {more.reservations.length || more.documents.length
-                  ? "Os registros cadastrados ficam centralizados nesta área."
-                  : "Nenhuma reserva ou documento registrado ainda."}
+                {more.reservations.length > 0 && (
+                  <div className="settings-subsection">
+                    <p>Reservas</p>
+                    {more.reservations.map((reservation) => (
+                      <div key={String(reservation.id)} className="settings-record">
+                        <div>
+                          <strong>{String(reservation.title)}</strong>
+                          <small>
+                            {statusLabel[String(reservation.status)] || String(reservation.status)}
+                            {reservation.supplier ? ` · ${String(reservation.supplier)}` : ""}
+                          </small>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {typeof reservation.total_amount === "number" && (
+                            <b>{formatMoney(reservation.total_amount)}</b>
+                          )}
+                          {reservation.source_url && (
+                            <a href={String(reservation.source_url)} target="_blank" rel="noreferrer" aria-label="Abrir reserva">
+                              <ExternalLink size={15} />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {more.documents.length > 0 && (
+                  <div className="settings-subsection">
+                    <p>Documentos</p>
+                    {more.documents.map((document) => (
+                      <div key={String(document.id)} className="settings-record">
+                        <div>
+                          <strong>{String(document.title)}</strong>
+                          <small>{String(document.document_type || "other")}</small>
+                        </div>
+                        {document.external_url && (
+                          <a href={String(document.external_url)} target="_blank" rel="noreferrer" aria-label="Abrir documento">
+                            <ExternalLink size={15} />
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {!more.reservations.length && !more.documents.length && "Nenhuma reserva ou documento registrado ainda."}
               </div>
             </details>
 
