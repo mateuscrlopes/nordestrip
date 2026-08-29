@@ -1,16 +1,28 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
-import { getTripFinanceSummary } from "@/lib/queries/trips";
-import { formatMoney } from "@/lib/utils/format";
+import { getTripExpenses, getTripFinanceSummary } from "@/lib/queries/trips";
+import { formatDateTime, formatMoney } from "@/lib/utils/format";
 import { CreditCard, ReceiptText, ShieldCheck, Wallet } from "lucide-react";
 
 function money(value: number | null | undefined) {
   return value == null ? null : formatMoney(value);
 }
 
+const paymentLabels: Record<string, string> = {
+  trip_fund: "Fundo da viagem",
+  credit_card: "Crédito",
+  debit_card: "Débito",
+  pix: "Pix",
+  cash: "Dinheiro",
+  personal_account: "Conta pessoal",
+  other: "Outro",
+};
+
 export default async function MoneyPage() {
   const { trip } = await getCurrentTrip();
-  const finance = trip ? await getTripFinanceSummary(trip.id) : null;
+  const [finance, expenses] = trip
+    ? await Promise.all([getTripFinanceSummary(trip.id), getTripExpenses(trip.id)])
+    : [null, []];
 
   return (
     <>
@@ -91,12 +103,33 @@ export default async function MoneyPage() {
           </div>
         </section>
 
-        {(finance?.net_spent ?? 0) === 0 && (
-          <section className="empty-surface">
-            <ReceiptText size={20} />
-            <p>Nenhum gasto registrado até agora.</p>
-          </section>
-        )}
+        <section>
+          <div className="section-heading">
+            <h2>Últimos gastos</h2>
+          </div>
+          {expenses.length ? (
+            <div className="expense-list">
+              {expenses.map((expense) => (
+                <div key={expense.id} className="expense-row">
+                  <span className="settings-row-icon"><ReceiptText size={16} /></span>
+                  <div className="min-w-0 flex-1">
+                    <p>{expense.title}</p>
+                    <span>
+                      {formatDateTime(expense.occurred_at)}
+                      {expense.payment_method ? ` · ${paymentLabels[expense.payment_method] || expense.payment_method}` : ""}
+                    </span>
+                  </div>
+                  <strong>{formatMoney(expense.amount)}</strong>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-surface">
+              <ReceiptText size={20} />
+              <p>Nenhum gasto registrado até agora.</p>
+            </div>
+          )}
+        </section>
       </div>
     </>
   );
