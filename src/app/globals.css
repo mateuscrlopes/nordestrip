@@ -113,10 +113,10 @@ input:focus-visible {
   background:
     linear-gradient(
       180deg,
-      rgba(7, 28, 35, .08) 0%,
-      rgba(7, 28, 35, .10) 34%,
-      rgba(7, 28, 35, .42) 64%,
-      rgba(7, 28, 35, .78) 100%
+      rgba(7, 28, 35, .03) 0%,
+      rgba(7, 28, 35, .07) 34%,
+      rgba(7, 28, 35, .30) 62%,
+      rgba(7, 28, 35, .74) 100%
     );
 }
 
@@ -124,10 +124,10 @@ input:focus-visible {
   display: inline-flex;
   width: fit-content;
   align-items: center;
-  gap: .48rem;
+  gap: .55rem;
   border: 1px solid rgba(255, 255, 255, .72);
-  border-radius: 18px;
-  padding: .34rem .72rem .34rem .4rem;
+  border-radius: 20px;
+  padding: .38rem .78rem .38rem .48rem;
   color: #123844;
   background: rgba(255, 253, 252, .90);
   box-shadow: 0 7px 22px rgba(23, 40, 46, .08);
@@ -137,13 +137,13 @@ input:focus-visible {
 
 .ghumat-mark {
   display: block;
-  width: 2.45rem;
-  height: 1.85rem;
+  width: 3rem;
+  height: 2.2rem;
   flex: 0 0 auto;
   background-image: url("/ghumat-mark.png");
   background-repeat: no-repeat;
   background-position: center;
-  background-size: 175%;
+  background-size: 135%;
 }
 
 .brand-name {
@@ -154,17 +154,17 @@ input:focus-visible {
 }
 
 .hero-caption--image {
-  width: fit-content;
-  max-width: 100%;
+  width: calc(100% + .8rem);
+  max-width: calc(100% + .8rem);
   margin-left: -.4rem;
   padding: .68rem .82rem .72rem;
-  border: 1px solid rgba(255, 255, 255, .10);
-  border-radius: 18px;
+  border: 0;
+  border-radius: 16px;
   background:
-    linear-gradient(90deg, rgba(7, 28, 35, .62), rgba(7, 28, 35, .30));
-  box-shadow: 0 8px 22px rgba(7, 28, 35, .10);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+    linear-gradient(90deg, rgba(7, 28, 35, .44) 0%, rgba(7, 28, 35, .22) 58%, rgba(7, 28, 35, 0) 100%);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .transport-feature {
