@@ -276,8 +276,7 @@ export function GlobalAdd({
       <button
         onClick={() => setOpen(true)}
         aria-label="Adicionar"
-        className="fixed right-6 z-[45] grid size-[46px] place-items-center rounded-full border border-white/35 bg-petrol text-white shadow-[0_8px_22px_rgba(18,56,68,.16)] hover:bg-[#0d303a] active:scale-[.97] md:right-[calc(50%-19rem)]"
-        style={{ bottom: "calc(max(.45rem, env(safe-area-inset-bottom)) + 4.65rem)" }}
+        className="grid size-[44px] place-items-center rounded-[17px] bg-petrol text-white shadow-[0_6px_16px_rgba(18,56,68,.16)] transition hover:bg-[#0d303a] active:scale-[.97]"
       >
         <Plus size={20} />
       </button>
