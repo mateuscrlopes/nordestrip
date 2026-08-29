@@ -1927,3 +1927,19 @@ input:focus-visible {
     right: .12rem;
   }
 }
+
+
+/* Saved place location states */
+
+.place-location-chip {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  margin-top: .4rem;
+  border-radius: 999px;
+  padding: 0 .5rem;
+  color: #6c5635;
+  background: rgba(215, 180, 131, .22);
+  font-size: .58rem;
+  font-weight: 650;
+}
