@@ -40,7 +40,9 @@ type OperationalLocation = {
 };
 
 function transportLocations(transports: Transport[]): OperationalLocation[] {
-  return transports.flatMap((transport) => {
+  return transports
+    .filter((transport) => transport.status !== "cancelled")
+    .flatMap((transport) => {
     const route = [transport.origin_label, transport.destination_label].filter(Boolean).join(" → ") || "Deslocamento";
     const rows: OperationalLocation[] = [];
 
