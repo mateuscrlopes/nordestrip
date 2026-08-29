@@ -1850,3 +1850,80 @@ input:focus-visible {
     flex: 1;
   }
 }
+
+
+/* City structure management */
+
+.route-stop-card-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.route-stop-card-wrap .route-stop-card {
+  margin-bottom: 1rem;
+}
+
+.route-stop-manage {
+  position: absolute;
+  top: .65rem;
+  right: .05rem;
+  z-index: 4;
+}
+
+.route-city-actions {
+  position: relative;
+}
+
+.route-city-actions .record-actions-menu {
+  width: 154px;
+}
+
+.city-dependency-list {
+  display: grid;
+  overflow: hidden;
+  border-top: 1px solid rgba(18, 56, 68, .07);
+  border-bottom: 1px solid rgba(18, 56, 68, .07);
+}
+
+.city-dependency-list > div {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.city-dependency-list > div + div {
+  border-top: 1px solid rgba(18, 56, 68, .05);
+}
+
+.city-dependency-list span {
+  color: #526268;
+  font-size: .67rem;
+}
+
+.city-dependency-list strong {
+  display: grid;
+  min-width: 1.65rem;
+  height: 1.65rem;
+  place-items: center;
+  border-radius: 999px;
+  color: #123844;
+  background: rgba(220, 232, 235, .58);
+  font-size: .62rem;
+  font-weight: 700;
+}
+
+@media (max-width: 430px) {
+  .route-edit-actions {
+    flex-wrap: wrap;
+  }
+
+  .route-edit-actions > * {
+    flex: 1 1 46%;
+  }
+
+  .route-stop-manage {
+    right: .12rem;
+  }
+}
