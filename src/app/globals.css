@@ -1621,3 +1621,232 @@ input:focus-visible {
     justify-content: space-between;
   }
 }
+
+
+/* Route structural editing */
+
+.route-edit-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .8rem;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(18, 56, 68, .07);
+  border-radius: 18px;
+  padding: .8rem .9rem;
+  background: rgba(255, 253, 252, .72);
+}
+
+.route-edit-bar > div:first-child {
+  min-width: 0;
+}
+
+.route-edit-bar strong {
+  display: block;
+  color: #17282e;
+  font-size: .75rem;
+  line-height: 1.3;
+}
+
+.route-edit-bar span {
+  display: block;
+  margin-top: .16rem;
+  color: #70787a;
+  font-size: .63rem;
+  line-height: 1.4;
+}
+
+.route-edit-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: .45rem;
+}
+
+.route-edit-primary,
+.route-edit-secondary {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  border-radius: 13px;
+  padding: 0 .7rem;
+  font-size: .66rem;
+  font-weight: 650;
+}
+
+.route-edit-primary {
+  color: #fff;
+  background: #123844;
+}
+
+.route-edit-primary:disabled {
+  opacity: .45;
+}
+
+.route-edit-secondary {
+  color: #123844;
+  background: rgba(220, 232, 235, .5);
+}
+
+.route-reorder-list {
+  margin-bottom: 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(18, 56, 68, .07);
+  border-radius: 20px;
+  background: rgba(255, 253, 252, .78);
+}
+
+.route-reorder-row {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  gap: .7rem;
+  padding: .55rem .65rem;
+}
+
+.route-reorder-row + .route-reorder-row {
+  border-top: 1px solid rgba(18, 56, 68, .06);
+}
+
+.route-reorder-number {
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 999px;
+  color: #123844;
+  background: rgba(220, 232, 235, .72);
+  font-size: .64rem;
+  font-weight: 700;
+}
+
+.route-reorder-row strong {
+  display: block;
+  font-size: .74rem;
+  line-height: 1.3;
+}
+
+.route-reorder-row small {
+  display: block;
+  margin-top: .15rem;
+  color: #70787a;
+  font-size: .6rem;
+}
+
+.route-reorder-buttons {
+  display: flex;
+  flex: 0 0 auto;
+  gap: .3rem;
+}
+
+.route-reorder-buttons button {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 11px;
+  color: #123844;
+  background: rgba(220, 232, 235, .5);
+}
+
+.route-reorder-buttons button:disabled {
+  opacity: .28;
+}
+
+.route-impact-sheet {
+  max-width: 31rem;
+}
+
+.route-impact-body {
+  display: grid;
+  gap: .85rem;
+}
+
+.route-impact-summary,
+.route-impact-warning {
+  border-radius: 17px;
+  padding: .85rem .9rem;
+}
+
+.route-impact-summary {
+  background: rgba(220, 232, 235, .42);
+}
+
+.route-impact-warning {
+  background: rgba(215, 180, 131, .22);
+}
+
+.route-impact-summary strong,
+.route-impact-warning strong {
+  display: block;
+  color: #17282e;
+  font-size: .74rem;
+}
+
+.route-impact-summary span,
+.route-impact-warning span {
+  display: block;
+  margin-top: .25rem;
+  color: #526268;
+  font-size: .64rem;
+  line-height: 1.45;
+}
+
+.route-impact-sequence {
+  display: grid;
+  overflow: hidden;
+  border-top: 1px solid rgba(18, 56, 68, .07);
+  border-bottom: 1px solid rgba(18, 56, 68, .07);
+}
+
+.route-impact-sequence > div {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  gap: .55rem;
+}
+
+.route-impact-sequence > div + div {
+  border-top: 1px solid rgba(18, 56, 68, .05);
+}
+
+.route-impact-sequence span {
+  display: grid;
+  width: 1.55rem;
+  height: 1.55rem;
+  place-items: center;
+  border-radius: 999px;
+  color: #123844;
+  background: rgba(220, 232, 235, .6);
+  font-size: .58rem;
+  font-weight: 700;
+}
+
+.route-impact-sequence strong {
+  font-size: .68rem;
+  font-weight: 650;
+}
+
+.route-impact-actions {
+  display: grid;
+  grid-template-columns: .8fr 1.2fr;
+  gap: .55rem;
+}
+
+@media (max-width: 430px) {
+  .route-edit-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .route-edit-actions,
+  .route-edit-primary {
+    width: 100%;
+  }
+
+  .route-edit-actions > button {
+    flex: 1;
+  }
+}
