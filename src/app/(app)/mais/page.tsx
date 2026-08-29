@@ -1,3 +1,4 @@
+import { RecordActions } from "@/components/actions/record-actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { RecordStatus, pendingStatusOptions, reservationStatusOptions } from "@/components/actions/record-status";
 import { LogoutButton } from "@/components/navigation/logout-button";
@@ -92,6 +93,36 @@ export default async function MorePage() {
                               <ExternalLink size={15} />
                             </a>
                           )}
+                          <RecordActions
+                            table="reservations"
+                            id={String(reservation.id)}
+                            title={String(reservation.title)}
+                            fields={[
+                              { name: "title", label: "Reserva", required: true },
+                              { name: "supplier", label: "Fornecedor" },
+                              { name: "confirmation_code", label: "Localizador" },
+                              { name: "total_amount", label: "Valor total", type: "number", min: "0", step: "0.01" },
+                              { name: "paid_amount", label: "Valor pago", type: "number", min: "0", step: "0.01" },
+                              { name: "payment_due_at", label: "Próximo pagamento", type: "datetime-local" },
+                              { name: "source_url", label: "Link", type: "url" },
+                              { name: "notes", label: "Nota", type: "textarea" },
+                            ]}
+                            values={{
+                              title: reservation.title ?? "",
+                              supplier: reservation.supplier ?? null,
+                              confirmation_code: reservation.confirmation_code ?? null,
+                              total_amount: reservation.total_amount ?? null,
+                              paid_amount: reservation.paid_amount ?? 0,
+                              payment_due_at: reservation.payment_due_at ?? null,
+                              source_url: reservation.source_url ?? null,
+                              notes: reservation.notes ?? null,
+                            }}
+                            archiveWarning={
+                              ["purchased", "paid"].includes(String(reservation.status))
+                                ? "Esta reserva já foi comprada ou paga."
+                                : undefined
+                            }
+                          />
                         </div>
                       </div>
                     ))}
@@ -107,11 +138,30 @@ export default async function MorePage() {
                           <strong>{String(document.title)}</strong>
                           <small>{String(document.document_type || "other")}</small>
                         </div>
-                        {document.external_url && (
-                          <a href={String(document.external_url)} target="_blank" rel="noreferrer" aria-label="Abrir documento">
-                            <ExternalLink size={15} />
-                          </a>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {document.external_url && (
+                            <a href={String(document.external_url)} target="_blank" rel="noreferrer" aria-label="Abrir documento">
+                              <ExternalLink size={15} />
+                            </a>
+                          )}
+                          <RecordActions
+                            table="documents"
+                            id={String(document.id)}
+                            title={String(document.title)}
+                            fields={[
+                              { name: "title", label: "Título", required: true },
+                              { name: "external_url", label: "Link", type: "url" },
+                              { name: "is_essential", label: "Documento essencial", type: "checkbox" },
+                              { name: "notes", label: "Nota", type: "textarea" },
+                            ]}
+                            values={{
+                              title: document.title ?? "",
+                              external_url: document.external_url ?? null,
+                              is_essential: Boolean(document.is_essential),
+                              notes: document.notes ?? null,
+                            }}
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -150,14 +200,42 @@ export default async function MorePage() {
                     {pending.map((item) => (
                       <div key={item.id} className="pending-manage-row">
                         <span>{item.title}</span>
-                        <RecordStatus
-                          table="pending_items"
-                          id={item.id}
-                          value={item.status}
-                          options={pendingStatusOptions}
-                          label={`Status de ${item.title}`}
-                          compact
-                        />
+                        <div className="flex items-center gap-2">
+                          <RecordStatus
+                            table="pending_items"
+                            id={item.id}
+                            value={item.status}
+                            options={pendingStatusOptions}
+                            label={`Status de ${item.title}`}
+                            compact
+                          />
+                          <RecordActions
+                            table="pending_items"
+                            id={item.id}
+                            title={item.title}
+                            fields={[
+                              { name: "title", label: "Pendência", required: true },
+                              { name: "description", label: "Descrição", type: "textarea" },
+                              { name: "due_at", label: "Prazo", type: "datetime-local" },
+                              {
+                                name: "priority",
+                                label: "Prioridade",
+                                type: "select",
+                                options: [
+                                  { value: "low", label: "Baixa" },
+                                  { value: "medium", label: "Média" },
+                                  { value: "high", label: "Alta" },
+                                ],
+                              },
+                            ]}
+                            values={{
+                              title: item.title,
+                              description: item.description ?? null,
+                              due_at: item.due_at ?? null,
+                              priority: item.priority ?? "medium",
+                            }}
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
