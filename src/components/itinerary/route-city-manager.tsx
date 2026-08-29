@@ -186,7 +186,7 @@ export function RouteCityManager({
                 </button>
               </div>
 
-              <CityForm onSubmit={save} saving={saving} error={error} />
+              <CityForm onSubmit={save} onCancel={() => setOpen(false)} saving={saving} error={error} />
             </section>
           </div>
         )}
@@ -239,7 +239,7 @@ export function RouteCityManager({
               </button>
             </div>
 
-            <CityForm stop={stop} onSubmit={save} saving={saving} error={error} />
+            <CityForm stop={stop} onSubmit={save} onCancel={() => setOpen(false)} saving={saving} error={error} />
           </section>
         </div>
       )}
@@ -314,11 +314,13 @@ export function RouteCityManager({
 function CityForm({
   stop,
   onSubmit,
+  onCancel,
   saving,
   error,
 }: {
   stop?: Stop | null;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onCancel: () => void;
   saving: boolean;
   error: string;
 }) {
@@ -364,8 +366,8 @@ function CityForm({
       {error && <p className="add-error" role="alert">{error}</p>}
 
       <div className="add-form-actions">
-        <button type="button" className="add-secondary" onClick={() => history.back()}>
-          Voltar
+        <button type="button" className="add-secondary" onClick={onCancel}>
+          Cancelar
         </button>
         <button type="submit" className="add-primary" disabled={saving}>
           {saving ? "Salvando..." : "Salvar"}
