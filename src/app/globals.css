@@ -2166,3 +2166,73 @@ input:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Change log history */
+
+.change-log-block,
+.archive-block {
+  display: grid;
+  gap: .55rem;
+}
+
+.archive-block--separated {
+  margin-top: 1.1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(18, 56, 68, .07);
+}
+
+.change-log-title {
+  margin: 0;
+  color: #526268;
+  font-size: .66rem;
+  font-weight: 700;
+}
+
+.change-log-list {
+  display: grid;
+}
+
+.change-log-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: .65rem minmax(0, 1fr);
+  gap: .55rem;
+  min-height: 48px;
+  padding: .5rem 0;
+}
+
+.change-log-row + .change-log-row {
+  border-top: 1px solid rgba(18, 56, 68, .05);
+}
+
+.change-log-dot {
+  width: .48rem;
+  height: .48rem;
+  margin-top: .22rem;
+  border-radius: 999px;
+  background: #123844;
+  box-shadow: 0 0 0 3px rgba(220, 232, 235, .58);
+}
+
+.change-log-row strong {
+  display: block;
+  color: #17282e;
+  font-size: .7rem;
+  line-height: 1.35;
+}
+
+.change-log-row small {
+  display: block;
+  margin-top: .18rem;
+  color: #70787a;
+  font-size: .59rem;
+  line-height: 1.4;
+}
+
+.archive-empty {
+  margin: 0;
+  color: #70787a;
+  font-size: .66rem;
+  line-height: 1.5;
+}
