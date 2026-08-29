@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { FinanceSummary, ItineraryItem, PendingItem, Stop, Transport, Trip } from "@/types/trip";
+import type { CityCover, FinanceSummary, ItineraryItem, PendingItem, Stop, Transport, Trip } from "@/types/trip";
 
 function checked<T>(result: { data: T | null; error: { message: string } | null }, context: string): T {
   if (result.error) throw new Error(`${context}: ${result.error.message}`);
@@ -25,22 +25,35 @@ export async function getTripStops(tripId: string): Promise<Stop[]> {
   const supabase = await createClient();
   return checked(await supabase.from("stops").select("*").eq("trip_id", tripId).order("sequence"), "Não foi possível carregar as cidades") as Stop[];
 }
+
 export async function getTripItinerary(tripId: string): Promise<ItineraryItem[]> {
   const supabase = await createClient();
   return checked(await supabase.from("v_itinerary_day").select("*").eq("trip_id", tripId).order("activity_date"), "Não foi possível carregar o roteiro") as ItineraryItem[];
 }
+
 export async function getTripPendingItems(tripId: string): Promise<PendingItem[]> {
   const supabase = await createClient();
   return checked(await supabase.from("pending_items").select("*").eq("trip_id", tripId).in("status", ["pending", "checking"]).order("due_at", { nullsFirst: false }), "Não foi possível carregar as pendências") as PendingItem[];
 }
+
 export async function getTripTransports(tripId: string): Promise<Transport[]> {
   const supabase = await createClient();
   return checked(await supabase.from("transport_segments").select("*").eq("trip_id", tripId).order("departure_date", { nullsFirst: false }).order("departure_at", { nullsFirst: false }), "Não foi possível carregar os transportes") as Transport[];
 }
+
 export async function getTripFinanceSummary(tripId: string): Promise<FinanceSummary | null> {
   const supabase = await createClient();
   return checked(await supabase.from("v_trip_finance_summary").select("*").eq("trip_id", tripId).maybeSingle(), "Não foi possível carregar o resumo financeiro") as FinanceSummary | null;
 }
+
+export async function getTripCityCovers(tripId: string): Promise<CityCover[]> {
+  const supabase = await createClient();
+  return checked(
+    await supabase.from("v_city_covers").select("*").eq("trip_id", tripId).eq("is_active", true).order("sort_order"),
+    "Não foi possível carregar as capas das cidades"
+  ) as CityCover[];
+}
+
 export async function getStopDetails(stopId: string) {
   const supabase = await createClient();
   const stop = checked(await supabase.from("stops").select("*").eq("id", stopId).single(), "Não foi possível carregar a cidade") as Stop;
@@ -56,7 +69,16 @@ export async function getStopDetails(stopId: string) {
     if (result.error) throw new Error(`Não foi possível carregar ${label}: ${result.error.message}`);
   }
   const luggagePlans = luggage.data ?? [];
-  return { stop, accommodation: accommodation.data, arrivalLuggage: luggagePlans.find((plan) => plan.phase === "arrival") ?? null, departureLuggage: luggagePlans.find((plan) => plan.phase === "departure") ?? null, activities: activities.data ?? [], pending: pending.data ?? [], inbound: inbound.data, outbound: outbound.data };
+  return {
+    stop,
+    accommodation: accommodation.data,
+    arrivalLuggage: luggagePlans.find((plan) => plan.phase === "arrival") ?? null,
+    departureLuggage: luggagePlans.find((plan) => plan.phase === "departure") ?? null,
+    activities: activities.data ?? [],
+    pending: pending.data ?? [],
+    inbound: inbound.data,
+    outbound: outbound.data,
+  };
 }
 
 export async function getTripPlaces(tripId: string) {

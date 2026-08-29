@@ -1,6 +1,7 @@
 import { getCurrentTrip } from "@/lib/queries/current-trip";
-import { getTripFinanceSummary, getTripPendingItems, getTripTransports } from "@/lib/queries/trips";
+import { getTripCityCovers, getTripFinanceSummary, getTripPendingItems, getTripTransports } from "@/lib/queries/trips";
 import { formatDate, formatDateTime, formatMoney } from "@/lib/utils/format";
+import type { CityCover } from "@/types/trip";
 import {
   ArrowRight,
   Banknote,
@@ -24,6 +25,36 @@ const transportStatus: Record<string, string> = {
   cancelled: "Cancelado",
 };
 
+function dateKeyInTimeZone(date: Date, timeZone = "America/Sao_Paulo") {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const value = (type: "year" | "month" | "day") => parts.find((part) => part.type === type)?.value ?? "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
+function dayNumber(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000);
+}
+
+function selectHeroCover(covers: CityCover[], today: string) {
+  if (!covers.length) return { cover: null, isCurrentCity: false };
+
+  const currentCity = covers
+    .filter((cover) => cover.start_date && cover.end_date && today >= cover.start_date && today <= cover.end_date)
+    .sort((a, b) => (a.sequence ?? 999) - (b.sequence ?? 999))[0];
+
+  if (currentCity) return { cover: currentCity, isCurrentCity: true };
+
+  const index = ((dayNumber(today) % covers.length) + covers.length) % covers.length;
+  return { cover: covers[index], isCurrentCity: false };
+}
+
 export default async function HomePage() {
   const { trip } = await getCurrentTrip();
 
@@ -40,13 +71,14 @@ export default async function HomePage() {
     );
   }
 
-  const [pending, transports, finance] = await Promise.all([
+  const [pending, transports, finance, cityCovers] = await Promise.all([
     getTripPendingItems(trip.id),
     getTripTransports(trip.id),
     getTripFinanceSummary(trip.id),
+    getTripCityCovers(trip.id),
   ]);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = dateKeyInTimeZone(new Date());
   const nextTransport = transports.find((item) =>
     item.departure_at
       ? new Date(item.departure_at) >= new Date()
@@ -60,6 +92,16 @@ export default async function HomePage() {
       || "Deslocamento"
     : null;
 
+  const routeCovers = [...cityCovers].sort((a, b) => (a.sequence ?? 999) - (b.sequence ?? 999));
+  const routeRange = routeCovers.length > 1
+    ? `${routeCovers[0].city_name} → ${routeCovers[routeCovers.length - 1].city_name}`
+    : trip.name;
+
+  const { cover: heroCover, isCurrentCity } = selectHeroCover(cityCovers, today);
+  const heroImage = heroCover?.image_url || trip.cover_url || null;
+  const heroTitle = isCurrentCity && heroCover ? heroCover.city_name : routeRange;
+  const heroHasImage = Boolean(heroImage);
+
   const shortcuts = [
     { href: "/roteiro", label: "Roteiro", icon: CalendarDays },
     { href: "/mais", label: "Reservas", icon: TicketCheck },
@@ -67,24 +109,30 @@ export default async function HomePage() {
     { href: "/mais", label: "Pendências", icon: ClipboardList },
   ];
 
-  const coverStyle = trip.cover_url
+  const coverStyle = heroImage
     ? {
-        backgroundImage: `linear-gradient(180deg, rgba(247,243,236,.08), rgba(247,243,236,.72)), url("${trip.cover_url.replace(/"/g, "%22")}")`,
+        backgroundImage: `linear-gradient(180deg, rgba(9,33,41,.12), rgba(9,33,41,.72)), url("${heroImage.replace(/"/g, "%22")}")`,
       }
     : undefined;
 
   return (
     <div className="space-y-7">
       <section className="home-hero overflow-hidden rounded-[32px] p-6" style={coverStyle}>
-        <div className="relative z-10">
+        <div className="relative z-10 flex min-h-[162px] flex-col">
           <div className="flex items-center gap-3">
-            <span className="brand-mark"><Route size={20} strokeWidth={1.9} /></span>
-            <span className="brand-name">Nordestrip</span>
+            <span className={`brand-mark ${heroHasImage ? "!bg-white/90 !text-petrol" : ""}`}>
+              <Route size={20} strokeWidth={1.9} />
+            </span>
+            <span className={`brand-name ${heroHasImage ? "text-white" : ""}`}>Nordestrip</span>
           </div>
 
-          <div className="mt-12 max-w-md">
-            <p className="text-[13px] font-medium text-petrol/70">{tripDates || "Planejamento da viagem"}</p>
-            <h1 className="mt-1 text-[2rem] font-semibold leading-tight tracking-[-.045em]">{trip.name}</h1>
+          <div className="mt-auto max-w-md pt-10">
+            <p className={`text-[13px] font-medium ${heroHasImage ? "text-white/78" : "text-petrol/70"}`}>
+              {tripDates || "Planejamento da viagem"}
+            </p>
+            <h1 className={`mt-1 text-[2rem] font-semibold leading-tight tracking-[-.045em] ${heroHasImage ? "text-white" : ""}`}>
+              {heroTitle}
+            </h1>
           </div>
         </div>
       </section>

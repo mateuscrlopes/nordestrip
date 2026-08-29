@@ -16,6 +16,25 @@ export type Stop = {
   end_date?: string | null;
 };
 
+export type CityCover = {
+  id: string;
+  trip_id: string;
+  stop_id: string;
+  city_name: string;
+  sequence: number | null;
+  start_date: string | null;
+  end_date: string | null;
+  bucket_id: string;
+  storage_path: string;
+  image_url: string;
+  source_url?: string | null;
+  source_name?: string | null;
+  author?: string | null;
+  license?: string | null;
+  sort_order: number;
+  is_active: boolean;
+};
+
 export type PendingStatus = "pending" | "checking" | "resolved" | "cancelled";
 
 export type PendingItem = {
