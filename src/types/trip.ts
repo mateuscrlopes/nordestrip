@@ -68,7 +68,16 @@ export type Transport = {
   mode?: string | null;
   status?: string | null;
   operator?: string | null;
+  service_class?: string | null;
+  booking_reference?: string | null;
   amount?: number | null;
+  source_url?: string | null;
+  origin_terminal_name?: string | null;
+  origin_terminal_address?: string | null;
+  destination_terminal_name?: string | null;
+  destination_terminal_address?: string | null;
+  has_checked_baggage?: boolean | null;
+  baggage_notes?: string | null;
   notes?: string | null;
 };
 
