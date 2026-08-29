@@ -1943,3 +1943,23 @@ input:focus-visible {
   font-size: .58rem;
   font-weight: 650;
 }
+
+
+/* Inline pending creation */
+
+.inline-add-button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: .38rem;
+  border-radius: 12px;
+  padding: 0 .65rem;
+  color: #123844;
+  background: rgba(220, 232, 235, .5);
+  font-size: .65rem;
+  font-weight: 650;
+}
+
+.inline-add-button:hover {
+  background: rgba(220, 232, 235, .74);
+}
