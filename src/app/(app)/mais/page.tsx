@@ -38,15 +38,6 @@ function IntegrationSummary({
   return <>{parts.join(" · ")}</>;
 }
 
-const statusLabel: Record<string, string> = {
-  estimated: "Estimado",
-  quoted: "Cotado",
-  reserved: "Reservado",
-  purchased: "Comprado",
-  paid: "Pago",
-  cancelled: "Cancelado",
-};
-
 export default async function MorePage() {
   const { trip } = await getCurrentTrip();
   const [pending, more] = trip
