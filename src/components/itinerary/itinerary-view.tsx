@@ -1,5 +1,6 @@
 "use client";
 
+import { RecordActions } from "@/components/actions/record-actions";
 import { RecordStatus, itineraryStatusOptions } from "@/components/actions/record-status";
 import { formatDate } from "@/lib/utils/format";
 import type { CityCover, ItineraryItem, PendingItem, Stop, Transport } from "@/types/trip";
@@ -197,12 +198,29 @@ export function ItineraryView({
                                 />
                               </div>
                             </div>
-                            {time && (
-                              <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium text-petrol">
-                                <Clock3 size={13} />
-                                {time}
-                              </span>
-                            )}
+                            <div className="flex shrink-0 items-start gap-2">
+                              {time && (
+                                <span className="mt-1 flex items-center gap-1 text-[12px] font-medium text-petrol">
+                                  <Clock3 size={13} />
+                                  {time}
+                                </span>
+                              )}
+                              <RecordActions
+                                table="itinerary_items"
+                                id={item.id}
+                                title={String(item.title || item.name || "Atividade")}
+                                fields={[
+                                  { name: "title", label: "Atividade", required: true },
+                                  { name: "activity_date", label: "Data", type: "date" },
+                                  { name: "notes", label: "Nota", type: "textarea" },
+                                ]}
+                                values={{
+                                  title: String(item.title || item.name || ""),
+                                  activity_date: item.activity_date || null,
+                                  notes: typeof item.notes === "string" ? item.notes : null,
+                                }}
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>
