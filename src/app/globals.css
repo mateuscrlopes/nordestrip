@@ -1963,3 +1963,206 @@ input:focus-visible {
 .inline-add-button:hover {
   background: rgba(220, 232, 235, .74);
 }
+
+
+/* Trip settings editor */
+
+.settings-detail--wide {
+  padding-left: 0;
+}
+
+.trip-settings-form {
+  display: grid;
+  gap: .9rem;
+}
+
+.trip-settings-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .9rem;
+  border-bottom: 1px solid rgba(18, 56, 68, .07);
+  padding: .75rem 0;
+}
+
+.trip-settings-section > div:first-child {
+  min-width: 0;
+  flex: 1;
+}
+
+.trip-settings-section strong,
+.trip-settings-finance-heading strong {
+  display: block;
+  color: #17282e;
+  font-size: .74rem;
+  line-height: 1.35;
+}
+
+.trip-settings-section span,
+.trip-settings-finance-heading span {
+  display: block;
+  margin-top: .18rem;
+  color: #70787a;
+  font-size: .62rem;
+  line-height: 1.45;
+}
+
+.trip-settings-section > select {
+  min-height: 38px;
+  max-width: 180px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(18, 56, 68, .09);
+  border-radius: 13px;
+  padding: 0 1.9rem 0 .65rem;
+  color: #123844;
+  background: rgba(220, 232, 235, .42);
+  font-size: .65rem;
+  font-weight: 650;
+}
+
+.trip-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: .65rem;
+}
+
+.trip-settings-grid label {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: .35rem;
+  min-height: 92px;
+  border-radius: 16px;
+  padding: .72rem;
+  background: rgba(247, 243, 236, .58);
+}
+
+.trip-settings-grid label > span {
+  margin: 0;
+  color: #526268;
+  font-size: .6rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.trip-settings-grid input {
+  min-height: 38px;
+  width: 100%;
+  border: 1px solid rgba(18, 56, 68, .08);
+  border-radius: 12px;
+  padding: .55rem .6rem;
+  color: #17282e;
+  background: #fffdfc;
+  outline: none;
+  font-size: .7rem;
+}
+
+.trip-settings-grid input:focus,
+.trip-settings-section > select:focus {
+  border-color: rgba(18, 56, 68, .4);
+  box-shadow: 0 0 0 3px rgba(220, 232, 235, .48);
+}
+
+.trip-settings-grid small {
+  color: #70787a;
+  font-size: .56rem;
+}
+
+.trip-settings-toggles {
+  display: grid;
+  border-top: 1px solid rgba(18, 56, 68, .07);
+  border-bottom: 1px solid rgba(18, 56, 68, .07);
+}
+
+.trip-settings-toggles label {
+  display: flex;
+  min-height: 58px;
+  align-items: flex-start;
+  gap: .65rem;
+  padding: .7rem 0;
+}
+
+.trip-settings-toggles label + label {
+  border-top: 1px solid rgba(18, 56, 68, .05);
+}
+
+.trip-settings-toggles input {
+  width: 1rem;
+  height: 1rem;
+  margin-top: .15rem;
+  flex: 0 0 auto;
+  accent-color: #123844;
+}
+
+.trip-settings-toggles strong {
+  display: block;
+  color: #17282e;
+  font-size: .7rem;
+}
+
+.trip-settings-toggles small {
+  display: block;
+  margin-top: .18rem;
+  color: #70787a;
+  font-size: .6rem;
+  line-height: 1.45;
+}
+
+.trip-settings-finance {
+  border-radius: 20px;
+  padding: .9rem;
+  background: rgba(215, 180, 131, .16);
+}
+
+.trip-settings-finance-heading {
+  margin-bottom: .7rem;
+}
+
+.trip-settings-finance .trip-settings-grid label {
+  min-height: 86px;
+  background: rgba(255, 253, 252, .7);
+}
+
+.trip-settings-notice {
+  margin: 0;
+  border-radius: 13px;
+  padding: .6rem .7rem;
+  color: #123844;
+  background: rgba(220, 232, 235, .52);
+  font-size: .65rem;
+  font-weight: 650;
+}
+
+.trip-settings-save {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  border-radius: 14px;
+  color: #fff;
+  background: #123844;
+  font-size: .7rem;
+  font-weight: 650;
+}
+
+.trip-settings-save:disabled {
+  opacity: .55;
+}
+
+@media (max-width: 480px) {
+  .trip-settings-section:not(.trip-settings-grid) {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .trip-settings-section > select {
+    width: 100%;
+    max-width: none;
+  }
+
+  .trip-settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
