@@ -1,15 +1,17 @@
 import { RecordActions } from "@/components/actions/record-actions";
+import { RestoreRecord } from "@/components/actions/restore-record";
 import { PageHeader } from "@/components/layout/page-header";
 import { RecordStatus, pendingStatusOptions, reservationStatusOptions } from "@/components/actions/record-status";
 import { LogoutButton } from "@/components/navigation/logout-button";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
-import { getTripMoreData, getTripPendingItems } from "@/lib/queries/trips";
-import { formatMoney } from "@/lib/utils/format";
+import { getTripArchivedRecords, getTripMoreData, getTripPendingItems } from "@/lib/queries/trips";
+import { formatDateTime, formatMoney } from "@/lib/utils/format";
 import {
   ChevronRight,
   ClipboardList,
   ExternalLink,
   FileText,
+  History,
   Plug,
   Settings,
   Users,
@@ -41,9 +43,13 @@ function IntegrationSummary({
 
 export default async function MorePage() {
   const { trip } = await getCurrentTrip();
-  const [pending, more] = trip
-    ? await Promise.all([getTripPendingItems(trip.id), getTripMoreData(trip.id)])
-    : [[], { reservations: [], documents: [], members: [], integrations: [] }];
+  const [pending, more, archived] = trip
+    ? await Promise.all([
+        getTripPendingItems(trip.id),
+        getTripMoreData(trip.id),
+        getTripArchivedRecords(trip.id),
+      ])
+    : [[], { reservations: [], documents: [], members: [], integrations: [] }, []];
 
   return (
     <>
@@ -261,6 +267,39 @@ export default async function MorePage() {
               </summary>
               <div className="settings-detail">
                 Mercado Pago, Santander, hospedagem, transporte e mapas aparecem aqui conforme forem configurados.
+              </div>
+            </details>
+
+            <details className="group">
+              <summary>
+                <span className="settings-row-icon"><History size={17} /></span>
+                <span className="min-w-0 flex-1">
+                  <strong>Dados e histórico</strong>
+                  <small>{archived.length ? `${archived.length} arquivado${archived.length > 1 ? "s" : ""}` : "Nenhum registro arquivado"}</small>
+                </span>
+                <ChevronRight size={17} className="settings-chevron" />
+              </summary>
+              <div className="settings-detail">
+                {archived.length ? (
+                  <div className="archive-list">
+                    {archived.map((item) => (
+                      <div key={`${item.table}-${item.id}`} className="archive-row">
+                        <div className="min-w-0 flex-1">
+                          <span>{item.type}</span>
+                          <strong>{item.label}</strong>
+                          {item.archived_at && <small>Arquivado em {formatDateTime(item.archived_at)}</small>}
+                        </div>
+                        <RestoreRecord
+                          table={item.table}
+                          id={item.id}
+                          label={item.label}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  "Itens arquivados aparecem aqui e podem ser restaurados sem perda de dados."
+                )}
               </div>
             </details>
 
