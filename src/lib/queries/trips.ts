@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { ChangeLogEntry, CityCover, Expense, FinanceSummary, ItineraryItem, PendingItem, Stop, Transport, Trip, TripFinanceSettings, TripPreferences } from "@/types/trip";
+import type { ChangeLogEntry, CityCover, Expense, FinanceSummary, ItineraryItem, LuggagePlanSummary, PendingItem, Stop, Transport, Trip, TripFinanceSettings, TripPreferences } from "@/types/trip";
 
 function checked<T>(result: { data: T | null; error: { message: string } | null }, context: string): T {
   if (result.error) throw new Error(`${context}: ${result.error.message}`);
@@ -255,4 +255,17 @@ export async function getTripParticipants(tripId: string, currentUserId: string)
     }),
     invites,
   };
+}
+
+
+export async function getTripLuggagePlans(tripId: string): Promise<LuggagePlanSummary[]> {
+  const supabase = await createClient();
+  return checked(
+    await supabase
+      .from("luggage_plans")
+      .select("id,trip_id,stop_id,phase,strategy,status,available_from,available_until,confirmed_at")
+      .eq("trip_id", tripId)
+      .is("archived_at", null),
+    "Não foi possível carregar os planos de bagagem"
+  ) as LuggagePlanSummary[];
 }
