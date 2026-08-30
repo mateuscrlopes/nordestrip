@@ -1,0 +1,48 @@
+/* Small-screen itinerary refinements: keep actions secondary to content. */
+@media (max-width: 640px) {
+  .section-heading + .space-y-1 .add-icon-button {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 10px;
+  }
+
+  .section-heading + .space-y-1 .record-actions .add-icon-button {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .day-idea-row {
+    gap: .45rem;
+  }
+
+  .day-idea-actions {
+    gap: .25rem;
+  }
+
+  .day-idea-actions .record-status select {
+    min-height: 28px;
+    max-width: 7.2rem;
+    padding: .28rem 1.45rem .28rem .52rem;
+    font-size: .6rem;
+  }
+
+  .day-idea-actions .record-actions-trigger {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 10px;
+  }
+
+  .day-capacity-row {
+    padding: .6rem .65rem;
+  }
+
+  .day-capacity-row > div strong {
+    font-size: .62rem;
+  }
+
+  .day-capacity-row > div span,
+  .day-capacity-row > small {
+    font-size: .56rem;
+    line-height: 1.45;
+  }
+}
