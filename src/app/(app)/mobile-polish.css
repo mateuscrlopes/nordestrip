@@ -1,0 +1,38 @@
+@media (max-width: 640px) {
+  .record-actions-trigger,
+  .settings-record a,
+  .map-external-link,
+  .luggage-edit-button {
+    width: 2.5rem;
+    height: 2.5rem;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+  }
+
+  .record-status--compact select {
+    min-height: 36px;
+  }
+
+  .record-actions-menu button,
+  .restore-record button {
+    min-height: 40px;
+  }
+}
+
+@media (max-width: 420px) {
+  .expense-row {
+    flex-wrap: wrap;
+  }
+
+  .expense-row-actions {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 2.9rem;
+  }
+
+  .settings-record {
+    align-items: flex-start;
+  }
+}
