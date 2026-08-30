@@ -10,21 +10,12 @@ import { formatDate, formatDateTime, formatTime, valueText } from "@/lib/utils/f
 import {
   ArrowRight,
   CheckCircle2,
-  Clock3,
   Hotel,
   MapPin,
   Plane,
 } from "lucide-react";
 import { notFound } from "next/navigation";
 
-function scheduleLabel(scheduleType?: string | null, isAnchor?: boolean | null) {
-  if (scheduleType === "exact" && isAnchor) return "Horário fixo";
-  if (scheduleType === "window") return "Janela";
-  if (scheduleType === "period") return "Período";
-  if (scheduleType === "from") return "A partir de";
-  if (scheduleType === "until") return "Até";
-  return "Flexível";
-}
 
 function transportLabel(mode?: unknown) {
   if (mode === "flight") return "Voo";
