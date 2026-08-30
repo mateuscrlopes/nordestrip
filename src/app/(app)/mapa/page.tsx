@@ -2,7 +2,7 @@ import { RecordActions } from "@/components/actions/record-actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { TripMap } from "@/components/map/trip-map";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
-import { getTripPlaces, getTripStops, getTripTransports } from "@/lib/queries/trips";
+import { getTripItinerary, getTripPlaces, getTripStops, getTripTransports } from "@/lib/queries/trips";
 import type { Transport } from "@/types/trip";
 import { Check, ExternalLink, MapPin, Navigation, Route } from "lucide-react";
 
@@ -132,11 +132,21 @@ function transportLocations(transports: Transport[]): OperationalLocation[] {
 
 export default async function MapPage() {
   const { trip } = await getCurrentTrip();
-  const [places, stops, transports] = trip
-    ? await Promise.all([getTripPlaces(trip.id), getTripStops(trip.id), getTripTransports(trip.id)])
-    : [[], [], []];
+  const [places, stops, transports, itinerary] = trip
+    ? await Promise.all([
+        getTripPlaces(trip.id),
+        getTripStops(trip.id),
+        getTripTransports(trip.id),
+        getTripItinerary(trip.id),
+      ])
+    : [[], [], [], []];
 
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+  const itineraryByPlace = new Map(
+    itinerary
+      .filter((item) => typeof item.place_id === "string" && item.status !== "cancelled")
+      .map((item) => [String(item.place_id), item])
+  );
   const operationalLocations = transportLocations(transports);
   const withCoordinates = places.filter((place) => hasCoordinates(place.latitude, place.longitude));
   const addressOnly = places.filter(
@@ -220,7 +230,10 @@ export default async function MapPage() {
             </div>
             <TripMap
               apiKey={googleMapsApiKey}
-              places={withCoordinates.map((place) => ({
+              tripId={trip.id}
+              places={withCoordinates.map((place) => {
+                const itineraryItem = itineraryByPlace.get(String(place.id));
+                return ({
                 id: String(place.id),
                 stopId: typeof place.stop_id === "string" ? place.stop_id : "",
                 city: typeof place.stop_id === "string" ? String(stopById.get(place.stop_id) || "Cidade") : "Cidade",
@@ -232,7 +245,11 @@ export default async function MapPage() {
                 circuit: circuitLabel(place),
                 circuitOrder: Number(placeMetadata(place).circuit_order ?? 999),
                 confidence: coordinateConfidence(place),
-              }))}
+                priority: typeof itineraryItem?.priority === "string" ? itineraryItem.priority : null,
+                period: typeof itineraryItem?.period === "string" ? itineraryItem.period : null,
+                itineraryStatus: typeof itineraryItem?.status === "string" ? itineraryItem.status : null,
+              });
+              })}
             />
           </section>
         )}
