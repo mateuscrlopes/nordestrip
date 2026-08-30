@@ -1,6 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
@@ -81,11 +82,22 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="login-shell grid min-h-screen place-items-center px-5 py-12">
+    <main className="login-shell grid min-h-screen place-items-center px-5 py-10 sm:py-12">
       <section className="w-full max-w-sm">
-        <div className="login-brand">
-          <span className="login-ghumat-mark" aria-hidden="true" />
-          <span>Nordestrip</span>
+        <div className="mb-9 flex flex-col items-center text-center">
+          <div className="grid h-[76px] w-[108px] place-items-center overflow-hidden">
+            <Image
+              src="/ghumat-mark.png"
+              alt=""
+              width={108}
+              height={76}
+              priority
+              className="h-full w-full object-contain"
+            />
+          </div>
+          <span className="-mt-1 text-[1.75rem] font-semibold leading-none tracking-[-.055em] text-ink">
+            Nordestrip
+          </span>
         </div>
 
         <h1 className="text-[2rem] font-semibold leading-tight tracking-[-.04em]">
@@ -118,7 +130,7 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <form onSubmit={submit} className="mt-5 space-y-5 rounded-[24px] border border-white/80 bg-surface/90 p-6 shadow-soft">
+        <form onSubmit={submit} className="mt-5 space-y-5 rounded-[24px] border border-white/80 bg-surface/90 p-5 shadow-soft sm:p-6">
           {mode === "signup" && (
             <label className="block text-sm font-medium">
               Nome
