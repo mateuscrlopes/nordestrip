@@ -1,5 +1,6 @@
 "use client";
 
+import { createClient } from "@/lib/supabase/client";
 import { ExternalLink, Navigation, TriangleAlert } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -83,6 +84,9 @@ type MapPlace = {
   circuit: string | null;
   circuitOrder: number;
   confidence: "verified" | "approximate" | null;
+  priority: string | null;
+  period: string | null;
+  itineraryStatus: string | null;
 };
 
 function formatDistance(meters: number) {
@@ -104,6 +108,70 @@ function googleMapsUrl(place: MapPlace) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     `${place.latitude},${place.longitude}`
   )}`;
+}
+
+async function saveRouteEstimate(
+  tripId: string,
+  routePlaces: MapPlace[],
+  circuitLabel: string,
+  distanceMeters: number,
+  durationMillis: number
+) {
+  const stopId = routePlaces[0]?.stopId;
+  const periods = new Set(
+    routePlaces
+      .map((place) => place.period)
+      .filter((value): value is string => Boolean(value))
+  );
+
+  if (!stopId || periods.size !== 1) return;
+
+  const period = Array.from(periods)[0];
+  const placeIds = routePlaces.map((place) => place.id);
+  const supabase = createClient();
+
+  const { data, error: readError } = await supabase
+    .from("trip_preferences")
+    .select("extra")
+    .eq("trip_id", tripId)
+    .maybeSingle();
+
+  if (readError) return;
+
+  const extra =
+    data?.extra && typeof data.extra === "object" && !Array.isArray(data.extra)
+      ? data.extra as Record<string, unknown>
+      : {};
+  const rawEstimates = extra.route_estimates;
+  const estimates =
+    rawEstimates && typeof rawEstimates === "object" && !Array.isArray(rawEstimates)
+      ? rawEstimates as Record<string, unknown>
+      : {};
+  const key = `${stopId}::${circuitLabel}::${period}`;
+
+  await supabase
+    .from("trip_preferences")
+    .update({
+      extra: {
+        ...extra,
+        route_estimates: {
+          ...estimates,
+          [key]: {
+            stop_id: stopId,
+            circuit_label: circuitLabel,
+            period,
+            place_ids: placeIds,
+            distance_meters: Math.round(distanceMeters),
+            duration_minutes: Math.max(1, Math.round(durationMillis / 60000)),
+            source: "google_routes",
+            travel_mode: "walking",
+            calculated_at: new Date().toISOString(),
+          },
+        },
+      },
+      updated_at: new Date().toISOString(),
+    })
+    .eq("trip_id", tripId);
 }
 
 function loadGoogleMaps(apiKey: string) {
@@ -139,7 +207,15 @@ function loadGoogleMaps(apiKey: string) {
   return window.__nordestripGoogleMapsPromise;
 }
 
-export function TripMap({ places, apiKey }: { places: MapPlace[]; apiKey: string }) {
+export function TripMap({
+  places,
+  apiKey,
+  tripId,
+}: {
+  places: MapPlace[];
+  apiKey: string;
+  tripId: string;
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMapInstance | null>(null);
   const markersRef = useRef<GoogleMarkerInstance[]>([]);
@@ -274,11 +350,11 @@ export function TripMap({ places, apiKey }: { places: MapPlace[]; apiKey: string
         title: place.name,
         icon: {
           path: maps.SymbolPath.CIRCLE,
-          scale: selectedId === place.id ? 9 : 7,
+          scale: 7,
           fillColor: place.confidence === "approximate" ? "#D7B483" : "#FFFFFF",
           fillOpacity: 1,
           strokeColor: "#123844",
-          strokeWeight: selectedId === place.id ? 3 : 2,
+          strokeWeight: 2,
         },
       });
 
@@ -311,9 +387,12 @@ export function TripMap({ places, apiKey }: { places: MapPlace[]; apiKey: string
         return;
       }
 
-      const routePlaces = [...visiblePlaces]
-        .filter((place) => place.category !== "excursion")
+      const eligiblePlaces = [...visiblePlaces]
+        .filter((place) => place.category !== "excursion" && place.itineraryStatus !== "cancelled")
         .sort((a, b) => a.circuitOrder - b.circuitOrder);
+      const principalPlaces = eligiblePlaces.filter((place) => place.priority === "high");
+      const usingPrincipals = principalPlaces.length >= 2;
+      const routePlaces = usingPrincipals ? principalPlaces : eligiblePlaces;
 
       if (routePlaces.length < 2) {
         setRouteState("idle");
@@ -358,11 +437,21 @@ export function TripMap({ places, apiKey }: { places: MapPlace[]; apiKey: string
           polylinesRef.current.push(polyline);
         });
 
-        setRouteSummary({
-          distanceMeters: Number(route.distanceMeters || 0),
-          durationMillis: Number(route.durationMillis || 0),
-        });
+        const distanceMeters = Number(route.distanceMeters || 0);
+        const durationMillis = Number(route.durationMillis || 0);
+
+        setRouteSummary({ distanceMeters, durationMillis });
         setRouteState("ready");
+
+        if (usingPrincipals && circuit !== "all") {
+          void saveRouteEstimate(
+            tripId,
+            routePlaces,
+            circuit,
+            distanceMeters,
+            durationMillis
+          );
+        }
       } catch {
         if (renderVersion !== renderVersionRef.current) return;
         drawFallbackLines();
@@ -378,7 +467,7 @@ export function TripMap({ places, apiKey }: { places: MapPlace[]; apiKey: string
     } else if (visiblePlaces.length > 1) {
       map.fitBounds(bounds, 36);
     }
-  }, [circuit, mapReady, selectedId, visiblePlaces]);
+  }, [circuit, mapReady, tripId, visiblePlaces]);
 
   function changeCity(value: string) {
     setCity(value);
@@ -462,7 +551,7 @@ export function TripMap({ places, apiKey }: { places: MapPlace[]; apiKey: string
             </strong>
             <small>
               {routeState === "ready"
-                ? "Tempo e distância calculados pelo Google."
+                ? "Tempo e distância calculados pelo Google para o núcleo principal do circuito."
                 : routeState === "unavailable"
                   ? "A sequência aproximada continua visível; confira se a Routes API está habilitada."
                   : "O cálculo só é feito para o circuito selecionado."}
