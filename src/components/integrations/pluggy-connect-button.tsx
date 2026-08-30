@@ -186,7 +186,7 @@ export function PluggyConnectButton({
     router.refresh();
   }
 
-  async function open(targetItemId?: string | null) {
+  async function open(targetItemId?: string | null, additional = false) {
     setBusy(true);
     setMessage("");
 
@@ -194,7 +194,11 @@ export function PluggyConnectButton({
       const response = await fetch("/api/integrations/pluggy/connect-token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tripId, itemId: targetItemId || null }),
+        body: JSON.stringify({
+          tripId,
+          itemId: targetItemId || null,
+          additional,
+        }),
       });
 
       if (response.status === 401) {
@@ -329,7 +333,7 @@ export function PluggyConnectButton({
       <button
         type="button"
         disabled={busy}
-        onClick={() => open(null)}
+        onClick={() => open(null, items.length > 0)}
         className="inline-flex min-h-9 items-center justify-center rounded-xl bg-petrol px-3 text-[11px] font-semibold text-white transition hover:bg-[#0d303a] disabled:opacity-55"
       >
         {busy

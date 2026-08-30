@@ -93,6 +93,7 @@ export async function createPluggyConnectToken(
     clientUserId: string;
     itemId?: string | null;
     oauthRedirectUri?: string | null;
+    avoidDuplicates?: boolean;
   }
 ) {
   const data = await pluggyRequest<{ accessToken?: unknown }>(
@@ -107,7 +108,7 @@ export async function createPluggyConnectToken(
         ...(options.itemId ? { itemId: options.itemId } : {}),
         options: {
           clientUserId: options.clientUserId,
-          avoidDuplicates: true,
+          avoidDuplicates: options.avoidDuplicates !== false,
           ...(options.oauthRedirectUri ? { oauthRedirectUri: options.oauthRedirectUri } : {}),
         },
       }),

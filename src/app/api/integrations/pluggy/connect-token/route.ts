@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 type ConnectTokenRequest = {
   tripId?: unknown;
   itemId?: unknown;
+  additional?: unknown;
 };
 
 function stringValue(value: unknown) {
@@ -65,6 +66,7 @@ export async function POST(request: Request) {
 
   const tripId = stringValue(body.tripId);
   const requestedItemId = stringValue(body.itemId);
+  const additional = body.additional === true;
   if (!tripId) {
     return Response.json({ error: "Viagem não informada." }, { status: 400 });
   }
@@ -132,6 +134,7 @@ export async function POST(request: Request) {
       clientUserId: `${tripId}:${user.id}`,
       itemId: requestedItemId,
       oauthRedirectUri: redirectUri,
+      avoidDuplicates: !(additional && !requestedItemId && knownItemIds.size > 0),
     });
 
     const now = new Date().toISOString();
@@ -153,6 +156,12 @@ export async function POST(request: Request) {
             connector_name: meuPluggy.name,
             connector_id: meuPluggy.id,
             connection_mode: "meu_pluggy",
+            last_connect_mode:
+              additional && !requestedItemId && knownItemIds.size > 0
+                ? "additional_item"
+                : requestedItemId
+                  ? "update_item"
+                  : "first_item",
           },
           updated_at: now,
           archived_at: null,
