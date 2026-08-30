@@ -21,7 +21,7 @@ export default async function PlacesPage() {
     <>
       <PageHeader
         title="Locais"
-        description="Descubra opções por cidade, confira o funcionamento atual e leve só o que fizer sentido para o roteiro."
+        description="Opções salvas por cidade para comparar e levar ao roteiro."
       />
       <PlacesExplorer
         tripId={trip.id}
