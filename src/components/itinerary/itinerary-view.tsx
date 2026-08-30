@@ -902,7 +902,7 @@ export function ItineraryView({
                                   <small>
                                     Janela útil {compactDuration(summary.capacity)}
                                     {summary.routeCached
-                                      ? ` · deslocamento Google incluído${summary.distanceMeters != null ? ` · ${(summary.distanceMeters / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km` : ""}`
+                                      ? ` · deslocamento a pé incluído${summary.distanceMeters != null ? ` · ${(summary.distanceMeters / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km` : ""}`
                                       : summary.needsRoute
                                         ? " · calcule este circuito no Mapa para incluir deslocamento"
                                         : " · sem deslocamento entre Principais"}
