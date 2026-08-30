@@ -1,6 +1,7 @@
 import { RecordActions } from "@/components/actions/record-actions";
 import { PageHeader } from "@/components/layout/page-header";
-import { ConnectedAccountsEditor } from "@/components/finance/connected-accounts-editor";\nimport { ManualFundEditor } from "@/components/finance/manual-fund-editor";
+import { ConnectedAccountsEditor } from "@/components/finance/connected-accounts-editor";
+import { ManualFundEditor } from "@/components/finance/manual-fund-editor";
 import { RecordStatus, expenseStatusOptions } from "@/components/actions/record-status";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
 import { getCurrentUser, getTripExpenses, getTripFinanceSummary, getTripManualFund, getTripPluggyAccounts } from "@/lib/queries/trips";
