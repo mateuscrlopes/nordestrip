@@ -2,8 +2,6 @@ import { RecordActions } from "@/components/actions/record-actions";
 import { RecordStatus, accommodationStatusOptions, itineraryStatusOptions, pendingStatusOptions, transportStatusOptions } from "@/components/actions/record-status";
 import { LuggagePlanEditor } from "@/components/logistics/luggage-plan-editor";
 import { AccommodationEditor } from "@/components/lodging/accommodation-editor";
-import { AccommodationSearch } from "@/components/lodging/accommodation-search";
-import { BusSearch } from "@/components/transport/bus-search";
 import { getStopDetails, getTripCityCovers, getTripPreferences } from "@/lib/queries/trips";
 import { formatDate, formatDateTime, formatTime, valueText } from "@/lib/utils/format";
 import {
@@ -40,13 +38,10 @@ function terminalMapsUrl(name?: unknown, address?: unknown) {
 
 export default async function CityPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ stopId: string }>;
-  searchParams: Promise<{ integration?: string }>;
 }) {
   const { stopId } = await params;
-  const { integration } = await searchParams;
 
   let data;
   try {
@@ -65,8 +60,6 @@ export default async function CityPage({
     pending,
     inbound,
     outbound,
-    accommodationQuotes,
-    transportQuotes,
   } = data;
 
   const [covers, preferences] = await Promise.all([
@@ -101,21 +94,6 @@ export default async function CityPage({
     outbound?.origin_terminal_name,
     outbound?.origin_terminal_address
   );
-  const outboundDate = outbound?.departure_at
-    ? String(outbound.departure_at).slice(0, 10)
-    : outbound?.departure_date
-      ? String(outbound.departure_date)
-      : "";
-  const accommodationSearchCheckIn = accommodation?.check_in_date
-    ? String(accommodation.check_in_date)
-    : stop.start_date
-      ? String(stop.start_date)
-      : "";
-  const accommodationSearchCheckOut = accommodation?.check_out_date
-    ? String(accommodation.check_out_date)
-    : outboundDate && (!accommodationSearchCheckIn || outboundDate > accommodationSearchCheckIn)
-      ? outboundDate
-      : "";
 
   return (
     <div className="space-y-7">
@@ -318,33 +296,6 @@ export default async function CityPage({
             )}
           </div>
         </div>
-
-        <AccommodationSearch
-          tripId={stop.trip_id}
-          stopId={stop.id}
-          city={city}
-          defaultCheckIn={accommodationSearchCheckIn}
-          defaultCheckOut={accommodationSearchCheckOut}
-          currentAccommodationId={accommodation?.id ? String(accommodation.id) : null}
-          currentAccommodationStatus={accommodation?.status ? String(accommodation.status) : null}
-          defaultOpen={integration === "lodging"}
-          initialQuotes={accommodationQuotes.map((quote) => ({
-            id: String(quote.id),
-            externalId: quote.external_id ? String(quote.external_id) : null,
-            name: String(quote.name),
-            sourceUrl: quote.source_url ? String(quote.source_url) : null,
-            checkInDate: String(quote.check_in_date),
-            checkOutDate: String(quote.check_out_date),
-            totalAmount: quote.total_amount == null ? null : Number(quote.total_amount),
-            currency: String(quote.currency || "BRL"),
-            reviewScore: quote.review_score == null ? null : Number(quote.review_score),
-            reviewCount: quote.review_count == null ? null : Number(quote.review_count),
-            address: quote.address ? String(quote.address) : null,
-            latitude: quote.latitude == null ? null : Number(quote.latitude),
-            longitude: quote.longitude == null ? null : Number(quote.longitude),
-            queriedAt: String(quote.queried_at),
-          }))}
-        />
       </section>
 
       <section>
@@ -583,33 +534,6 @@ export default async function CityPage({
             )}
           </div>
         </div>
-
-        {outbound?.mode === "bus" && outbound.origin_stop_id && outbound.destination_stop_id && (
-          <BusSearch
-            tripId={stop.trip_id}
-            transportId={String(outbound.id)}
-            originLabel={city}
-            destinationLabel={valueText(outbound.destination_label) || "Próximo destino"}
-            transportStatus={String(outbound.status || "planned")}
-            defaultOpen={integration === "bus"}
-            initialQuotes={transportQuotes.map((quote) => ({
-              id: String(quote.id),
-              externalId: quote.external_id ? String(quote.external_id) : null,
-              departureAt: quote.departure_at ? String(quote.departure_at) : null,
-              arrivalAt: quote.arrival_at ? String(quote.arrival_at) : null,
-              durationMinutes: quote.duration_minutes == null ? null : Number(quote.duration_minutes),
-              operator: quote.operator ? String(quote.operator) : null,
-              serviceClass: quote.service_class ? String(quote.service_class) : null,
-              originTerminalName: quote.origin_terminal_name ? String(quote.origin_terminal_name) : null,
-              destinationTerminalName: quote.destination_terminal_name ? String(quote.destination_terminal_name) : null,
-              farePerPassenger: quote.total_amount == null ? null : Number(quote.total_amount),
-              currency: String(quote.currency || "BRL"),
-              seatsAvailable: quote.seats_available == null ? null : Number(quote.seats_available),
-              sourceUrl: quote.source_url ? String(quote.source_url) : null,
-              queriedAt: String(quote.queried_at),
-            }))}
-          />
-        )}
       </section>
     </div>
   );

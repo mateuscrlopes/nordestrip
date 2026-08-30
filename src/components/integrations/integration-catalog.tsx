@@ -1,7 +1,6 @@
 import { PluggyConnectButton } from "@/components/integrations/pluggy-connect-button";
 import { formatDateTime } from "@/lib/utils/format";
-import { Banknote, BedDouble, BusFront, MapPinned } from "lucide-react";
-import Link from "next/link";
+import { Banknote, MapPinned } from "lucide-react";
 
 type IntegrationRecord = Record<string, unknown>;
 
@@ -14,24 +13,6 @@ const catalog = [
     aliases: ["pluggy"],
     purposes: ["finance", "open_finance", "banking"],
     icon: Banknote,
-  },
-  {
-    key: "accommodation",
-    title: "Hospedagem",
-    provider: "Scrappa / Booking",
-    description: "Pesquisa e referência de hotéis, comodidades e opções salvas.",
-    aliases: ["scrappa", "booking"],
-    purposes: ["accommodation", "lodging", "hotel"],
-    icon: BedDouble,
-  },
-  {
-    key: "transport",
-    title: "Transporte rodoviário",
-    provider: "GeckoAPI / ClickBus",
-    description: "Pesquisa de trechos e horários; a confirmação continua no fornecedor.",
-    aliases: ["geckoapi", "clickbus", "gecko"],
-    purposes: ["transport", "bus"],
-    icon: BusFront,
   },
   {
     key: "routing",
@@ -68,13 +49,9 @@ function matchConnection(item: (typeof catalog)[number], connections: Integratio
 export function IntegrationCatalog({
   connections,
   tripId,
-  accommodationStopId,
-  busStopId,
 }: {
   connections: IntegrationRecord[];
   tripId?: string | null;
-  accommodationStopId?: string | null;
-  busStopId?: string | null;
 }) {
   return (
     <div className="integration-catalog">
@@ -106,22 +83,6 @@ export function IntegrationCatalog({
                   status={status}
                   metadata={connection?.metadata}
                 />
-              )}
-              {item.key === "accommodation" && accommodationStopId && (
-                <Link
-                  href={`/cidade/${accommodationStopId}?integration=lodging#hospedagem`}
-                  className="mt-3 inline-flex min-h-9 items-center justify-center rounded-xl bg-pale-blue/55 px-3 text-[11px] font-semibold text-petrol"
-                >
-                  Pesquisar hospedagem
-                </Link>
-              )}
-              {item.key === "transport" && busStopId && (
-                <Link
-                  href={`/cidade/${busStopId}?integration=bus#saida`}
-                  className="mt-3 inline-flex min-h-9 items-center justify-center rounded-xl bg-pale-blue/55 px-3 text-[11px] font-semibold text-petrol"
-                >
-                  Pesquisar ônibus
-                </Link>
               )}
             </div>
           </div>

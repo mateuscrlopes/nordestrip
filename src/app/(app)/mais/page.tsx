@@ -8,7 +8,7 @@ import { PendingItemCreator } from "@/components/pending/pending-item-creator";
 import { ParticipantsManager } from "@/components/participants/participants-manager";
 import { TripSettingsEditor } from "@/components/settings/trip-settings-editor";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
-import { getCurrentUser, getTripArchivedRecords, getTripChangeLog, getTripFinanceSettings, getTripMoreData, getTripParticipants, getTripPendingItems, getTripPreferences, getTripStops, getTripTransports } from "@/lib/queries/trips";
+import { getCurrentUser, getTripArchivedRecords, getTripChangeLog, getTripFinanceSettings, getTripMoreData, getTripParticipants, getTripPendingItems, getTripPreferences, getTripStops } from "@/lib/queries/trips";
 import { formatDateTime, formatMoney } from "@/lib/utils/format";
 import {
   ChevronRight,
@@ -63,7 +63,7 @@ const changeActionLabel: Record<string, string> = {
 export default async function MorePage() {
   const user = await getCurrentUser();
   const { trip } = await getCurrentTrip();
-  const [pending, more, archived, stops, preferences, financeSettings, changes, participants, transports] = trip && user
+  const [pending, more, archived, stops, preferences, financeSettings, changes, participants] = trip && user
     ? await Promise.all([
         getTripPendingItems(trip.id),
         getTripMoreData(trip.id),
@@ -73,17 +73,9 @@ export default async function MorePage() {
         getTripFinanceSettings(trip.id),
         getTripChangeLog(trip.id),
         getTripParticipants(trip.id, user.id),
-        getTripTransports(trip.id),
       ])
-    : [[], { reservations: [], documents: [], members: [], integrations: [] }, [], [], null, null, [], { currentRole: "member", members: [], invites: [] }, []];
+    : [[], { reservations: [], documents: [], members: [], integrations: [] }, [], [], null, null, [], { currentRole: "member", members: [], invites: [] }];
 
-  const accommodationStopId = stops[0]?.id ?? null;
-  const busStopId =
-    transports.find((transport) =>
-      transport.mode === "bus" &&
-      transport.origin_stop_id &&
-      !["reserved", "purchased", "confirmed", "completed", "cancelled"].includes(String(transport.status || "planned"))
-    )?.origin_stop_id ?? null;
   const stopById = new Map(stops.map((stop) => [stop.id, stop.city || stop.name || "Cidade"]));
 
   return (
@@ -343,12 +335,7 @@ export default async function MorePage() {
                 <ChevronRight size={17} className="settings-chevron" />
               </summary>
               <div className="settings-detail settings-detail--wide">
-                <IntegrationCatalog
-                  connections={more.integrations}
-                  tripId={trip?.id ?? null}
-                  accommodationStopId={accommodationStopId}
-                  busStopId={busStopId}
-                />
+                <IntegrationCatalog connections={more.integrations} tripId={trip?.id ?? null} />
               </div>
             </details>
 

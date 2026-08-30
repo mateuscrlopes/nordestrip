@@ -64,40 +64,29 @@ export async function getTripCityCovers(tripId: string): Promise<CityCover[]> {
 
 export async function getStopDetails(stopId: string) {
   const supabase = await createClient();
-  const stop = checked(await supabase.from("stops").select("*").eq("id", stopId).single(), "Não foi possível carregar a cidade") as Stop;
-  const [accommodation, luggage, activities, pending, inbound, outbound, accommodationQuotes] = await Promise.all([
+  const stop = checked(
+    await supabase.from("stops").select("*").eq("id", stopId).single(),
+    "Não foi possível carregar a cidade"
+  ) as Stop;
+
+  const [accommodation, luggage, activities, pending, inbound, outbound] = await Promise.all([
     supabase.from("accommodations").select("*, place:places(*)").eq("stop_id", stopId).is("archived_at", null).order("created_at", { ascending: false }),
     supabase.from("luggage_plans").select("*").eq("stop_id", stopId).is("archived_at", null),
     supabase.from("itinerary_items").select("*").eq("stop_id", stopId).is("archived_at", null).order("start_time"),
     supabase.from("pending_items").select("*").eq("stop_id", stopId).is("archived_at", null).in("status", ["pending", "checking"]).order("due_at", { nullsFirst: false }),
     supabase.from("transport_segments").select("*").eq("destination_stop_id", stopId).is("archived_at", null).or("status.is.null,status.neq.cancelled").order("arrival_at").limit(1).maybeSingle(),
     supabase.from("transport_segments").select("*").eq("origin_stop_id", stopId).is("archived_at", null).or("status.is.null,status.neq.cancelled").order("departure_at").limit(1).maybeSingle(),
-    supabase.from("accommodation_quotes").select("id,provider,external_id,name,source_url,check_in_date,check_out_date,total_amount,currency,review_score,review_count,address,latitude,longitude,queried_at").eq("stop_id", stopId).is("archived_at", null).order("queried_at", { ascending: false }).limit(12),
   ]);
-  for (const [label, result] of [["hospedagem", accommodation], ["bagagem", luggage], ["atividades", activities], ["pendências", pending], ["chegada", inbound], ["saída", outbound], ["opções de hospedagem", accommodationQuotes]] as const) {
-    if (result.error) throw new Error(`Não foi possível carregar ${label}: ${result.error.message}`);
-  }
-  let transportQuotes: Record<string, unknown>[] = [];
-  if (
-    outbound.data?.mode === "bus" &&
-    outbound.data.origin_stop_id &&
-    outbound.data.destination_stop_id
-  ) {
-    const quotes = await supabase
-      .from("transport_quotes")
-      .select("id,provider,external_id,departure_at,arrival_at,duration_minutes,operator,service_class,origin_terminal_name,destination_terminal_name,total_amount,currency,seats_available,source_url,queried_at")
-      .eq("trip_id", stop.trip_id)
-      .eq("origin_stop_id", outbound.data.origin_stop_id)
-      .eq("destination_stop_id", outbound.data.destination_stop_id)
-      .eq("provider", "geckoapi_clickbus")
-      .is("archived_at", null)
-      .order("queried_at", { ascending: false })
-      .limit(12);
 
-    if (quotes.error) {
-      throw new Error(`Não foi possível carregar as opções de ônibus: ${quotes.error.message}`);
-    }
-    transportQuotes = quotes.data ?? [];
+  for (const [label, result] of [
+    ["hospedagem", accommodation],
+    ["bagagem", luggage],
+    ["atividades", activities],
+    ["pendências", pending],
+    ["chegada", inbound],
+    ["saída", outbound],
+  ] as const) {
+    if (result.error) throw new Error(`Não foi possível carregar ${label}: ${result.error.message}`);
   }
 
   const luggagePlans = luggage.data ?? [];
@@ -116,8 +105,6 @@ export async function getStopDetails(stopId: string) {
     pending: pending.data ?? [],
     inbound: inbound.data,
     outbound: outbound.data,
-    accommodationQuotes: accommodationQuotes.data ?? [],
-    transportQuotes,
   };
 }
 
@@ -132,7 +119,7 @@ export async function getTripMoreData(tripId: string) {
     supabase.from("reservations").select("*").eq("trip_id", tripId).is("archived_at", null).order("created_at", { ascending: false }),
     supabase.from("documents").select("*").eq("trip_id", tripId).is("archived_at", null).order("created_at", { ascending: false }),
     supabase.from("trip_members").select("*").eq("trip_id", tripId),
-    supabase.from("integration_connections").select("*").eq("trip_id", tripId),
+    supabase.from("integration_connections").select("*").eq("trip_id", tripId).in("provider", ["pluggy", "maptiler_openrouteservice"]).is("archived_at", null),
   ]);
   for (const [label, result] of [["reservas", reservations], ["documentos", documents], ["participantes", members], ["integrações", integrations]] as const) {
     if (result.error) throw new Error(`Não foi possível carregar ${label}: ${result.error.message}`);
