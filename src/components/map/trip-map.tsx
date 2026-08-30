@@ -214,7 +214,6 @@ export function TripMap({
       style: `https://api.maptiler.com/maps/streets-v4/style.json?key=${encodeURIComponent(mapTilerKey)}`,
       center: [-40, -8.5],
       zoom: 4.2,
-      attributionControl: true,
     });
 
     map.addControl(
