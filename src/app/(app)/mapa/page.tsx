@@ -130,7 +130,12 @@ function transportLocations(transports: Transport[]): OperationalLocation[] {
   });
 }
 
-export default async function MapPage() {
+type MapPageProps = {
+  searchParams: Promise<{ stop?: string; circuit?: string }>;
+};
+
+export default async function MapPage({ searchParams }: MapPageProps) {
+  const filters = await searchParams;
   const { trip } = await getCurrentTrip();
   const [places, stops, transports, itinerary] = trip
     ? await Promise.all([
@@ -155,6 +160,18 @@ export default async function MapPage() {
   const references = places.filter((place) => !hasCoordinates(place.latitude, place.longitude) && !place.address);
   const coordinateCoverage = places.length ? Math.round((withCoordinates.length / places.length) * 100) : 0;
   const stopById = new Map(stops.map((stop) => [stop.id, stop.city || stop.name || "Cidade"]));
+  const requestedStopId =
+    typeof filters.stop === "string" && stops.some((stop) => stop.id === filters.stop)
+      ? filters.stop
+      : null;
+  const requestedCircuit =
+    typeof filters.circuit === "string" &&
+    requestedStopId &&
+    withCoordinates.some(
+      (place) => place.stop_id === requestedStopId && circuitLabel(place) === filters.circuit
+    )
+      ? filters.circuit
+      : null;
 
   const coordinateByCity = stops.map((stop) => {
     const cityPlaces = places.filter((place) => place.stop_id === stop.id);
@@ -224,13 +241,15 @@ export default async function MapPage() {
         </section>
 
         {withCoordinates.length > 0 && (
-          <section>
+          <section id="mapa-da-viagem" className="scroll-mt-4">
             <div className="section-heading">
               <h2>Mapa da viagem</h2>
             </div>
             <TripMap
               mapTilerKey={mapTilerKey}
               tripId={trip.id}
+              initialStopId={requestedStopId}
+              initialCircuit={requestedCircuit}
               places={withCoordinates.map((place) => {
                 const itineraryItem = itineraryByPlace.get(String(place.id));
                 return ({

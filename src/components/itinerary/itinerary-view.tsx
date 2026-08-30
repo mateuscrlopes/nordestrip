@@ -271,6 +271,7 @@ function principalPeriodCapacity(
         distanceMeters: routeEstimate?.distance_meters ?? null,
         routeCached: Boolean(routeEstimate),
         needsRoute: principal.length >= 2 && !routeEstimate,
+        stopId,
       };
     })
     .filter(Boolean) as Array<{
@@ -286,6 +287,7 @@ function principalPeriodCapacity(
       distanceMeters: number | null;
       routeCached: boolean;
       needsRoute: boolean;
+      stopId: string | null;
     }>;
 }
 
@@ -903,9 +905,21 @@ export function ItineraryView({
                                     Janela útil {compactDuration(summary.capacity)}
                                     {summary.routeCached
                                       ? ` · deslocamento a pé incluído${summary.distanceMeters != null ? ` · ${(summary.distanceMeters / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km` : ""}`
-                                      : summary.needsRoute
-                                        ? " · calcule este circuito no Mapa para incluir deslocamento"
-                                        : " · sem deslocamento entre Principais"}
+                                      : summary.needsRoute && summary.stopId
+                                        ? (
+                                            <>
+                                              {" · "}
+                                              <Link
+                                                href={`/mapa?stop=${encodeURIComponent(summary.stopId)}&circuit=${encodeURIComponent(circuit.label)}#mapa-da-viagem`}
+                                                className="font-medium text-petrol underline decoration-petrol/30 underline-offset-2"
+                                              >
+                                                calcule este circuito no Mapa para incluir deslocamento
+                                              </Link>
+                                            </>
+                                          )
+                                        : summary.needsRoute
+                                          ? " · calcule este circuito no Mapa para incluir deslocamento"
+                                          : " · sem deslocamento entre Principais"}
                                   </small>
                                 </div>
                               ))}

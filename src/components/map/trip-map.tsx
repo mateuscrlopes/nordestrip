@@ -163,19 +163,39 @@ export function TripMap({
   places,
   mapTilerKey,
   tripId,
+  initialStopId = null,
+  initialCircuit = null,
 }: {
   places: MapPlace[];
   mapTilerKey: string;
   tripId: string;
+  initialStopId?: string | null;
+  initialCircuit?: string | null;
 }) {
+  const initialPlace =
+    places.find(
+      (place) =>
+        place.stopId === initialStopId &&
+        (!initialCircuit || place.circuit === initialCircuit)
+    ) ??
+    places.find((place) => place.stopId === initialStopId) ??
+    places[0];
+  const initialCircuitValue =
+    initialCircuit &&
+    places.some(
+      (place) => place.stopId === initialStopId && place.circuit === initialCircuit
+    )
+      ? initialCircuit
+      : "all";
+
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<Map<string, MarkerEntry>>(new Map());
   const popupRef = useRef<Popup | null>(null);
 
-  const [city, setCity] = useState("all");
-  const [circuit, setCircuit] = useState("all");
-  const [selectedId, setSelectedId] = useState<string | null>(places[0]?.id ?? null);
+  const [city, setCity] = useState(initialPlace?.city ?? "all");
+  const [circuit, setCircuit] = useState(initialCircuitValue);
+  const [selectedId, setSelectedId] = useState<string | null>(initialPlace?.id ?? null);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState("");
   const [routeSummary, setRouteSummary] = useState<RouteSummary | null>(null);
