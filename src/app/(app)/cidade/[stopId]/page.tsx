@@ -2,6 +2,7 @@ import { RecordActions } from "@/components/actions/record-actions";
 import { RecordStatus, accommodationStatusOptions, itineraryStatusOptions, pendingStatusOptions, transportStatusOptions } from "@/components/actions/record-status";
 import { LuggagePlanEditor } from "@/components/logistics/luggage-plan-editor";
 import { AccommodationEditor } from "@/components/lodging/accommodation-editor";
+import { AccommodationOptions } from "@/components/lodging/accommodation-options";
 import { getStopDetails, getTripCityCovers, getTripPreferences } from "@/lib/queries/trips";
 import { formatDate, formatDateTime, formatTime, valueText } from "@/lib/utils/format";
 import {
@@ -60,6 +61,7 @@ export default async function CityPage({
     pending,
     inbound,
     outbound,
+    accommodationOptions,
   } = data;
 
   const [covers, preferences] = await Promise.all([
@@ -94,6 +96,21 @@ export default async function CityPage({
     outbound?.origin_terminal_name,
     outbound?.origin_terminal_address
   );
+  const outboundDate = outbound?.departure_at
+    ? String(outbound.departure_at).slice(0, 10)
+    : outbound?.departure_date
+      ? String(outbound.departure_date)
+      : "";
+  const accommodationOptionCheckIn = accommodation?.check_in_date
+    ? String(accommodation.check_in_date)
+    : stop.start_date
+      ? String(stop.start_date)
+      : "";
+  const accommodationOptionCheckOut = accommodation?.check_out_date
+    ? String(accommodation.check_out_date)
+    : outboundDate && (!accommodationOptionCheckIn || outboundDate > accommodationOptionCheckIn)
+      ? outboundDate
+      : "";
 
   return (
     <div className="space-y-7">
@@ -296,6 +313,37 @@ export default async function CityPage({
             )}
           </div>
         </div>
+
+        <AccommodationOptions
+          tripId={stop.trip_id}
+          stopId={stop.id}
+          city={city}
+          defaultCheckIn={accommodationOptionCheckIn}
+          defaultCheckOut={accommodationOptionCheckOut}
+          selectedOptionId={
+            accommodation?.source === "manual_option" && accommodation.external_id
+              ? String(accommodation.external_id)
+              : null
+          }
+          currentAccommodationStatus={accommodation?.status ? String(accommodation.status) : null}
+          initialOptions={accommodationOptions.map((option) => ({
+            id: String(option.id),
+            name: String(option.name),
+            accommodation_type: option.accommodation_type ? String(option.accommodation_type) : null,
+            breakfast_included: option.breakfast_included === true,
+            check_in_date: String(option.check_in_date),
+            check_out_date: String(option.check_out_date),
+            check_in_from: option.check_in_from ? String(option.check_in_from) : null,
+            check_out_until: option.check_out_until ? String(option.check_out_until) : null,
+            total_amount: option.total_amount == null ? null : Number(option.total_amount),
+            currency: option.currency ? String(option.currency) : "BRL",
+            address: option.address ? String(option.address) : null,
+            latitude: option.latitude == null ? null : Number(option.latitude),
+            longitude: option.longitude == null ? null : Number(option.longitude),
+            source_url: option.source_url ? String(option.source_url) : null,
+            notes: option.notes ? String(option.notes) : null,
+          }))}
+        />
       </section>
 
       <section>

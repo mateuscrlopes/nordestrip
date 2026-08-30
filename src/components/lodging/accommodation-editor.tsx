@@ -2,7 +2,7 @@
 
 import { accommodationStatusOptions } from "@/components/actions/record-status";
 import { createClient } from "@/lib/supabase/client";
-import { Archive, MoreHorizontal, Pencil, X } from "lucide-react";
+import { Archive, Pencil, X } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -29,7 +29,6 @@ export function AccommodationEditor({
   address?: string | null;
 }) {
   const router = useRouter();
-  const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [archiving, setArchiving] = useState(false);
@@ -100,33 +99,30 @@ export function AccommodationEditor({
     }
 
     setArchiving(false);
-    setMenuOpen(false);
     router.refresh();
   }
 
   return (
     <div className="record-actions">
-      <button
-        type="button"
-        className="record-actions-trigger"
-        aria-label={`Ações de ${accommodation.name}`}
-        onClick={() => setMenuOpen((value) => !value)}
-      >
-        <MoreHorizontal size={17} />
-      </button>
-
-      {menuOpen && (
-        <div className="record-actions-menu">
-          <button type="button" onClick={() => { setEditing(true); setMenuOpen(false); setError(""); }}>
-            <Pencil size={15} />
-            Editar
-          </button>
-          <button type="button" className="is-danger" disabled={archiving} onClick={archive}>
-            <Archive size={15} />
-            {archiving ? "Arquivando..." : "Arquivar"}
-          </button>
-        </div>
-      )}
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          className="add-icon-button"
+          aria-label={`Editar ${accommodation.name}`}
+          onClick={() => { setEditing(true); setError(""); }}
+        >
+          <Pencil size={16} />
+        </button>
+        <button
+          type="button"
+          className="add-icon-button"
+          aria-label={`Arquivar ${accommodation.name}`}
+          disabled={archiving}
+          onClick={archive}
+        >
+          <Archive size={16} />
+        </button>
+      </div>
 
       {editing && (
         <div className="edit-overlay" onClick={() => setEditing(false)}>

@@ -65,35 +65,34 @@ export async function getTripCityCovers(tripId: string): Promise<CityCover[]> {
 
 export async function getStopDetails(stopId: string) {
   const supabase = await createClient();
-  const stop = checked(
-    await supabase.from("stops").select("*").eq("id", stopId).single(),
+  const bundle = checked(
+    await supabase.rpc("get_stop_details_bundle", { p_stop_id: stopId }),
     "Não foi possível carregar a cidade"
-  ) as Stop;
+  ) as Record<string, unknown> | null;
 
-  const [accommodation, luggage, activities, pending, inbound, outbound] = await Promise.all([
-    supabase.from("accommodations").select("*, place:places(*)").eq("stop_id", stopId).is("archived_at", null).order("created_at", { ascending: false }),
-    supabase.from("luggage_plans").select("*").eq("stop_id", stopId).is("archived_at", null),
-    supabase.from("itinerary_items").select("*").eq("stop_id", stopId).is("archived_at", null).order("start_time"),
-    supabase.from("pending_items").select("*").eq("stop_id", stopId).is("archived_at", null).in("status", ["pending", "checking"]).order("due_at", { nullsFirst: false }),
-    supabase.from("transport_segments").select("*").eq("destination_stop_id", stopId).is("archived_at", null).or("status.is.null,status.neq.cancelled").order("arrival_at").limit(1).maybeSingle(),
-    supabase.from("transport_segments").select("*").eq("origin_stop_id", stopId).is("archived_at", null).or("status.is.null,status.neq.cancelled").order("departure_at").limit(1).maybeSingle(),
-  ]);
-
-  for (const [label, result] of [
-    ["hospedagem", accommodation],
-    ["bagagem", luggage],
-    ["atividades", activities],
-    ["pendências", pending],
-    ["chegada", inbound],
-    ["saída", outbound],
-  ] as const) {
-    if (result.error) throw new Error(`Não foi possível carregar ${label}: ${result.error.message}`);
+  if (!bundle || !bundle.stop || typeof bundle.stop !== "object") {
+    throw new Error("Não foi possível carregar a cidade: 0 rows");
   }
 
-  const luggagePlans = luggage.data ?? [];
-  const accommodations = accommodation.data ?? [];
+  const stop = bundle.stop as Stop;
+  const accommodations = Array.isArray(bundle.accommodations)
+    ? bundle.accommodations as Record<string, unknown>[]
+    : [];
+  const luggagePlans = Array.isArray(bundle.luggage)
+    ? bundle.luggage as Record<string, unknown>[]
+    : [];
+  const activities = Array.isArray(bundle.activities)
+    ? bundle.activities as ItineraryItem[]
+    : [];
+  const pending = Array.isArray(bundle.pending)
+    ? bundle.pending as PendingItem[]
+    : [];
+  const accommodationOptions = Array.isArray(bundle.accommodation_options)
+    ? bundle.accommodation_options as Record<string, unknown>[]
+    : [];
+
   const selectedAccommodation =
-    accommodations.find((item) => ["confirmed", "reserved", "selected"].includes(item.status))
+    accommodations.find((item) => ["confirmed", "reserved", "selected"].includes(String(item.status || "")))
     ?? accommodations[0]
     ?? null;
 
@@ -102,10 +101,15 @@ export async function getStopDetails(stopId: string) {
     accommodation: selectedAccommodation,
     arrivalLuggage: luggagePlans.find((plan) => plan.phase === "arrival") ?? null,
     departureLuggage: luggagePlans.find((plan) => plan.phase === "departure") ?? null,
-    activities: activities.data ?? [],
-    pending: pending.data ?? [],
-    inbound: inbound.data,
-    outbound: outbound.data,
+    activities,
+    pending,
+    inbound: bundle.inbound && typeof bundle.inbound === "object"
+      ? bundle.inbound as Record<string, unknown>
+      : null,
+    outbound: bundle.outbound && typeof bundle.outbound === "object"
+      ? bundle.outbound as Record<string, unknown>
+      : null,
+    accommodationOptions,
   };
 }
 
