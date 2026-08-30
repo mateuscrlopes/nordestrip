@@ -30,6 +30,7 @@ export function TripMap({ places }: { places: MapPlace[] }) {
   const [city, setCity] = useState("all");
   const [circuit, setCircuit] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(places[0]?.id ?? null);
+  const [mapReady, setMapReady] = useState(false);
 
   const cities = useMemo(
     () => Array.from(new Set(places.map((place) => place.city))).sort((a, b) => a.localeCompare(b, "pt-BR")),
@@ -77,6 +78,8 @@ export function TripMap({ places }: { places: MapPlace[] }) {
       const layer = L.layerGroup().addTo(map);
       mapRef.current = map;
       layerRef.current = layer;
+      window.setTimeout(() => map.invalidateSize(), 0);
+      setMapReady(true);
     });
 
     return () => {
@@ -90,7 +93,7 @@ export function TripMap({ places }: { places: MapPlace[] }) {
   useEffect(() => {
     const map = mapRef.current;
     const layer = layerRef.current;
-    if (!map || !layer) return;
+    if (!mapReady || !map || !layer) return;
 
     layer.clearLayers();
 
@@ -154,7 +157,7 @@ export function TripMap({ places }: { places: MapPlace[] }) {
         map.fitBounds(bounds, { padding: [28, 28], maxZoom: 16 });
       }
     });
-  }, [selectedId, visiblePlaces]);
+  }, [mapReady, selectedId, visiblePlaces]);
 
   function changeCity(value: string) {
     setCity(value);
