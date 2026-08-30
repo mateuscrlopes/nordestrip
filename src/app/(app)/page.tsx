@@ -14,13 +14,13 @@ import {
 import Link from "next/link";
 
 const transportStatus: Record<string, string> = {
-  idea: "Em análise",
-  planned: "Planejado",
-  quoted: "Cotado",
-  reserved: "Reservado",
+  idea: "Pendente",
+  planned: "Pendente",
+  quoted: "Pendente",
+  reserved: "Pendente",
   purchased: "Comprado",
-  confirmed: "Confirmado",
-  completed: "Concluído",
+  confirmed: "Comprado",
+  completed: "Comprado",
   cancelled: "Cancelado",
 };
 

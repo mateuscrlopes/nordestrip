@@ -453,12 +453,8 @@ export function GlobalAdd({
                       <label className="add-field">
                         <span>Status</span>
                         <select name="status" defaultValue="planned">
-                          <option value="idea">Ideia</option>
-                          <option value="planned">Planejado</option>
-                          <option value="quoted">Cotado</option>
-                          <option value="reserved">Reservado</option>
+                          <option value="planned">Pendente</option>
                           <option value="purchased">Comprado</option>
-                          <option value="confirmed">Confirmado</option>
                         </select>
                       </label>
                     </div>
@@ -478,16 +474,12 @@ export function GlobalAdd({
                       <label className="add-field"><span>Terminal de chegada</span><input name="destination_terminal_name" /></label>
                       <label className="add-field"><span>Endereço da chegada</span><input name="destination_terminal_address" /></label>
                     </div>
-                    <div className="add-grid">
-                      <label className="add-field"><span>Empresa</span><input name="operator" placeholder="Ex.: LATAM, Guanabara" /></label>
-                      <label className="add-field"><span>Classe</span><input name="service_class" placeholder="Executivo, leito, econômica..." /></label>
-                    </div>
+                    <label className="add-field"><span>Empresa</span><input name="operator" placeholder="Ex.: LATAM, Guanabara" /></label>
                     <div className="add-grid">
                       <label className="add-field"><span>Localizador</span><input name="booking_reference" /></label>
                       <label className="add-field"><span>Valor</span><input name="amount" inputMode="decimal" placeholder="0,00" /></label>
                     </div>
-                    <label className="add-field"><span>Link</span><input name="source_url" type="url" inputMode="url" placeholder="ClickBus, companhia, reserva..." /></label>
-                    <label className="add-check"><input name="has_checked_baggage" type="checkbox" /><span>Inclui bagagem despachada ou no bagageiro</span></label>
+                                        <label className="add-check"><input name="has_checked_baggage" type="checkbox" /><span>Inclui bagagem despachada ou no bagageiro</span></label>
                     <label className="add-field"><span>Bagagem</span><textarea name="baggage_notes" rows={2} placeholder="Regras, quantidade, peso ou observações" /></label>
                     <label className="add-field"><span>Nota</span><textarea name="notes" rows={3} /></label>
                   </>

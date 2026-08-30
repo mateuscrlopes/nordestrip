@@ -1,11 +1,12 @@
 import { RecordActions } from "@/components/actions/record-actions";
-import { RecordStatus, accommodationStatusOptions, pendingStatusOptions, transportStatusOptions } from "@/components/actions/record-status";
+import { RecordStatus, accommodationStatusOptions, pendingStatusOptions } from "@/components/actions/record-status";
 import { LuggagePlanEditor } from "@/components/logistics/luggage-plan-editor";
 import { CityItineraryCreator } from "@/components/itinerary/city-itinerary-creator";
 import { ItineraryStatusActions } from "@/components/itinerary/itinerary-status-actions";
 import { AccommodationEditor } from "@/components/lodging/accommodation-editor";
 import { AccommodationOptions } from "@/components/lodging/accommodation-options";
 import { DocumentOpenButton, DocumentUploadButton } from "@/components/documents/document-manager";
+import { TransportPurchaseStatus } from "@/components/transport/transport-purchase-status";
 import { getStopDetails, getTripCityCovers, getTripPreferences } from "@/lib/queries/trips";
 import { formatDate, formatDateTime, formatTime, valueText } from "@/lib/utils/format";
 import {
@@ -182,13 +183,10 @@ export default async function CityPage({
                       label={`Abrir ${String(document.title || "documento")}`}
                     />
                   ))}
-                  <RecordStatus
-                    table="transport_segments"
+                  <TransportPurchaseStatus
                     id={String(inbound.id)}
                     value={String(inbound.status || "planned")}
-                    options={transportStatusOptions}
-                    label="Status da chegada"
-                    compact
+                    label="Chegada"
                   />
                   <RecordActions
                     table="transport_segments"
@@ -197,21 +195,19 @@ export default async function CityPage({
                     fields={[
                       { name: "origin_label", label: "Origem" },
                       { name: "destination_label", label: "Destino" },
-                      { name: "departure_at", label: "Saída exata", type: "datetime-local" },
-                      { name: "arrival_at", label: "Chegada exata", type: "datetime-local" },
+                      { name: "departure_at", label: "Saída", type: "datetime-local" },
+                      { name: "arrival_at", label: "Chegada", type: "datetime-local" },
                       { name: "departure_date", label: "Data da saída, se horário pendente", type: "date" },
                       { name: "arrival_date", label: "Data da chegada, se horário pendente", type: "date" },
+                      { name: "operator", label: "Empresa" },
                       { name: "origin_terminal_name", label: "Terminal de saída" },
                       { name: "origin_terminal_address", label: "Endereço da saída" },
                       { name: "destination_terminal_name", label: "Terminal de chegada" },
                       { name: "destination_terminal_address", label: "Endereço da chegada" },
-                      { name: "operator", label: "Empresa" },
-                      { name: "service_class", label: "Classe" },
                       { name: "booking_reference", label: "Localizador" },
                       { name: "amount", label: "Valor", type: "number", min: "0", step: "0.01" },
-                      { name: "source_url", label: "Link", type: "url" },
-                      { name: "has_checked_baggage", label: "Inclui bagagem despachada ou no bagageiro", type: "checkbox" },
-                      { name: "baggage_notes", label: "Bagagem", type: "textarea" },
+                      { name: "has_checked_baggage", label: "Bagagem incluída", type: "checkbox" },
+                      { name: "baggage_notes", label: "Detalhes da bagagem", type: "textarea" },
                       { name: "notes", label: "Nota", type: "textarea" },
                     ]}
                     values={{
@@ -664,13 +660,10 @@ export default async function CityPage({
                     />
                   ))}
 
-                  <RecordStatus
-                    table="transport_segments"
+                  <TransportPurchaseStatus
                     id={String(outbound.id)}
                     value={String(outbound.status || "planned")}
-                    options={transportStatusOptions}
-                    label="Status da saída"
-                    compact
+                    label="Saída"
                   />
                   <RecordActions
                     table="transport_segments"
@@ -679,21 +672,19 @@ export default async function CityPage({
                     fields={[
                       { name: "origin_label", label: "Origem" },
                       { name: "destination_label", label: "Destino" },
-                      { name: "departure_at", label: "Saída exata", type: "datetime-local" },
-                      { name: "arrival_at", label: "Chegada exata", type: "datetime-local" },
+                      { name: "departure_at", label: "Saída", type: "datetime-local" },
+                      { name: "arrival_at", label: "Chegada", type: "datetime-local" },
                       { name: "departure_date", label: "Data da saída, se horário pendente", type: "date" },
                       { name: "arrival_date", label: "Data da chegada, se horário pendente", type: "date" },
+                      { name: "operator", label: "Empresa" },
                       { name: "origin_terminal_name", label: "Terminal de saída" },
                       { name: "origin_terminal_address", label: "Endereço da saída" },
                       { name: "destination_terminal_name", label: "Terminal de chegada" },
                       { name: "destination_terminal_address", label: "Endereço da chegada" },
-                      { name: "operator", label: "Empresa" },
-                      { name: "service_class", label: "Classe" },
                       { name: "booking_reference", label: "Localizador" },
                       { name: "amount", label: "Valor", type: "number", min: "0", step: "0.01" },
-                      { name: "source_url", label: "Link", type: "url" },
-                      { name: "has_checked_baggage", label: "Inclui bagagem despachada ou no bagageiro", type: "checkbox" },
-                      { name: "baggage_notes", label: "Bagagem", type: "textarea" },
+                      { name: "has_checked_baggage", label: "Bagagem incluída", type: "checkbox" },
+                      { name: "baggage_notes", label: "Detalhes da bagagem", type: "textarea" },
                       { name: "notes", label: "Nota", type: "textarea" },
                     ]}
                     values={{
