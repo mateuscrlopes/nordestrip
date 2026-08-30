@@ -3,10 +3,26 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+type PluggyItemState = {
+  id?: string;
+  status?: string | null;
+  executionStatus?: string | null;
+  statusDetail?: string | null;
+  error?: {
+    code?: string | null;
+    message?: string | null;
+  } | null;
+};
+
 type PluggySuccessData = {
   id?: string;
-  item?: {
-    id?: string;
+  item?: PluggyItemState;
+};
+
+type PluggyConnectError = {
+  message?: string;
+  data?: {
+    item?: PluggyItemState;
   };
 };
 
@@ -14,9 +30,12 @@ type PluggyConnectConfig = {
   connectToken: string;
   includeSandbox?: boolean;
   updateItem?: string;
+  selectedConnectorId?: number;
+  forceOauthInBrowser?: boolean;
+  products?: string[];
   language?: string;
   onSuccess?: (data: PluggySuccessData) => void | Promise<void>;
-  onError?: () => void | Promise<void>;
+  onError?: (error: PluggyConnectError) => void | Promise<void>;
 };
 
 type PluggyConnectInstance = {
@@ -67,6 +86,20 @@ async function responseMessage(response: Response, fallback: string) {
   } catch {
     return fallback;
   }
+}
+
+function pluggyErrorMessage(error: PluggyConnectError) {
+  const item = error.data?.item;
+  const detail =
+    item?.error?.message ||
+    item?.statusDetail ||
+    item?.executionStatus ||
+    item?.status;
+
+  if (error.message && detail && error.message !== detail) {
+    return `${error.message} · ${detail}`;
+  }
+  return error.message || detail || "A conexão com o Meu Pluggy não foi concluída.";
 }
 
 export function PluggyConnectButton({
@@ -135,6 +168,7 @@ export function PluggyConnectButton({
 
       const data = await response.json() as {
         accessToken?: unknown;
+        selectedConnectorId?: unknown;
         includeSandbox?: unknown;
       };
 
@@ -147,10 +181,16 @@ export function PluggyConnectButton({
         throw new Error("Não foi possível carregar a conexão financeira.");
       }
 
+      const selectedConnectorId =
+        typeof data.selectedConnectorId === "number" ? data.selectedConnectorId : null;
+
       const widget = new window.PluggyConnect({
         connectToken: data.accessToken,
         includeSandbox: data.includeSandbox === true,
         ...(itemId ? { updateItem: itemId } : {}),
+        ...(selectedConnectorId ? { selectedConnectorId } : {}),
+        forceOauthInBrowser: true,
+        products: ["ACCOUNTS", "CREDIT_CARDS"],
         language: "pt",
         onSuccess: async (result) => {
           const nextItemId = result.item?.id || result.id;
@@ -169,8 +209,8 @@ export function PluggyConnectButton({
             setBusy(false);
           }
         },
-        onError: () => {
-          setMessage("Não foi possível concluir a conexão financeira.");
+        onError: (error) => {
+          setMessage(pluggyErrorMessage(error));
           setBusy(false);
         },
       });
@@ -194,8 +234,8 @@ export function PluggyConnectButton({
         {busy
           ? "Aguarde..."
           : itemId || status === "connected"
-            ? "Atualizar conexão"
-            : "Conectar conta"}
+            ? "Atualizar Meu Pluggy"
+            : "Conectar Meu Pluggy"}
       </button>
       {message && (
         <span role="status" className="mt-2 block text-[10px] leading-4 text-muted">

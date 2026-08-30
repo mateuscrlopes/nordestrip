@@ -34,6 +34,13 @@ type PluggyList<T> = {
   results?: T[];
 };
 
+export type PluggyConnector = {
+  id: number;
+  name: string;
+  oauth?: boolean | null;
+  isSandbox?: boolean | null;
+};
+
 async function pluggyRequest<T>(
   path: string,
   init: RequestInit,
@@ -85,6 +92,7 @@ export async function createPluggyConnectToken(
   options: {
     clientUserId: string;
     itemId?: string | null;
+    oauthRedirectUri?: string | null;
   }
 ) {
   const data = await pluggyRequest<{ accessToken?: unknown }>(
@@ -100,6 +108,7 @@ export async function createPluggyConnectToken(
         options: {
           clientUserId: options.clientUserId,
           avoidDuplicates: true,
+          ...(options.oauthRedirectUri ? { oauthRedirectUri: options.oauthRedirectUri } : {}),
         },
       }),
     },
@@ -111,6 +120,25 @@ export async function createPluggyConnectToken(
   }
 
   return data.accessToken;
+}
+
+export async function findPluggyConnector(apiKey: string, name: string) {
+  const data = await pluggyRequest<PluggyList<PluggyConnector>>(
+    `/connectors?name=${encodeURIComponent(name)}`,
+    {
+      headers: {
+        Accept: "application/json",
+        "X-API-KEY": apiKey,
+      },
+    },
+    "pluggy-connectors"
+  );
+
+  const connectors = Array.isArray(data.results) ? data.results : [];
+  const normalizedName = name.toLocaleLowerCase("pt-BR");
+  return connectors.find(
+    (connector) => connector.name.toLocaleLowerCase("pt-BR") === normalizedName
+  ) ?? connectors[0] ?? null;
 }
 
 export async function getPluggyItem(apiKey: string, itemId: string) {

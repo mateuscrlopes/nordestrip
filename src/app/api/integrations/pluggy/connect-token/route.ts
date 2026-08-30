@@ -1,4 +1,4 @@
-import { createPluggyConnectToken, getPluggyApiKey, isPluggyConfigured } from "@/lib/integrations/pluggy";
+import { createPluggyConnectToken, findPluggyConnector, getPluggyApiKey, isPluggyConfigured } from "@/lib/integrations/pluggy";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +16,18 @@ function objectValue(value: unknown) {
   return value && typeof value === "object" && !Array.isArray(value)
     ? value as Record<string, unknown>
     : {};
+}
+
+function oauthRedirectUri(request: Request) {
+  const base = process.env.URL || process.env.DEPLOY_PRIME_URL || new URL(request.url).origin;
+
+  try {
+    const url = new URL(base);
+    if (url.protocol !== "https:") return null;
+    return new URL("/mais?pluggy=return", url).toString();
+  } catch {
+    return null;
+  }
 }
 
 export async function POST(request: Request) {
@@ -83,9 +95,26 @@ export async function POST(request: Request) {
 
   try {
     const apiKey = await getPluggyApiKey();
+    const redirectUri = oauthRedirectUri(request);
+    const meuPluggy = await findPluggyConnector(apiKey, "MeuPluggy");
+
+    if (!redirectUri) {
+      return Response.json(
+        { error: "Não foi possível preparar o retorno seguro do Meu Pluggy." },
+        { status: 500 }
+      );
+    }
+    if (!meuPluggy?.id) {
+      return Response.json(
+        { error: "O conector Meu Pluggy não está disponível nesta aplicação." },
+        { status: 502 }
+      );
+    }
+
     const accessToken = await createPluggyConnectToken(apiKey, {
       clientUserId: `${tripId}:${user.id}`,
       itemId: requestedItemId,
+      oauthRedirectUri: redirectUri,
     });
 
     const now = new Date().toISOString();
@@ -104,6 +133,9 @@ export async function POST(request: Request) {
           metadata: {
             ...existingMetadata,
             connect_token_generated_at: now,
+            connector_name: meuPluggy.name,
+            connector_id: meuPluggy.id,
+            connection_mode: "meu_pluggy",
           },
           updated_at: now,
           archived_at: null,
@@ -117,7 +149,8 @@ export async function POST(request: Request) {
 
     return Response.json({
       accessToken,
-      includeSandbox: process.env.PLUGGY_INCLUDE_SANDBOX === "true",
+      selectedConnectorId: meuPluggy.id,
+      includeSandbox: false,
     });
   } catch {
     return Response.json(
