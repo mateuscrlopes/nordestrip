@@ -384,7 +384,7 @@ export async function getTripPluggyAccounts(tripId: string, currentUserId: strin
 
   const accounts = await supabase
     .from("financial_accounts")
-    .select("id,display_name,account_type,current_balance,credit_limit,last_synced_at")
+    .select("id,display_name,account_type,current_balance,credit_limit,last_synced_at,metadata")
     .eq("owner_user_id", currentUserId)
     .eq("provider", "pluggy")
     .is("archived_at", null)
@@ -417,6 +417,11 @@ export async function getTripPluggyAccounts(tripId: string, currentUserId: strin
     );
     const paymentCardLink = activeLinks.find((link) => link.purpose === "payment_card");
 
+    const metadata =
+      account.metadata && typeof account.metadata === "object" && !Array.isArray(account.metadata)
+        ? account.metadata as Record<string, unknown>
+        : {};
+
     return {
       id: account.id,
       displayName: account.display_name,
@@ -430,9 +435,52 @@ export async function getTripPluggyAccounts(tripId: string, currentUserId: strin
       lastSyncedAt: account.last_synced_at ?? null,
       active: activeLinks.length > 0,
       fundEnabled: Boolean(fundLink),
+      pluggyItemId:
+        typeof metadata.pluggy_item_id === "string" && metadata.pluggy_item_id.trim()
+          ? metadata.pluggy_item_id.trim()
+          : null,
     };
   });
 }
+
+export async function getTripFinancialTransactions(tripId: string, limit = 80) {
+  const supabase = await createClient();
+  const rows = checked(
+    await supabase
+      .from("financial_transactions")
+      .select("id,description,custom_description,amount,currency,occurred_at,direction,posting_status,review_status,matched_expense_id,financial_account:financial_accounts(display_name,account_type)")
+      .eq("trip_id", tripId)
+      .order("occurred_at", { ascending: false, nullsFirst: false })
+      .limit(limit),
+    "Não foi possível carregar as transações financeiras"
+  ) as Record<string, unknown>[];
+
+  return rows.map((row) => {
+    const account =
+      row.financial_account && typeof row.financial_account === "object" && !Array.isArray(row.financial_account)
+        ? row.financial_account as Record<string, unknown>
+        : {};
+
+    return {
+      id: String(row.id),
+      originalDescription: typeof row.description === "string" ? row.description : null,
+      customDescription: typeof row.custom_description === "string" ? row.custom_description : null,
+      amount: Number(row.amount ?? 0),
+      currency: typeof row.currency === "string" ? row.currency : "BRL",
+      occurredAt: typeof row.occurred_at === "string" ? row.occurred_at : null,
+      direction: typeof row.direction === "string" ? row.direction : null,
+      postingStatus: typeof row.posting_status === "string" ? row.posting_status : "posted",
+      reviewStatus: typeof row.review_status === "string" ? row.review_status : "later",
+      matchedExpenseId: typeof row.matched_expense_id === "string" ? row.matched_expense_id : null,
+      accountName:
+        typeof account.display_name === "string" && account.display_name.trim()
+          ? account.display_name.trim()
+          : "Conta conectada",
+      accountType: typeof account.account_type === "string" ? account.account_type : "other",
+    };
+  });
+}
+
 
 export async function getTripPlaceCatalog(tripId: string) {
   const supabase = await createClient();

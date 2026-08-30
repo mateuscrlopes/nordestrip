@@ -16,6 +16,7 @@ export type ConnectedFinancialAccount = {
   lastSyncedAt: string | null;
   active: boolean;
   fundEnabled: boolean;
+  pluggyItemId: string | null;
 };
 
 function isCard(account: ConnectedFinancialAccount) {
@@ -48,6 +49,54 @@ export function ConnectedAccountsEditor({
     }),
     [accounts]
   );
+
+  const activeItemIds = useMemo(
+    () => Array.from(new Set(
+      accounts
+        .filter((account) => account.active && account.pluggyItemId)
+        .map((account) => account.pluggyItemId as string)
+    )),
+    [accounts]
+  );
+
+  async function syncActiveTransactions() {
+    if (!activeItemIds.length || savingId) return;
+
+    setSavingId("__sync__");
+    setMessage("");
+
+    try {
+      let total = 0;
+
+      for (const itemId of activeItemIds) {
+        const response = await fetch("/api/integrations/pluggy/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tripId, itemId }),
+        });
+
+        if (!response.ok) {
+          throw new Error("sync-failed");
+        }
+
+        const body = await response.json() as { transactionsSynced?: unknown };
+        if (typeof body.transactionsSynced === "number") {
+          total += body.transactionsSynced;
+        }
+      }
+
+      setMessage(
+        total === 1
+          ? "1 transação sincronizada para revisão."
+          : `${total} transações sincronizadas para revisão.`
+      );
+      router.refresh();
+    } catch {
+      setMessage("Não foi possível sincronizar as transações agora.");
+    } finally {
+      setSavingId(null);
+    }
+  }
 
   async function toggleUsage(account: ConnectedFinancialAccount) {
     setSavingId(account.id);
@@ -136,6 +185,14 @@ export function ConnectedAccountsEditor({
     <section>
       <div className="section-heading">
         <h2>Contas e cartões</h2>
+        <button
+          type="button"
+          onClick={syncActiveTransactions}
+          disabled={!activeItemIds.length || savingId !== null}
+          className="rounded-xl bg-pale-blue/60 px-2.5 py-2 text-[10px] font-semibold text-petrol disabled:opacity-40"
+        >
+          {savingId === "__sync__" ? "Sincronizando..." : "Sincronizar"}
+        </button>
       </div>
 
       <div className="space-y-2">
@@ -279,7 +336,7 @@ export function ConnectedAccountsEditor({
       </div>
 
       <p className="mt-2 text-[10px] leading-4 text-muted">
-        Desativar uma conta aqui só remove seu uso nesta viagem. A conexão com o Meu Pluggy continua intacta.
+        Escolha primeiro as fontes da viagem e depois sincronize. Desativar uma conta aqui não remove o Item do Meu Pluggy.
       </p>
       {message && <p role="status" className="mt-2 text-[10px] leading-4 text-muted">{message}</p>}
     </section>

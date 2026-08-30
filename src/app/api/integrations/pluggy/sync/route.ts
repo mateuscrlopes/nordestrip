@@ -1,4 +1,12 @@
-import { getPluggyApiKey, getPluggyItem, isPluggyConfigured, listPluggyAccounts, type PluggyAccount } from "@/lib/integrations/pluggy";
+import {
+  getPluggyApiKey,
+  getPluggyItem,
+  isPluggyConfigured,
+  listPluggyAccounts,
+  listPluggyTransactions,
+  type PluggyAccount,
+  type PluggyTransaction,
+} from "@/lib/integrations/pluggy";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -20,10 +28,6 @@ function accountType(account: PluggyAccount) {
   if (account.type === "CREDIT") return "credit_card";
   if (account.type === "BANK") return "checking";
   return "other";
-}
-
-function defaultPurpose(account: PluggyAccount) {
-  return account.type === "CREDIT" ? "payment_card" : "personal";
 }
 
 function recordValue(value: unknown) {
@@ -55,6 +59,41 @@ function storedItems(metadata: unknown, legacyItemId: string | null) {
   }
 
   return items;
+}
+
+function transactionDirection(transaction: PluggyTransaction, account: PluggyAccount) {
+  const type = stringValue(transaction.type)?.toUpperCase();
+  if (type === "DEBIT") return "debit";
+  if (type === "CREDIT") return "credit";
+
+  const amount = numberValue(transaction.amount);
+  if (amount == null) return null;
+
+  if (account.type === "CREDIT") {
+    return amount >= 0 ? "debit" : "credit";
+  }
+
+  return amount < 0 ? "debit" : "credit";
+}
+
+function transactionPostingStatus(transaction: PluggyTransaction) {
+  return stringValue(transaction.status)?.toUpperCase() === "PENDING"
+    ? "pending"
+    : "posted";
+}
+
+function transactionDescription(transaction: PluggyTransaction) {
+  return stringValue(transaction.description)
+    || stringValue(transaction.descriptionRaw)
+    || "Transação";
+}
+
+function chunks<T>(items: T[], size: number) {
+  const result: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    result.push(items.slice(index, index + size));
+  }
+  return result;
 }
 
 export async function POST(request: Request) {
@@ -94,18 +133,28 @@ export async function POST(request: Request) {
     return Response.json({ error: "Acesso negado para esta viagem." }, { status: 403 });
   }
 
-  const existingConnection = await supabase
-    .from("integration_connections")
-    .select("id,external_connection_id,metadata")
-    .eq("trip_id", tripId)
-    .eq("owner_user_id", user.id)
-    .eq("provider", "pluggy")
-    .eq("purpose", "open_finance")
-    .is("archived_at", null)
-    .maybeSingle();
+  const [existingConnection, tripResult] = await Promise.all([
+    supabase
+      .from("integration_connections")
+      .select("id,external_connection_id,metadata")
+      .eq("trip_id", tripId)
+      .eq("owner_user_id", user.id)
+      .eq("provider", "pluggy")
+      .eq("purpose", "open_finance")
+      .is("archived_at", null)
+      .maybeSingle(),
+    supabase
+      .from("trips")
+      .select("created_at")
+      .eq("id", tripId)
+      .maybeSingle(),
+  ]);
 
   if (existingConnection.error) {
     return Response.json({ error: "Não foi possível carregar a integração financeira." }, { status: 500 });
+  }
+  if (tripResult.error) {
+    return Response.json({ error: "Não foi possível carregar a janela financeira da viagem." }, { status: 500 });
   }
 
   const savedItemId = stringValue(existingConnection.data?.external_connection_id);
@@ -130,11 +179,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const accounts = await listPluggyAccounts(apiKey, itemId);
+    const pluggyAccounts = await listPluggyAccounts(apiKey, itemId);
     const now = new Date().toISOString();
+    const savedAccounts = new Map<string, string>();
     let synced = 0;
 
-    for (const account of accounts) {
+    for (const account of pluggyAccounts) {
       if (!account.id) continue;
 
       const type = accountType(account);
@@ -174,37 +224,80 @@ export async function POST(request: Request) {
         throw new Error("financial-account-save");
       }
 
-      const links = await supabase
-        .from("trip_financial_accounts")
-        .select("id,archived_at")
-        .eq("trip_id", tripId)
-        .eq("financial_account_id", accountSave.data.id);
+      savedAccounts.set(account.id, accountSave.data.id);
+      synced += 1;
+    }
 
-      if (links.error) {
+    const savedAccountIds = Array.from(savedAccounts.values());
+    const activeAccountIds = new Set<string>();
+
+    if (savedAccountIds.length) {
+      const activeLinks = await supabase
+        .from("trip_financial_accounts")
+        .select("financial_account_id")
+        .eq("trip_id", tripId)
+        .in("financial_account_id", savedAccountIds)
+        .is("archived_at", null);
+
+      if (activeLinks.error) {
         throw new Error("financial-account-link-read");
       }
 
-      if (!links.data?.length) {
-        const linkSave = await supabase
-          .from("trip_financial_accounts")
-          .insert({
-            trip_id: tripId,
-            financial_account_id: accountSave.data.id,
-            purpose: defaultPurpose(account),
-            include_balance_in_available: false,
-          });
+      for (const link of activeLinks.data ?? []) {
+        activeAccountIds.add(link.financial_account_id);
+      }
+    }
 
-        if (linkSave.error) {
-          throw new Error("financial-account-link-save");
+    const createdAt = stringValue(tripResult.data?.created_at);
+    const dateFrom = createdAt ? createdAt.slice(0, 10) : null;
+    let transactionsSynced = 0;
+
+    for (const account of pluggyAccounts) {
+      const financialAccountId = account.id ? savedAccounts.get(account.id) : null;
+      if (!account.id || !financialAccountId || !activeAccountIds.has(financialAccountId)) {
+        continue;
+      }
+
+      const transactions = await listPluggyTransactions(apiKey, account.id, { dateFrom });
+      const rows: Record<string, unknown>[] = [];
+
+      for (const transaction of transactions) {
+        const amount = numberValue(transaction.amount);
+        if (!transaction.id || amount == null) continue;
+
+        rows.push({
+          financial_account_id: financialAccountId,
+          trip_id: tripId,
+          provider: "pluggy",
+          external_id: transaction.id,
+          description: transactionDescription(transaction),
+          amount,
+          currency: stringValue(transaction.currencyCode) || account.currencyCode || "BRL",
+          occurred_at: stringValue(transaction.date),
+          direction: transactionDirection(transaction, account),
+          posting_status: transactionPostingStatus(transaction),
+          is_transfer: false,
+          raw_payload: transaction,
+          updated_at: now,
+        });
+      }
+
+      for (const batch of chunks(rows, 250)) {
+        const save = await supabase
+          .from("financial_transactions")
+          .upsert(batch, { onConflict: "provider,external_id" });
+
+        if (save.error) {
+          throw new Error("financial-transaction-save");
         }
       }
 
-      synced += 1;
+      transactionsSynced += rows.length;
     }
 
     const existingMetadata = recordValue(existingConnection.data?.metadata);
     const accountNames = Array.from(new Set(
-      accounts
+      pluggyAccounts
         .map((account) => account.marketingName || account.name)
         .filter((name): name is string => typeof name === "string" && Boolean(name.trim()))
     ));
@@ -217,6 +310,7 @@ export async function POST(request: Request) {
       status: item.status ?? null,
       execution_status: item.executionStatus ?? null,
       accounts_synced: synced,
+      transactions_synced: transactionsSynced,
       account_names: accountNames,
       last_success_at: now,
     });
@@ -241,6 +335,7 @@ export async function POST(request: Request) {
             item_execution_status: item.executionStatus ?? null,
             connector_name: item.connector?.name ?? null,
             accounts_synced: synced,
+            transactions_synced: transactionsSynced,
             items,
           },
           updated_at: now,
@@ -257,6 +352,7 @@ export async function POST(request: Request) {
       connected: true,
       itemId,
       accountsSynced: synced,
+      transactionsSynced,
       accountNames,
     });
   } catch {
@@ -274,7 +370,7 @@ export async function POST(request: Request) {
     }
 
     return Response.json(
-      { error: "Não foi possível sincronizar as contas da Pluggy agora." },
+      { error: "Não foi possível sincronizar as contas e transações da Pluggy agora." },
       { status: 502 }
     );
   }

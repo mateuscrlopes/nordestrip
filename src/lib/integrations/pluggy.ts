@@ -185,3 +185,79 @@ export async function listPluggyAccounts(apiKey: string, itemId: string) {
 
   return Array.isArray(data.results) ? data.results : [];
 }
+
+
+export type PluggyTransaction = {
+  id: string;
+  accountId?: string | null;
+  description?: string | null;
+  descriptionRaw?: string | null;
+  amount?: number | null;
+  currencyCode?: string | null;
+  date?: string | null;
+  category?: string | null;
+  categoryId?: string | null;
+  type?: string | null;
+  status?: string | null;
+  merchant?: {
+    name?: string | null;
+    businessName?: string | null;
+  } | null;
+  creditCardMetadata?: Record<string, unknown> | null;
+  paymentData?: unknown;
+};
+
+type PluggyCursorList<T> = PluggyList<T> & {
+  next?: string | null;
+};
+
+export async function listPluggyTransactions(
+  apiKey: string,
+  accountId: string,
+  options: { dateFrom?: string | null; dateTo?: string | null } = {}
+) {
+  const params = new URLSearchParams({ accountId });
+  if (options.dateFrom) params.set("dateFrom", options.dateFrom);
+  if (options.dateTo) params.set("dateTo", options.dateTo);
+
+  let path = "/v2/transactions?" + params.toString();
+  const results: PluggyTransaction[] = [];
+  const seenNext = new Set<string>();
+
+  for (let page = 0; page < 50; page += 1) {
+    const data = await pluggyRequest<PluggyCursorList<PluggyTransaction>>(
+      path,
+      {
+        headers: {
+          Accept: "application/json",
+          "X-API-KEY": apiKey,
+        },
+      },
+      "pluggy-transactions"
+    );
+
+    if (Array.isArray(data.results)) results.push(...data.results);
+
+    const next = typeof data.next === "string" ? data.next.trim() : "";
+    if (!next || seenNext.has(next)) break;
+    seenNext.add(next);
+
+    if (next.startsWith("?")) {
+      path = "/v2/transactions" + next;
+      continue;
+    }
+    if (next.startsWith("/v2/transactions")) {
+      path = next;
+      continue;
+    }
+    if (next.startsWith(PLUGGY_API_URL)) {
+      const url = new URL(next);
+      path = url.pathname + url.search;
+      continue;
+    }
+
+    throw new Error("pluggy-transactions-next-invalid");
+  }
+
+  return results;
+}
