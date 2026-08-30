@@ -157,11 +157,60 @@ function compactDuration(minutes: number) {
   return `${hours}h${String(rest).padStart(2, "0")}`;
 }
 
+type CachedRouteEstimate = {
+  stop_id: string;
+  circuit_label: string;
+  period: string;
+  place_ids: string[];
+  distance_meters: number;
+  duration_minutes: number;
+  source: string;
+  travel_mode: string;
+  calculated_at: string;
+};
+
+function cachedRouteEstimate(
+  preferences: TripPreferences | null,
+  stopId: string | null,
+  circuitLabel: string,
+  period: string,
+  placeIds: string[]
+) {
+  if (!stopId || placeIds.length < 2) return null;
+
+  const rawEstimates = preferences?.extra?.route_estimates;
+  if (!rawEstimates || typeof rawEstimates !== "object" || Array.isArray(rawEstimates)) return null;
+
+  const key = `${stopId}::${circuitLabel}::${period}`;
+  const raw = (rawEstimates as Record<string, unknown>)[key];
+
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+
+  const estimate = raw as Partial<CachedRouteEstimate>;
+  if (
+    !Array.isArray(estimate.place_ids) ||
+    typeof estimate.duration_minutes !== "number" ||
+    typeof estimate.distance_meters !== "number"
+  ) {
+    return null;
+  }
+
+  const samePlaces =
+    estimate.place_ids.length === placeIds.length &&
+    estimate.place_ids.every((id, index) => id === placeIds[index]);
+
+  if (!samePlaces) return null;
+
+  return estimate as CachedRouteEstimate;
+}
+
 function principalPeriodCapacity(
   items: ItineraryItem[],
   date: string,
   placeById: Map<string, ItineraryPlace>,
-  windows: ItineraryPlanningWindows
+  windows: ItineraryPlanningWindows,
+  preferences: TripPreferences | null,
+  circuitLabel: string
 ) {
   return ["morning", "afternoon", "evening"]
     .map((period) => {
@@ -173,8 +222,8 @@ function principalPeriodCapacity(
       });
       if (!principal.length) return null;
 
-      let min = 0;
-      let max = 0;
+      let visitMin = 0;
+      let visitMax = 0;
       let missing = 0;
 
       for (const item of principal) {
@@ -184,9 +233,24 @@ function principalPeriodCapacity(
           missing += 1;
           continue;
         }
-        min += minValue;
-        max += maxValue;
+        visitMin += minValue;
+        visitMax += maxValue;
       }
+
+      const placeIds = principal
+        .map((item) => typeof item.place_id === "string" ? item.place_id : null)
+        .filter((value): value is string => Boolean(value));
+      const stopId = typeof principal[0]?.stop_id === "string" ? principal[0].stop_id : null;
+      const routeEstimate = cachedRouteEstimate(
+        preferences,
+        stopId,
+        circuitLabel,
+        period,
+        placeIds
+      );
+      const travelMinutes = routeEstimate?.duration_minutes ?? 0;
+      const min = visitMin + travelMinutes;
+      const max = visitMax + travelMinutes;
 
       const capacity = periodCapacity(period, windows);
       let state: "fit" | "tight" | "overflow" | "incomplete" = "fit";
@@ -194,15 +258,34 @@ function principalPeriodCapacity(
       else if (min > capacity) state = "overflow";
       else if (max > capacity) state = "tight";
 
-      return { period, min, max, missing, capacity, state };
+      return {
+        period,
+        min,
+        max,
+        visitMin,
+        visitMax,
+        missing,
+        capacity,
+        state,
+        travelMinutes,
+        distanceMeters: routeEstimate?.distance_meters ?? null,
+        routeCached: Boolean(routeEstimate),
+        needsRoute: principal.length >= 2 && !routeEstimate,
+      };
     })
     .filter(Boolean) as Array<{
       period: string;
       min: number;
       max: number;
+      visitMin: number;
+      visitMax: number;
       missing: number;
       capacity: number;
       state: "fit" | "tight" | "overflow" | "incomplete";
+      travelMinutes: number;
+      distanceMeters: number | null;
+      routeCached: boolean;
+      needsRoute: boolean;
     }>;
 }
 
@@ -680,7 +763,14 @@ export function ItineraryView({
                 confirmCount: availability.filter((item) => item.status === "confirm").length,
                 closedCount: availability.filter((item) => item.status === "closed").length,
                 geocodedCount,
-                capacity: principalPeriodCapacity(sortedItems, date, placeById, planningWindows),
+                capacity: principalPeriodCapacity(
+                  sortedItems,
+                  date,
+                  placeById,
+                  planningWindows,
+                  preferences,
+                  group.label
+                ),
               };
             });
 
@@ -796,9 +886,11 @@ export function ItineraryView({
                                   <div>
                                     <strong>{periodLabel(summary.period)}</strong>
                                     <span>
-                                      Principais {summary.missing
-                                        ? `${summary.missing} sem duração completa`
-                                        : `${compactDuration(summary.min)}–${compactDuration(summary.max)}`}
+                                      {summary.missing
+                                        ? `${summary.missing} principal sem duração completa`
+                                        : summary.routeCached
+                                          ? `Visitas ${compactDuration(summary.visitMin)}–${compactDuration(summary.visitMax)} + ${compactDuration(summary.travelMinutes)} a pé`
+                                          : `Principais ${compactDuration(summary.visitMin)}–${compactDuration(summary.visitMax)}`}
                                     </span>
                                   </div>
                                   <em>
@@ -808,7 +900,12 @@ export function ItineraryView({
                                     {summary.state === "incomplete" && "Incompleto"}
                                   </em>
                                   <small>
-                                    Janela útil {compactDuration(summary.capacity)} · deslocamento não incluído
+                                    Janela útil {compactDuration(summary.capacity)}
+                                    {summary.routeCached
+                                      ? ` · deslocamento Google incluído${summary.distanceMeters != null ? ` · ${(summary.distanceMeters / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km` : ""}`
+                                      : summary.needsRoute
+                                        ? " · calcule este circuito no Mapa para incluir deslocamento"
+                                        : " · sem deslocamento entre Principais"}
                                   </small>
                                 </div>
                               ))}
