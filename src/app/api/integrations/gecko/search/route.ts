@@ -67,17 +67,18 @@ export async function POST(request: Request) {
   if (!membership.data || !segment.data) {
     return Response.json({ error: "Acesso negado para este trecho." }, { status: 403 });
   }
-  if (segment.data.mode !== "bus") {
+  const segmentData = segment.data;
+  if (segmentData.mode !== "bus") {
     return Response.json({ error: "A pesquisa rodoviária só está disponível para trechos de ônibus." }, { status: 400 });
   }
-  if (!segment.data.origin_stop_id || !segment.data.destination_stop_id) {
+  if (!segmentData.origin_stop_id || !segmentData.destination_stop_id) {
     return Response.json({ error: "O trecho ainda não tem origem e destino estruturados." }, { status: 400 });
   }
 
   const departureDate =
-    segment.data.departure_at
-      ? String(segment.data.departure_at).slice(0, 10)
-      : textValue(segment.data.departure_date);
+    segmentData.departure_at
+      ? String(segmentData.departure_at).slice(0, 10)
+      : textValue(segmentData.departure_date);
 
   if (!departureDate) {
     return Response.json({ error: "Defina a data do trecho antes de pesquisar passagens." }, { status: 400 });
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
   const stops = await supabase
     .from("stops")
     .select("id,name,state_code")
-    .in("id", [segment.data.origin_stop_id, segment.data.destination_stop_id])
+    .in("id", [segmentData.origin_stop_id, segmentData.destination_stop_id])
     .eq("trip_id", tripId)
     .is("archived_at", null);
 
@@ -94,8 +95,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "Não foi possível carregar origem e destino." }, { status: 500 });
   }
 
-  const origin = (stops.data || []).find((stop) => stop.id === segment.data.origin_stop_id);
-  const destination = (stops.data || []).find((stop) => stop.id === segment.data.destination_stop_id);
+  const origin = (stops.data || []).find((stop) => stop.id === segmentData.origin_stop_id);
+  const destination = (stops.data || []).find((stop) => stop.id === segmentData.destination_stop_id);
 
   if (!origin?.name || !origin.state_code || !destination?.name || !destination.state_code) {
     return Response.json({ error: "Origem ou destino não possui cidade/UF suficiente para a busca." }, { status: 400 });
@@ -145,8 +146,8 @@ export async function POST(request: Request) {
             ...metadata,
             last_search: {
               transport_id: transportId,
-              origin_stop_id: segment.data.origin_stop_id,
-              destination_stop_id: segment.data.destination_stop_id,
+              origin_stop_id: segmentData.origin_stop_id,
+              destination_stop_id: segmentData.destination_stop_id,
               departure_date: departureDate,
               result_count: results.length,
             },
