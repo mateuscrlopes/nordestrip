@@ -449,7 +449,8 @@ export function ItineraryView({
             const ideaItems = items.filter((item) => item.status === "idea");
             const ideaCircuits = Array.from(
               ideaItems.reduce<Map<string, { label: string; items: ItineraryItem[] }>>((groups, item) => {
-                const place = item.place_id ? placeById.get(item.place_id) : undefined;
+                const placeId = typeof item.place_id === "string" ? item.place_id : null;
+                const place = placeId ? placeById.get(placeId) : undefined;
                 const circuit = circuitForPlace(place);
                 const current = groups.get(circuit.label) ?? { label: circuit.label, items: [] };
                 current.items.push(item);
@@ -459,8 +460,10 @@ export function ItineraryView({
             ).map((group) => ({
               ...group,
               items: [...group.items].sort((a, b) => {
-                const placeA = a.place_id ? placeById.get(a.place_id) : undefined;
-                const placeB = b.place_id ? placeById.get(b.place_id) : undefined;
+                const placeAId = typeof a.place_id === "string" ? a.place_id : null;
+                const placeBId = typeof b.place_id === "string" ? b.place_id : null;
+                const placeA = placeAId ? placeById.get(placeAId) : undefined;
+                const placeB = placeBId ? placeById.get(placeBId) : undefined;
                 return circuitForPlace(placeA).order - circuitForPlace(placeB).order;
               }),
             }));
