@@ -61,7 +61,13 @@ const changeActionLabel: Record<string, string> = {
   structural_change: "Estrutura alterada",
 };
 
-export default async function MorePage() {
+type MorePageProps = {
+  searchParams: Promise<{ section?: string | string[] }>;
+};
+
+export default async function MorePage({ searchParams }: MorePageProps) {
+  const params = await searchParams;
+  const requestedSection = Array.isArray(params.section) ? params.section[0] : params.section;
   const user = await getCurrentUser();
   const { trip } = await getCurrentTrip();
   const [pending, more, archived, stops, preferences, financeSettings, changes, participants] = trip && user
@@ -87,7 +93,7 @@ export default async function MorePage() {
         <section>
           <p className="settings-group-title">Viagem</p>
           <div className="settings-list">
-            <details className="group">
+            <details id="reservas" className="group scroll-mt-5" open={requestedSection === "reservas"}>
               <summary>
                 <span className="settings-row-icon"><FileText size={17} /></span>
                 <span className="min-w-0 flex-1">
@@ -296,7 +302,7 @@ export default async function MorePage() {
               </div>
             </details>
 
-            <details className="group">
+            <details id="pendencias" className="group scroll-mt-5" open={requestedSection === "pendencias"}>
               <summary>
                 <span className="settings-row-icon"><ClipboardList size={17} /></span>
                 <span className="min-w-0 flex-1">
