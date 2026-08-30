@@ -1,7 +1,8 @@
 "use client";
 
+import type { BudgetPocket } from "@/components/finance/budget-pockets-editor";
 import { createClient } from "@/lib/supabase/client";
-import { Ban, Check, Pencil, X } from "lucide-react";
+import { Ban, Pencil, UserRound, UsersRound, X } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -11,20 +12,29 @@ export function TransactionReviewActions({
   customDescription,
   originalDescription,
   direction,
+  pockets = [],
 }: {
   id: string;
   reviewStatus: string;
   customDescription?: string | null;
   originalDescription?: string | null;
   direction?: string | null;
+  pockets?: BudgetPocket[];
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
+  const [choosingPerson, setChoosingPerson] = useState(false);
   const [description, setDescription] = useState(customDescription || "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const sharedPocket = pockets.find((pocket) => pocket.kind === "shared") ?? null;
+  const people = pockets.filter((pocket) => pocket.kind === "person");
 
-  async function review(nextStatus: "trip" | "not_trip" | "later", nextDescription?: string | null) {
+  async function review(
+    nextStatus: "trip" | "not_trip" | "later",
+    nextDescription?: string | null,
+    pocketId?: string | null
+  ) {
     if (saving) return false;
 
     setSaving(true);
@@ -34,6 +44,7 @@ export function TransactionReviewActions({
       p_transaction_id: id,
       p_review_status: nextStatus,
       p_custom_description: nextDescription === undefined ? null : nextDescription,
+      p_pocket_id: pocketId ?? null,
     });
 
     if (updateError) {
@@ -47,6 +58,7 @@ export function TransactionReviewActions({
     }
 
     setSaving(false);
+    setChoosingPerson(false);
     router.refresh();
     return true;
   }
@@ -62,46 +74,111 @@ export function TransactionReviewActions({
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-end gap-1">
-        <button
-          type="button"
-          className="add-icon-button"
-          aria-label="Renomear no Nordestrip"
-          title="Renomear no Nordestrip"
-          disabled={saving}
-          onClick={() => {
-            setError("");
-            setEditing(true);
-          }}
-        >
-          <Pencil size={14} />
-        </button>
-
-        {reviewStatus === "later" && (
+      {reviewStatus === "later" && direction !== "credit" ? (
+        <div className="transaction-classify-actions">
           <button
             type="button"
-            className="inline-flex min-h-8 items-center gap-1 rounded-lg bg-pale-blue/65 px-2.5 text-[10px] font-semibold text-petrol disabled:opacity-40"
-            disabled={saving || direction === "credit"}
-            title={direction === "credit" ? "Entradas não são convertidas em gasto." : "Marcar como gasto da viagem"}
-            onClick={() => review("trip")}
+            className="transaction-classify-button"
+            disabled={saving || !sharedPocket}
+            onClick={() => sharedPocket && review("trip", undefined, sharedPocket.id)}
           >
-            <Check size={13} />
-            Da viagem
+            <UsersRound size={15} />
+            Compartilhado
           </button>
-        )}
-
-        {reviewStatus !== "not_trip" && (
           <button
             type="button"
-            className="inline-flex min-h-8 items-center gap-1 rounded-lg px-2.5 text-[10px] font-semibold text-muted disabled:opacity-40"
+            className="transaction-classify-button"
+            disabled={saving || people.length === 0}
+            onClick={() => setChoosingPerson(true)}
+          >
+            <UserRound size={15} />
+            Uma pessoa
+          </button>
+          <div className="transaction-secondary-actions">
+            <button
+              type="button"
+              aria-label="Renomear no Nordestrip"
+              title="Renomear"
+              disabled={saving}
+              onClick={() => setEditing(true)}
+            >
+              <Pencil size={13} />
+            </button>
+            <button
+              type="button"
+              aria-label="Não é da viagem"
+              title="Não é da viagem"
+              disabled={saving}
+              onClick={() => review("not_trip")}
+            >
+              <Ban size={13} />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="transaction-secondary-actions">
+          <button
+            type="button"
+            aria-label="Renomear no Nordestrip"
+            title="Renomear"
             disabled={saving}
-            onClick={() => review("not_trip")}
+            onClick={() => setEditing(true)}
           >
-            <Ban size={13} />
-            Não é da viagem
+            <Pencil size={13} />
           </button>
-        )}
-      </div>
+          {reviewStatus !== "not_trip" && (
+            <button
+              type="button"
+              aria-label="Não é da viagem"
+              title="Não é da viagem"
+              disabled={saving}
+              onClick={() => review("not_trip")}
+            >
+              <Ban size={13} />
+            </button>
+          )}
+        </div>
+      )}
+
+      {choosingPerson && (
+        <div className="edit-overlay" onClick={() => !saving && setChoosingPerson(false)}>
+          <section className="edit-sheet" onClick={(event) => event.stopPropagation()}>
+            <div className="edit-sheet-header">
+              <div>
+                <p>Gasto individual</p>
+                <h2>De quem foi esta compra?</h2>
+              </div>
+              <button
+                type="button"
+                className="add-icon-button"
+                aria-label="Fechar"
+                disabled={saving}
+                onClick={() => setChoosingPerson(false)}
+              >
+                <X size={19} />
+              </button>
+            </div>
+
+            <div className="person-pocket-list">
+              {people.map((pocket) => (
+                <button
+                  key={pocket.id}
+                  type="button"
+                  disabled={saving}
+                  onClick={() => review("trip", undefined, pocket.id)}
+                >
+                  <span className="budget-pocket-icon"><UserRound size={17} /></span>
+                  <span>
+                    <strong>{pocket.label}</strong>
+                    <small>{pocket.availableAmount > 0 ? `${pocket.availableAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} disponível` : "Orçamento ainda não definido"}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+            {error && <p className="add-error mt-3" role="alert">{error}</p>}
+          </section>
+        </div>
+      )}
 
       {editing && (
         <div className="edit-overlay" onClick={() => !saving && setEditing(false)}>
@@ -141,12 +218,7 @@ export function TransactionReviewActions({
               {error && <p className="add-error" role="alert">{error}</p>}
 
               <div className="add-form-actions">
-                <button
-                  type="button"
-                  className="add-secondary"
-                  disabled={saving}
-                  onClick={() => setEditing(false)}
-                >
+                <button type="button" className="add-secondary" disabled={saving} onClick={() => setEditing(false)}>
                   Cancelar
                 </button>
                 <button type="submit" className="add-primary" disabled={saving}>
@@ -158,9 +230,10 @@ export function TransactionReviewActions({
         </div>
       )}
 
-      {error && !editing && (
-        <span className="sr-only" role="status">{error}</span>
+      {direction === "credit" && reviewStatus === "later" && (
+        <span className="text-[9px] text-muted">Entrada recebida; não entra como gasto.</span>
       )}
+      {error && !editing && !choosingPerson && <span className="sr-only" role="status">{error}</span>}
     </>
   );
 }
