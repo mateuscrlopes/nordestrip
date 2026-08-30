@@ -4,19 +4,10 @@ import { createClient } from "@/lib/supabase/client";
 import { BadgeCheck, Footprints } from "lucide-react";
 import { useState } from "react";
 
-export function ItineraryStatusActions({
-  id,
-  title,
-  status,
-}: {
-  id: string;
-  title: string;
-  status: string;
-}) {
+export function ItineraryStatusActions({ id, title, status }: { id: string; title: string; status: string }) {
   const [current, setCurrent] = useState(status);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-
   const confirmed = current === "confirmed" || current === "done";
   const visited = current === "done";
 
@@ -26,13 +17,8 @@ export function ItineraryStatusActions({
     setCurrent(next);
     setSaving(true);
     setError("");
-
     const supabase = createClient();
-    const { error: updateError } = await supabase
-      .from("itinerary_items")
-      .update({ status: next })
-      .eq("id", id);
-
+    const { error: updateError } = await supabase.from("itinerary_items").update({ status: next }).eq("id", id);
     if (updateError) {
       setCurrent(previous);
       setError("Não foi possível atualizar.");
@@ -40,27 +26,29 @@ export function ItineraryStatusActions({
     setSaving(false);
   }
 
+  const base = "grid h-7 w-7 shrink-0 place-items-center rounded-[10px] text-petrol transition disabled:opacity-45";
+
   return (
-    <div className="itinerary-status-actions">
+    <div className="flex items-center gap-1">
       <button
         type="button"
-        className={`itinerary-row-action ${confirmed ? "is-confirmed" : ""}`}
+        className={`${base} ${confirmed ? "bg-pale-blue/80" : "bg-pale-blue/45"}`}
         aria-label={confirmed ? `Remover confirmação de ${title}` : `Confirmar ${title}`}
         title={confirmed ? "Confirmado" : "Confirmar"}
         disabled={saving || visited}
         onClick={() => update(confirmed ? "planned" : "confirmed")}
       >
-        <BadgeCheck size={14} />
+        <BadgeCheck size={13} />
       </button>
       <button
         type="button"
-        className={`itinerary-row-action ${visited ? "is-visited" : ""}`}
+        className={`${base} ${visited ? "bg-petrol text-white" : "bg-pale-blue/45"}`}
         aria-label={visited ? `Marcar ${title} como não visitado` : `Marcar ${title} como visitado`}
         title={visited ? "Visitado" : "Marcar como visitado"}
         disabled={saving}
         onClick={() => update(visited ? "confirmed" : "done")}
       >
-        <Footprints size={14} />
+        <Footprints size={13} />
       </button>
       {error && <span className="sr-only" role="status">{error}</span>}
     </div>
