@@ -14,7 +14,8 @@
     "lucide-react": "^0.542.0",
     "next": "15.5.21",
     "react": "19.1.1",
-    "react-dom": "19.1.1"
+    "react-dom": "19.1.1",
+    "maplibre-gl": "^6.6.0"
   },
   "devDependencies": {
     "@netlify/plugin-nextjs": "5.15.13",
