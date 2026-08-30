@@ -81,21 +81,23 @@ export default function LoginPage() {
     setNotice("");
   }
 
+  const inputClassName = "mt-2 w-full rounded-2xl border border-petrol/10 bg-white/80 px-4 py-3.5 text-[16px] outline-none transition focus:border-petrol/50 focus:ring-4 focus:ring-pale-blue/45";
+
   return (
     <main className="login-shell grid min-h-screen place-items-center px-5 py-10 sm:py-12">
       <section className="w-full max-w-sm">
-        <div className="mb-9 flex flex-col items-center text-center">
-          <div className="grid h-[76px] w-[108px] place-items-center overflow-hidden">
+        <div className="mb-9 flex flex-col items-center gap-2.5 text-center">
+          <div className="grid h-[72px] w-[104px] place-items-center overflow-hidden">
             <Image
               src="/ghumat-mark.png"
               alt=""
-              width={108}
-              height={76}
+              width={104}
+              height={72}
               priority
               className="h-full w-full object-contain"
             />
           </div>
-          <span className="-mt-1 text-[1.75rem] font-semibold leading-none tracking-[-.055em] text-ink">
+          <span className="text-[1.75rem] font-semibold leading-none tracking-[-.055em] text-ink">
             Nordestrip
           </span>
         </div>
@@ -139,7 +141,7 @@ export default function LoginPage() {
                 required
                 autoComplete="name"
                 placeholder="Como quer aparecer na viagem"
-                className="mt-2 w-full rounded-2xl border border-petrol/10 bg-white/80 px-4 py-3.5 outline-none transition focus:border-petrol/50 focus:ring-4 focus:ring-pale-blue/45"
+                className={inputClassName}
               />
             </label>
           )}
@@ -152,7 +154,7 @@ export default function LoginPage() {
               required
               autoComplete="email"
               placeholder="seu@email.com"
-              className="mt-2 w-full rounded-2xl border border-petrol/10 bg-white/80 px-4 py-3.5 outline-none transition focus:border-petrol/50 focus:ring-4 focus:ring-pale-blue/45"
+              className={inputClassName}
             />
           </label>
 
@@ -165,7 +167,7 @@ export default function LoginPage() {
               minLength={8}
               autoComplete={mode === "login" ? "current-password" : "new-password"}
               placeholder={mode === "login" ? "Sua senha" : "No mínimo 8 caracteres"}
-              className="mt-2 w-full rounded-2xl border border-petrol/10 bg-white/80 px-4 py-3.5 outline-none transition focus:border-petrol/50 focus:ring-4 focus:ring-pale-blue/45"
+              className={inputClassName}
             />
           </label>
 
