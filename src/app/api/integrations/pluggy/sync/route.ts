@@ -26,6 +26,37 @@ function defaultPurpose(account: PluggyAccount) {
   return account.type === "CREDIT" ? "payment_card" : "personal";
 }
 
+function recordValue(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function storedItems(metadata: unknown, legacyItemId: string | null) {
+  const root = recordValue(metadata);
+  const rawItems = Array.isArray(root.items) ? root.items : [];
+  const items: Record<string, unknown>[] = [];
+
+  for (const value of rawItems) {
+    const item = recordValue(value);
+    const id = stringValue(item.id);
+    if (!id) continue;
+    items.push({ ...item, id });
+  }
+
+  if (legacyItemId && !items.some((item) => item.id === legacyItemId)) {
+    items.push({
+      id: legacyItemId,
+      connector_name: stringValue(root.connector_name) || "MeuPluggy",
+      status: stringValue(root.item_status),
+      execution_status: stringValue(root.item_execution_status),
+      accounts_synced: numberValue(root.accounts_synced),
+    });
+  }
+
+  return items;
+}
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {
@@ -78,9 +109,6 @@ export async function POST(request: Request) {
   }
 
   const savedItemId = stringValue(existingConnection.data?.external_connection_id);
-  if (savedItemId && savedItemId !== itemId) {
-    return Response.json({ error: "A conexão informada não pertence a este acesso." }, { status: 403 });
-  }
 
   if (!isPluggyConfigured()) {
     return Response.json(
@@ -170,12 +198,24 @@ export async function POST(request: Request) {
       synced += 1;
     }
 
-    const existingMetadata =
-      existingConnection.data?.metadata &&
-      typeof existingConnection.data.metadata === "object" &&
-      !Array.isArray(existingConnection.data.metadata)
-        ? existingConnection.data.metadata as Record<string, unknown>
-        : {};
+    const existingMetadata = recordValue(existingConnection.data?.metadata);
+    const accountNames = Array.from(new Set(
+      accounts
+        .map((account) => account.marketingName || account.name)
+        .filter((name): name is string => typeof name === "string" && Boolean(name.trim()))
+    ));
+    const items = storedItems(existingMetadata, savedItemId)
+      .filter((storedItem) => storedItem.id !== itemId);
+
+    items.push({
+      id: itemId,
+      connector_name: item.connector?.name ?? "MeuPluggy",
+      status: item.status ?? null,
+      execution_status: item.executionStatus ?? null,
+      accounts_synced: synced,
+      account_names: accountNames,
+      last_success_at: now,
+    });
 
     const connectionSave = await supabase
       .from("integration_connections")
@@ -186,7 +226,7 @@ export async function POST(request: Request) {
           provider: "pluggy",
           purpose: "open_finance",
           status: "connected",
-          external_connection_id: itemId,
+          external_connection_id: savedItemId || itemId,
           last_success_at: now,
           last_sync_at: now,
           last_error_at: null,
@@ -197,6 +237,7 @@ export async function POST(request: Request) {
             item_execution_status: item.executionStatus ?? null,
             connector_name: item.connector?.name ?? null,
             accounts_synced: synced,
+            items,
           },
           updated_at: now,
           archived_at: null,
@@ -210,7 +251,9 @@ export async function POST(request: Request) {
 
     return Response.json({
       connected: true,
+      itemId,
       accountsSynced: synced,
+      accountNames,
     });
   } catch {
     const now = new Date().toISOString();

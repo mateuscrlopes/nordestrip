@@ -141,6 +141,22 @@ export async function findPluggyConnector(apiKey: string, name: string) {
   ) ?? connectors[0] ?? null;
 }
 
+export async function deletePluggyItem(apiKey: string, itemId: string) {
+  const response = await fetch(`${PLUGGY_API_URL}/items/${encodeURIComponent(itemId)}`, {
+    method: "DELETE",
+    headers: {
+      Accept: "application/json",
+      "X-API-KEY": apiKey,
+    },
+    cache: "no-store",
+  });
+
+  if (response.status === 404) return;
+  if (!response.ok) {
+    throw new Error(`pluggy-item-delete:${response.status}`);
+  }
+}
+
 export async function getPluggyItem(apiKey: string, itemId: string) {
   return pluggyRequest<PluggyItem>(
     `/items/${encodeURIComponent(itemId)}`,

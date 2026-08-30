@@ -104,6 +104,7 @@ export function IntegrationCatalog({
                   tripId={tripId}
                   itemId={textValue(connection?.external_connection_id) || null}
                   status={status}
+                  metadata={connection?.metadata}
                 />
               )}
               {item.key === "accommodation" && accommodationStopId && (

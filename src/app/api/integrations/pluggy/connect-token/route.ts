@@ -18,6 +18,22 @@ function objectValue(value: unknown) {
     : {};
 }
 
+function storedItemIds(metadata: unknown, legacyItemId: string | null) {
+  const root = objectValue(metadata);
+  const items = Array.isArray(root.items) ? root.items : [];
+  const ids = new Set<string>();
+
+  if (legacyItemId) ids.add(legacyItemId);
+
+  for (const value of items) {
+    const item = objectValue(value);
+    const id = stringValue(item.id);
+    if (id) ids.add(id);
+  }
+
+  return ids;
+}
+
 function oauthRedirectUri(request: Request) {
   const base = process.env.URL || process.env.DEPLOY_PRIME_URL || new URL(request.url).origin;
 
@@ -82,7 +98,8 @@ export async function POST(request: Request) {
   }
 
   const currentItemId = stringValue(connection.data?.external_connection_id);
-  if (requestedItemId && requestedItemId !== currentItemId) {
+  const knownItemIds = storedItemIds(connection.data?.metadata, currentItemId);
+  if (requestedItemId && !knownItemIds.has(requestedItemId)) {
     return Response.json({ error: "A conexão informada não pertence a este acesso." }, { status: 403 });
   }
 
