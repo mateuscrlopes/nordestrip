@@ -138,7 +138,7 @@ export default async function HomePage() {
             <p className={`text-[13px] font-medium ${heroHasImage ? "text-white/80" : "text-petrol/70"}`}>
               {tripDates || "Planejamento da viagem"}
             </p>
-            <h1 className={`mt-1 text-[2rem] font-semibold leading-tight tracking-[-.045em] ${heroHasImage ? "text-white" : ""}`}>
+            <h1 className={`mt-1 line-clamp-2 max-w-[20ch] text-[2rem] font-semibold leading-tight tracking-[-.045em] ${heroHasImage ? "text-white" : ""}`}>
               {heroTitle}
             </h1>
           </div>
@@ -152,11 +152,11 @@ export default async function HomePage() {
           </div>
           <div className="transport-feature">
             <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[13px] font-medium text-white/65">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-medium text-white/65">
                   {nextTransport.operator || "Transporte"}
                 </p>
-                <h3 className="mt-2 text-[1.35rem] font-semibold leading-tight tracking-[-.035em] text-white">
+                <h3 className="mt-2 line-clamp-2 text-[1.35rem] font-semibold leading-tight tracking-[-.035em] text-white">
                   {routeTitle}
                 </h3>
               </div>
@@ -207,7 +207,7 @@ export default async function HomePage() {
               <CheckCircle2 size={18} strokeWidth={1.8} />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[15px] font-semibold leading-5">{pending[0].title}</span>
+              <span className="line-clamp-2 text-[15px] font-semibold leading-5">{pending[0].title}</span>
               {pending[0].due_at && (
                 <span className="mt-1 block text-[12px] text-muted">Prazo: {formatDateTime(pending[0].due_at)}</span>
               )}
@@ -259,8 +259,8 @@ export default async function HomePage() {
           </div>
           <div className="divide-y divide-petrol/8 rounded-[22px] bg-surface/72 px-5">
             {pending.slice(1, 4).map((item) => (
-              <Link key={item.id} href="/mais" className="flex items-center justify-between gap-4 py-4">
-                <span className="text-sm font-medium">{item.title}</span>
+              <Link key={item.id} href="/mais" className="flex min-h-12 items-center justify-between gap-4 py-4">
+                <span className="line-clamp-2 text-sm font-medium">{item.title}</span>
                 <ChevronRight size={17} className="shrink-0 text-muted" />
               </Link>
             ))}
