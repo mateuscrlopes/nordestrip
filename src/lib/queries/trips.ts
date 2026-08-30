@@ -7,6 +7,29 @@ function checked<T>(result: { data: T | null; error: { message: string } | null 
   return result.data as T;
 }
 
+type StopAccommodation = Record<string, unknown> & {
+  id: string;
+  name?: string | null;
+  place_id?: string | null;
+  accommodation_type?: string | null;
+  status?: string | null;
+  check_in_date?: string | null;
+  check_out_date?: string | null;
+  check_in_from?: string | null;
+  check_out_until?: string | null;
+  source?: string | null;
+  external_id?: string | null;
+  source_url?: string | null;
+  notes?: string | null;
+  place?: Record<string, unknown> | null;
+};
+
+type StopLuggagePlan = LuggagePlanSummary & {
+  confirmation_source?: string | null;
+  confirmation_note?: string | null;
+  notes?: string | null;
+};
+
 export const getCurrentUser = cache(async () => {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
@@ -76,10 +99,10 @@ export async function getStopDetails(stopId: string) {
 
   const stop = bundle.stop as Stop;
   const accommodations = Array.isArray(bundle.accommodations)
-    ? bundle.accommodations as Record<string, unknown>[]
+    ? bundle.accommodations as StopAccommodation[]
     : [];
   const luggagePlans = Array.isArray(bundle.luggage)
-    ? bundle.luggage as Record<string, unknown>[]
+    ? bundle.luggage as StopLuggagePlan[]
     : [];
   const activities = Array.isArray(bundle.activities)
     ? bundle.activities as ItineraryItem[]
@@ -104,10 +127,10 @@ export async function getStopDetails(stopId: string) {
     activities,
     pending,
     inbound: bundle.inbound && typeof bundle.inbound === "object"
-      ? bundle.inbound as Record<string, unknown>
+      ? bundle.inbound as Transport
       : null,
     outbound: bundle.outbound && typeof bundle.outbound === "object"
-      ? bundle.outbound as Record<string, unknown>
+      ? bundle.outbound as Transport
       : null,
     accommodationOptions,
   };
