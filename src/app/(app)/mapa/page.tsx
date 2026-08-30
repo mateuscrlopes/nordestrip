@@ -141,7 +141,7 @@ export default async function MapPage() {
       ])
     : [[], [], [], []];
 
-  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+  const mapTilerKey = process.env.NEXT_PUBLIC_MAPTILER_KEY || "";
   const itineraryByPlace = new Map(
     itinerary
       .filter((item) => typeof item.place_id === "string" && item.status !== "cancelled")
@@ -229,7 +229,7 @@ export default async function MapPage() {
               <h2>Mapa da viagem</h2>
             </div>
             <TripMap
-              apiKey={googleMapsApiKey}
+              mapTilerKey={mapTilerKey}
               tripId={trip.id}
               places={withCoordinates.map((place) => {
                 const itineraryItem = itineraryByPlace.get(String(place.id));
@@ -261,7 +261,7 @@ export default async function MapPage() {
               <h2>Geografia do roteiro</h2>
               <p>
                 {withCoordinates.length} de {places.length} locais já têm coordenadas ({coordinateCoverage}%).
-                A navegação externa funciona agora; tempos de rota internos aguardam a configuração do provedor de mapas.
+                O mapa interno usa MapTiler e os circuitos selecionados calculam distância e tempo a pé pelo openrouteservice.
               </p>
               <div className="map-coverage-bar" aria-label={`${coordinateCoverage}% dos locais com coordenadas`}>
                 <span style={{ width: `${coordinateCoverage}%` }} />
@@ -313,7 +313,7 @@ export default async function MapPage() {
               })}
             </div>
             <p className="map-circuit-note">
-              A rota externa usa o modo a pé. Circuitos de passeio/embarcação não entram nessa lista.
+              Os links externos continuam disponíveis para navegação. No mapa interno, circuitos urbanos selecionados usam rota real a pé; passeios de embarcação e bate-voltas ficam fora desse cálculo.
             </p>
           </section>
         )}
