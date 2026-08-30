@@ -311,6 +311,7 @@ export function PlacesExplorer({
   const firstStopWithPlaces = stops.find((stop) => catalog.some((place) => place.stop_id === stop.id));
   const [activeStopId, setActiveStopId] = useState(firstStopWithPlaces?.id || stops[0]?.id || "");
   const [category, setCategory] = useState("all");
+  const [circuit, setCircuit] = useState("all");
   const [query, setQuery] = useState("");
   const [selectedPlace, setSelectedPlace] = useState<CatalogPlace | null>(null);
   const [savingDate, setSavingDate] = useState<string | null>(null);
@@ -325,18 +326,32 @@ export function PlacesExplorer({
     [cityPlaces]
   );
 
+  const circuits = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          cityPlaces
+            .map((place) => circuitText(place))
+            .filter((value): value is string => Boolean(value))
+        )
+      ).sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [cityPlaces]
+  );
+
   const visiblePlaces = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR");
     return cityPlaces.filter((place) => {
       const categoryMatches = category === "all" || (place.category || "other") === category;
+      const placeCircuit = circuitText(place);
+      const circuitMatches = circuit === "all" || placeCircuit === circuit;
       const queryMatches =
         !normalizedQuery ||
-        [place.name, place.address, place.notes, areaText(place)]
+        [place.name, place.address, place.notes, areaText(place), placeCircuit]
           .filter(Boolean)
           .some((value) => String(value).toLocaleLowerCase("pt-BR").includes(normalizedQuery));
-      return categoryMatches && queryMatches;
+      return categoryMatches && circuitMatches && queryMatches;
     });
-  }, [category, cityPlaces, query]);
+  }, [category, circuit, cityPlaces, query]);
 
   const selectedDateAssessments = selectedPlace && activeStop
     ? rangeDates(activeStop.start_date, activeStop.end_date).map((date) =>
@@ -351,6 +366,7 @@ export function PlacesExplorer({
   function chooseStop(stopId: string) {
     setActiveStopId(stopId);
     setCategory("all");
+    setCircuit("all");
     setQuery("");
   }
 
@@ -481,6 +497,23 @@ export function PlacesExplorer({
             </button>
           ))}
         </div>
+
+        {circuits.length > 0 && (
+          <label className="places-circuit-filter">
+            <span>Circuito</span>
+            <select value={circuit} onChange={(event) => setCircuit(event.target.value)}>
+              <option value="all">Todos os circuitos</option>
+              {circuits.map((item) => {
+                const count = cityPlaces.filter((place) => circuitText(place) === item).length;
+                return (
+                  <option key={item} value={item}>
+                    {item} · {count}
+                  </option>
+                );
+              })}
+            </select>
+          </label>
+        )}
       </div>
 
       {visiblePlaces.length ? (
