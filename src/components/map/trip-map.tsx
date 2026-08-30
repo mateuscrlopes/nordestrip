@@ -3,9 +3,46 @@
 import { ExternalLink, TriangleAlert } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+type LatLngLiteral = { lat: number; lng: number };
+
+type GoogleMapInstance = {
+  setCenter: (position: LatLngLiteral) => void;
+  setZoom: (zoom: number) => void;
+  fitBounds: (bounds: GoogleBoundsInstance, padding?: number) => void;
+};
+
+type GoogleBoundsInstance = {
+  extend: (position: LatLngLiteral) => void;
+};
+
+type GoogleMarkerInstance = {
+  setMap: (map: GoogleMapInstance | null) => void;
+  addListener: (event: string, handler: () => void) => void;
+};
+
+type GooglePolylineInstance = {
+  setMap: (map: GoogleMapInstance | null) => void;
+};
+
+type GoogleInfoWindowInstance = {
+  close: () => void;
+  setContent: (content: Node | string) => void;
+  open: (options: { map: GoogleMapInstance; anchor: GoogleMarkerInstance }) => void;
+};
+
+type GoogleMapsRuntime = {
+  importLibrary: (name: string) => Promise<unknown>;
+  Map: new (container: HTMLElement, options: Record<string, unknown>) => GoogleMapInstance;
+  LatLngBounds: new () => GoogleBoundsInstance;
+  InfoWindow: new () => GoogleInfoWindowInstance;
+  Polyline: new (options: Record<string, unknown>) => GooglePolylineInstance;
+  Marker: new (options: Record<string, unknown>) => GoogleMarkerInstance;
+  SymbolPath: { CIRCLE: unknown };
+};
+
 declare global {
   interface Window {
-    google?: any;
+    google?: { maps?: GoogleMapsRuntime };
     __nordestripGoogleMapsPromise?: Promise<void>;
     __nordestripGoogleMapsReady?: () => void;
   }
@@ -66,10 +103,10 @@ function loadGoogleMaps(apiKey: string) {
 
 export function TripMap({ places, apiKey }: { places: MapPlace[]; apiKey: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
-  const polylinesRef = useRef<any[]>([]);
-  const infoWindowRef = useRef<any>(null);
+  const mapRef = useRef<GoogleMapInstance | null>(null);
+  const markersRef = useRef<GoogleMarkerInstance[]>([]);
+  const polylinesRef = useRef<GooglePolylineInstance[]>([]);
+  const infoWindowRef = useRef<GoogleInfoWindowInstance | null>(null);
 
   const [city, setCity] = useState("all");
   const [circuit, setCircuit] = useState("all");
@@ -112,9 +149,9 @@ export function TripMap({ places, apiKey }: { places: MapPlace[]; apiKey: string
         if (cancelled || !containerRef.current || mapRef.current || !window.google?.maps) return;
 
         const maps = window.google.maps;
-        const { Map } = await maps.importLibrary("maps");
+        await maps.importLibrary("maps");
 
-        mapRef.current = new Map(containerRef.current, {
+        mapRef.current = new maps.Map(containerRef.current, {
           center: { lat: -8.5, lng: -40 },
           zoom: 5,
           mapTypeControl: false,
