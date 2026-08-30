@@ -3845,3 +3845,141 @@ input:focus-visible {
   color: #7a3e28;
   background: rgba(122, 62, 40, .10);
 }
+
+
+/* Map geographic coverage */
+
+.map-coverage-bar {
+  overflow: hidden;
+  height: 6px;
+  margin-top: .65rem;
+  border-radius: 999px;
+  background: rgba(18, 56, 68, .08);
+}
+
+.map-coverage-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #123844;
+}
+
+.map-coverage-cities {
+  display: flex;
+  overflow-x: auto;
+  gap: .35rem;
+  margin-top: .55rem;
+  padding-bottom: .1rem;
+  scrollbar-width: none;
+}
+
+.map-coverage-cities::-webkit-scrollbar {
+  display: none;
+}
+
+.map-coverage-cities span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: .22rem .48rem;
+  color: #526268;
+  background: rgba(255,255,255,.72);
+  font-size: .51rem;
+  font-weight: 650;
+}
+
+.map-circuit-list {
+  display: grid;
+  gap: .55rem;
+}
+
+.map-circuit-card {
+  display: flex;
+  min-height: 62px;
+  align-items: center;
+  gap: .65rem;
+  border: 1px solid rgba(18, 56, 68, .08);
+  border-radius: 18px;
+  padding: .65rem .72rem;
+  background: rgba(255, 253, 252, .78);
+}
+
+.map-circuit-icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 12px;
+  color: #123844;
+  background: rgba(220,232,235,.64);
+}
+
+.map-circuit-card strong,
+.map-circuit-card small {
+  display: block;
+}
+
+.map-circuit-card strong {
+  color: #17282e;
+  font-size: .66rem;
+  font-weight: 700;
+}
+
+.map-circuit-card small {
+  margin-top: .1rem;
+  color: #70787a;
+  font-size: .53rem;
+}
+
+.map-circuit-card > a {
+  display: inline-flex;
+  min-height: 34px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: .3rem;
+  border-radius: 12px;
+  padding: 0 .55rem;
+  color: #123844;
+  background: rgba(220,232,235,.68);
+  font-size: .54rem;
+  font-weight: 700;
+}
+
+.map-circuit-note {
+  margin-top: .5rem;
+  color: #70787a;
+  font-size: .52rem;
+  line-height: 1.45;
+}
+
+.map-place-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .28rem;
+  margin-top: .32rem;
+}
+
+.place-location-chip--verified {
+  display: inline-flex;
+  align-items: center;
+  gap: .2rem;
+  color: #123844;
+  background: rgba(220,232,235,.72);
+}
+
+.place-location-chip--approx {
+  color: #6c5635;
+  background: rgba(215,180,131,.18);
+}
+
+@media (max-width: 430px) {
+  .map-circuit-card {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .map-circuit-card > a {
+    width: 100%;
+    justify-content: center;
+  }
+}

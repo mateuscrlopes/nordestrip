@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
 import { getTripPlaces, getTripStops, getTripTransports } from "@/lib/queries/trips";
 import type { Transport } from "@/types/trip";
-import { ExternalLink, MapPin, Navigation } from "lucide-react";
+import { Check, ExternalLink, MapPin, Navigation, Route } from "lucide-react";
 
 function coordinateValue(value: unknown) {
   if (value == null || value === "") return null;
@@ -28,6 +28,45 @@ function mapsUrl(latitude: unknown, longitude: unknown, address?: unknown) {
 
 function hasCoordinates(latitude: unknown, longitude: unknown) {
   return coordinateValue(latitude) != null && coordinateValue(longitude) != null;
+}
+
+function placeMetadata(place: Record<string, unknown>) {
+  const value = place.metadata;
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function coordinateConfidence(place: Record<string, unknown>) {
+  const value = placeMetadata(place).coordinates_confidence;
+  return value === "verified" ? "verified" : value === "approximate" ? "approximate" : null;
+}
+
+function circuitLabel(place: Record<string, unknown>) {
+  const value = placeMetadata(place).circuit_label;
+  return typeof value === "string" && value ? value : null;
+}
+
+function directionsUrl(places: Record<string, unknown>[]) {
+  const located = places.filter((place) => hasCoordinates(place.latitude, place.longitude));
+  if (located.length < 2) return null;
+
+  const point = (place: Record<string, unknown>) =>
+    `${coordinateValue(place.latitude)},${coordinateValue(place.longitude)}`;
+
+  const origin = point(located[0]);
+  const destination = point(located[located.length - 1]);
+  const waypoints = located.slice(1, -1).map(point).join("|");
+
+  const params = new URLSearchParams({
+    api: "1",
+    origin,
+    destination,
+    travelmode: "walking",
+  });
+  if (waypoints) params.set("waypoints", waypoints);
+
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
 
 type OperationalLocation = {
@@ -81,8 +120,57 @@ export default async function MapPage() {
     : [[], [], []];
 
   const operationalLocations = transportLocations(transports);
-  const located = places.filter((place) => hasCoordinates(place.latitude, place.longitude) || Boolean(place.address));
+  const withCoordinates = places.filter((place) => hasCoordinates(place.latitude, place.longitude));
+  const addressOnly = places.filter(
+    (place) => !hasCoordinates(place.latitude, place.longitude) && Boolean(place.address)
+  );
   const references = places.filter((place) => !hasCoordinates(place.latitude, place.longitude) && !place.address);
+  const coordinateCoverage = places.length ? Math.round((withCoordinates.length / places.length) * 100) : 0;
+  const stopById = new Map(stops.map((stop) => [stop.id, stop.city || stop.name || "Cidade"]));
+
+  const coordinateByCity = stops.map((stop) => {
+    const cityPlaces = places.filter((place) => place.stop_id === stop.id);
+    const locatedCount = cityPlaces.filter((place) => hasCoordinates(place.latitude, place.longitude)).length;
+    return {
+      id: stop.id,
+      city: stop.city || stop.name || "Cidade",
+      total: cityPlaces.length,
+      located: locatedCount,
+    };
+  }).filter((item) => item.total > 0);
+
+  const circuitGroups = Array.from(
+    withCoordinates.reduce<Map<string, { city: string; label: string; places: Record<string, unknown>[] }>>(
+      (groups, place) => {
+        const label = circuitLabel(place);
+        const stopId = typeof place.stop_id === "string" ? place.stop_id : null;
+        if (!label || !stopId) return groups;
+
+        const category = typeof place.category === "string" ? place.category : "";
+        if (category === "excursion") return groups;
+
+        const key = `${stopId}::${label}`;
+        const current = groups.get(key) ?? {
+          city: stopById.get(stopId) || "Cidade",
+          label,
+          places: [],
+        };
+        current.places.push(place);
+        groups.set(key, current);
+        return groups;
+      },
+      new Map()
+    ).values()
+  )
+    .map((group) => ({
+      ...group,
+      places: [...group.places].sort((a, b) => {
+        const aOrder = Number(placeMetadata(a).circuit_order ?? 999);
+        const bOrder = Number(placeMetadata(b).circuit_order ?? 999);
+        return aOrder - bOrder;
+      }),
+    }))
+    .filter((group) => group.places.length >= 2);
 
   return (
     <>
@@ -110,14 +198,56 @@ export default async function MapPage() {
         <section className="map-integration-panel">
           <div className="flex items-start gap-4">
             <span className="map-integration-icon"><Navigation size={20} /></span>
-            <div>
-              <h2>Mapa integrado ainda não configurado</h2>
+            <div className="min-w-0 flex-1">
+              <h2>Geografia do roteiro</h2>
               <p>
-                O Nordestrip já centraliza endereços e referências. Quando houver coordenadas ou endereço, a localização pode ser aberta diretamente no Google Maps.
+                {withCoordinates.length} de {places.length} locais já têm coordenadas ({coordinateCoverage}%).
+                A navegação externa funciona agora; tempos de rota internos aguardam a configuração do provedor de mapas.
               </p>
+              <div className="map-coverage-bar" aria-label={`${coordinateCoverage}% dos locais com coordenadas`}>
+                <span style={{ width: `${coordinateCoverage}%` }} />
+              </div>
+              <div className="map-coverage-cities">
+                {coordinateByCity.map((item) => (
+                  <span key={item.id}>
+                    {item.city} · {item.located}/{item.total}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </section>
+
+        {circuitGroups.length > 0 && (
+          <section>
+            <div className="section-heading">
+              <h2>Circuitos georreferenciados</h2>
+            </div>
+            <div className="map-circuit-list">
+              {circuitGroups.map((circuit) => {
+                const url = directionsUrl(circuit.places);
+                return (
+                  <div key={`${circuit.city}-${circuit.label}`} className="map-circuit-card">
+                    <span className="map-circuit-icon"><Route size={17} /></span>
+                    <div className="min-w-0 flex-1">
+                      <strong>{circuit.label}</strong>
+                      <small>{circuit.city} · {circuit.places.length} pontos georreferenciados</small>
+                    </div>
+                    {url && (
+                      <a href={url} target="_blank" rel="noreferrer" aria-label={`Abrir circuito ${circuit.label} no Google Maps`}>
+                        <Navigation size={16} />
+                        Abrir rota
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <p className="map-circuit-note">
+              A rota externa usa o modo a pé. Circuitos de passeio/embarcação não entram nessa lista.
+            </p>
+          </section>
+        )}
 
         {operationalLocations.length > 0 && (
           <section>
@@ -165,12 +295,12 @@ export default async function MapPage() {
 
         <section>
           <div className="section-heading">
-            <h2>Lugares com localização</h2>
+            <h2>Coordenadas salvas</h2>
           </div>
 
-          {located.length > 0 ? (
+          {withCoordinates.length > 0 ? (
             <div className="place-list">
-              {located.map((place, index) => {
+              {withCoordinates.map((place, index) => {
                 const url = mapsUrl(place.latitude, place.longitude, place.address);
                 return (
                   <PlaceRow key={String(place.id ?? index)} place={place} url={url} />
@@ -180,10 +310,28 @@ export default async function MapPage() {
           ) : (
             <div className="empty-surface">
               <MapPin size={20} />
-              <p>Nenhum endereço ou coordenada salvo ainda.</p>
+              <p>Nenhuma coordenada salva ainda.</p>
             </div>
           )}
         </section>
+
+        {addressOnly.length > 0 && (
+          <section>
+            <div className="section-heading">
+              <h2>Somente endereço</h2>
+            </div>
+            <div className="place-list">
+              {addressOnly.map((place, index) => (
+                <PlaceRow
+                  key={String(place.id ?? index)}
+                  place={place}
+                  url={mapsUrl(null, null, place.address)}
+                  addressOnly
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         {references.length > 0 && (
           <section>
@@ -211,10 +359,12 @@ function PlaceRow({
   place,
   url,
   referenceOnly = false,
+  addressOnly = false,
 }: {
   place: Record<string, unknown>;
   url: string | null;
   referenceOnly?: boolean;
+  addressOnly?: boolean;
 }) {
   return (
     <div className="place-row">
@@ -228,7 +378,17 @@ function PlaceRow({
             {referenceOnly ? "Ainda sem endereço ou coordenadas." : "Localização salva."}
           </p>
         )}
-        {referenceOnly && <span className="place-location-chip">Precisa localizar</span>}
+        <div className="map-place-chips">
+          {circuitLabel(place) && <span className="place-location-chip">{circuitLabel(place)}</span>}
+          {coordinateConfidence(place) === "verified" && (
+            <span className="place-location-chip place-location-chip--verified"><Check size={11} /> Coordenada verificada</span>
+          )}
+          {coordinateConfidence(place) === "approximate" && (
+            <span className="place-location-chip place-location-chip--approx">Coordenada aproximada</span>
+          )}
+          {addressOnly && <span className="place-location-chip">Coordenada pendente</span>}
+          {referenceOnly && <span className="place-location-chip">Precisa localizar</span>}
+        </div>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {url && (
@@ -250,6 +410,8 @@ function PlaceRow({
             { name: "name", label: "Nome", required: true },
             { name: "category", label: "Categoria" },
             { name: "address", label: "Endereço" },
+            { name: "latitude", label: "Latitude", type: "number", step: "0.000001" },
+            { name: "longitude", label: "Longitude", type: "number", step: "0.000001" },
             { name: "source_url", label: "Link", type: "url" },
             { name: "notes", label: "Nota", type: "textarea" },
           ]}
@@ -257,6 +419,8 @@ function PlaceRow({
             name: String(place.name ?? place.title ?? ""),
             category: typeof place.category === "string" ? place.category : null,
             address: typeof place.address === "string" ? place.address : null,
+            latitude: coordinateValue(place.latitude),
+            longitude: coordinateValue(place.longitude),
             source_url: typeof place.source_url === "string" ? place.source_url : null,
             notes: typeof place.notes === "string" ? place.notes : null,
           }}
