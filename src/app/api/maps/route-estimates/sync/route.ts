@@ -10,6 +10,22 @@ type RouteResponse = {
   }>;
 };
 
+type LocatedPlace = {
+  id: string;
+  name: string;
+  order: number;
+  longitude: number;
+  latitude: number;
+};
+
+type RouteGroup = {
+  stopId: string;
+  circuit: string;
+  period: string;
+  total: number;
+  located: LocatedPlace[];
+};
+
 function textValue(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
@@ -79,19 +95,7 @@ export async function POST(request: Request) {
   if (!membership.data) return Response.json({ error: "Acesso negado." }, { status: 403 });
 
   const placeById = new Map((places.data || []).map((place) => [place.id, place]));
-  const groups = new Map<string, {
-    stopId: string;
-    circuit: string;
-    period: string;
-    total: number;
-    located: Array<{
-      id: string;
-      name: string;
-      order: number;
-      longitude: number;
-      latitude: number;
-    }>;
-  }>();
+  const groups = new Map<string, RouteGroup>();
 
   for (const item of items.data || []) {
     if (item.status === "cancelled") continue;
@@ -105,7 +109,7 @@ export async function POST(request: Request) {
     const circuit = textValue(metadata.circuit_label) || "Outros locais";
     const period = String(item.period);
     const key = `${item.stop_id}::${circuit}::${period}`;
-    const group = groups.get(key) || {
+    const group: RouteGroup = groups.get(key) || {
       stopId: item.stop_id,
       circuit,
       period,
