@@ -196,7 +196,7 @@ export function TripSettingsEditor({
       <section className="trip-settings-section">
         <div>
           <strong>Ritmo da viagem</strong>
-          <span>Define o quanto o planejador pode concentrar atividades no mesmo dia.</span>
+          <span>Quanto cabe em um dia sem apertar demais o roteiro.</span>
         </div>
         <select name="pace" defaultValue={currentPreferences.pace}>
           <option value="relaxed">Leve</option>
@@ -208,7 +208,7 @@ export function TripSettingsEditor({
       <section className="trip-settings-section trip-planning-settings">
         <div className="trip-settings-finance-heading">
           <strong>Janelas do roteiro</strong>
-          <span>Usadas para estimar quanto cabe em cada período sem transformar sugestões em horários fixos.</span>
+          <span>Faixas de horário usadas para organizar sugestões flexíveis.</span>
         </div>
         <div className="trip-settings-grid">
           <label>
@@ -236,7 +236,7 @@ export function TripSettingsEditor({
             <input name="evening_end" type="time" defaultValue={currentPlanning.evening_end} />
           </label>
           <label>
-            <span>Pausa mínima para refeição</span>
+            <span>Pausa para refeição</span>
             <input
               name="meal_break_minutes"
               type="number"
@@ -247,28 +247,28 @@ export function TripSettingsEditor({
           </label>
         </div>
         <p className="trip-planning-note">
-          A pausa é reservada nos blocos de tarde e noite. Tempo de deslocamento entre locais só entra quando o mapa tiver dados de rota.
+          A pausa entra no planejamento. Deslocamentos só entram quando houver rota calculada no mapa.
         </p>
       </section>
 
       <section className="trip-settings-section trip-settings-grid">
         <label>
-          <span>Folga entre atividades fixas</span>
+          <span>Folga entre atividades</span>
           <input name="anchor_buffer_minutes" type="number" min="0" defaultValue={currentPreferences.anchor_buffer_minutes} />
           <small>minutos</small>
         </label>
         <label>
-          <span>Chegada antecipada ao terminal</span>
+          <span>Antecedência no terminal</span>
           <input name="terminal_buffer_minutes" type="number" min="0" defaultValue={currentPreferences.terminal_buffer_minutes} />
           <small>minutos</small>
         </label>
         <label>
-          <span>Chegada antecipada ao aeroporto</span>
+          <span>Antecedência no aeroporto</span>
           <input name="airport_buffer_minutes" type="number" min="0" defaultValue={currentPreferences.airport_buffer_minutes} />
           <small>minutos</small>
         </label>
         <label>
-          <span>Tempo para acordar e se preparar</span>
+          <span>Tempo para se preparar</span>
           <input name="wake_prep_minutes" type="number" min="0" defaultValue={currentPreferences.wake_prep_minutes} />
           <small>minutos</small>
         </label>
@@ -277,7 +277,7 @@ export function TripSettingsEditor({
       <section className="trip-settings-section">
         <div>
           <strong>Reorganização do roteiro</strong>
-          <span>Controla quando o Nordestrip pode sugerir mudanças na ordem das atividades.</span>
+          <span>Quando o Nordestrip pode sugerir outra ordem.</span>
         </div>
         <select name="route_reorder_mode" defaultValue={currentPreferences.route_reorder_mode}>
           <option value="never">Nunca sugerir</option>
@@ -289,7 +289,7 @@ export function TripSettingsEditor({
       <section className="trip-settings-section">
         <div>
           <strong>Atualização de integrações</strong>
-          <span>Define quando dados externos podem ser atualizados.</span>
+          <span>Quando dados externos podem ser atualizados.</span>
         </div>
         <select name="api_refresh_mode" defaultValue={currentPreferences.api_refresh_mode}>
           <option value="manual">Somente manual</option>
@@ -303,21 +303,21 @@ export function TripSettingsEditor({
           <input name="suggest_wake_time" type="checkbox" defaultChecked={currentPreferences.suggest_wake_time} />
           <span>
             <strong>Sugerir horário de acordar</strong>
-            <small>Usa deslocamentos e compromissos fixos como referência.</small>
+            <small>Considera deslocamentos e compromissos fixos.</small>
           </span>
         </label>
         <label>
           <input name="live_location_enabled" type="checkbox" defaultChecked={currentPreferences.live_location_enabled} />
           <span>
             <strong>Permitir localização ao vivo</strong>
-            <small>Só funciona enquanto o app estiver aberto e com permissão do aparelho.</small>
+            <small>Usada somente com o app aberto e permissão do aparelho.</small>
           </span>
         </label>
         <label>
           <input name="offline_essential_data" type="checkbox" defaultChecked={currentPreferences.offline_essential_data} />
           <span>
-            <strong>Preparar dados essenciais para uso sem internet</strong>
-            <small>Endereços, ordem do roteiro e informações operacionais prioritárias.</small>
+            <strong>Preparar dados essenciais offline</strong>
+            <small>Roteiro, endereços e informações operacionais prioritárias.</small>
           </span>
         </label>
       </section>
@@ -325,7 +325,7 @@ export function TripSettingsEditor({
       <section className="trip-settings-finance">
         <div className="trip-settings-finance-heading">
           <strong>Planejamento financeiro</strong>
-          <span>Esses valores alimentam a leitura da tela Dinheiro.</span>
+          <span>Valores usados na tela Dinheiro.</span>
         </div>
         <div className="trip-settings-grid">
           <label>
