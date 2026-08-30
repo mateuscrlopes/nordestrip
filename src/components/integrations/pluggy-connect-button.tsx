@@ -1,9 +1,15 @@
 "use client";
 
 import { RefreshCw, WalletCards } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import PluggyConnect from "pluggy-connect-sdk";
 import { useState } from "react";
+import type { PluggyConnect as PluggyConnectType } from "react-pluggy-connect";
+
+const PluggyConnect = dynamic(
+  () => import("react-pluggy-connect").then((module) => module.PluggyConnect),
+  { ssr: false }
+) as typeof PluggyConnectType;
 
 type PluggySuccessData = {
   item?: { id?: string };
@@ -21,12 +27,14 @@ export function PluggyConnectButton({
 }) {
   const router = useRouter();
   const [state, setState] = useState<"idle" | "opening" | "syncing" | "done">("idle");
+  const [connectToken, setConnectToken] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   async function connect() {
     if (!configured || !tripId) return;
 
     setState("opening");
+    setConnectToken(null);
     setError("");
 
     try {
@@ -40,50 +48,51 @@ export function PluggyConnectButton({
         throw new Error(tokenData.error || "Não foi possível iniciar a conexão.");
       }
 
-      const widget = new PluggyConnect({
-        connectToken: tokenData.accessToken,
-        includeSandbox: false,
-        ...(itemId ? { updateItem: itemId } : {}),
-        onSuccess: (data: PluggySuccessData) => {
-          const connectedItemId = data.item?.id || data.id || itemId;
-          if (!connectedItemId) {
-            setState("idle");
-            setError("A conexão terminou sem identificar a conta.");
-            return;
-          }
-
-          setState("syncing");
-          void fetch("/api/integrations/pluggy/sync", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ tripId, itemId: connectedItemId }),
-          })
-            .then(async (response) => {
-              const result = await response.json() as { synced?: number; error?: string };
-              if (!response.ok) throw new Error(result.error || "Não foi possível sincronizar as contas.");
-              setState("done");
-              router.refresh();
-              window.setTimeout(() => setState("idle"), 1800);
-            })
-            .catch((syncError: unknown) => {
-              setState("idle");
-              setError(syncError instanceof Error ? syncError.message : "Não foi possível sincronizar as contas.");
-            });
-        },
-        onError: () => {
-          setState("idle");
-          setError("A conexão com a instituição não foi concluída.");
-        },
-        onClose: () => {
-          setState((current) => current === "opening" ? "idle" : current);
-        },
-      });
-
-      widget.init();
+      setConnectToken(tokenData.accessToken);
     } catch (connectError) {
       setState("idle");
       setError(connectError instanceof Error ? connectError.message : "Não foi possível abrir a Pluggy.");
     }
+  }
+
+  function handleSuccess(data: PluggySuccessData) {
+    const connectedItemId = data.item?.id || data.id || itemId;
+    setConnectToken(null);
+
+    if (!connectedItemId) {
+      setState("idle");
+      setError("A conexão terminou sem identificar a conta.");
+      return;
+    }
+
+    setState("syncing");
+    void fetch("/api/integrations/pluggy/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tripId, itemId: connectedItemId }),
+    })
+      .then(async (response) => {
+        const result = await response.json() as { synced?: number; error?: string };
+        if (!response.ok) throw new Error(result.error || "Não foi possível sincronizar as contas.");
+        setState("done");
+        router.refresh();
+        window.setTimeout(() => setState("idle"), 1800);
+      })
+      .catch((syncError: unknown) => {
+        setState("idle");
+        setError(syncError instanceof Error ? syncError.message : "Não foi possível sincronizar as contas.");
+      });
+  }
+
+  function handleError() {
+    setConnectToken(null);
+    setState("idle");
+    setError("A conexão com a instituição não foi concluída.");
+  }
+
+  function handleClose() {
+    setConnectToken(null);
+    setState((current) => current === "opening" ? "idle" : current);
   }
 
   if (!configured) {
@@ -115,6 +124,18 @@ export function PluggyConnectButton({
                 ? "Atualizar conexão"
                 : "Conectar conta"}
       </button>
+
+      {connectToken && state === "opening" && (
+        <PluggyConnect
+          connectToken={connectToken}
+          updateItem={itemId || undefined}
+          includeSandbox={false}
+          onSuccess={handleSuccess}
+          onError={handleError}
+          onClose={handleClose}
+        />
+      )}
+
       {error && <p className="mt-2 text-[11px] leading-4 text-red-800">{error}</p>}
     </div>
   );
