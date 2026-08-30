@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { cache } from "react";
 import type { ChangeLogEntry, CityCover, Expense, FinanceSummary, ItineraryItem, LuggagePlanSummary, PendingItem, Stop, Transport, Trip, TripFinanceSettings, TripPreferences } from "@/types/trip";
 
 function checked<T>(result: { data: T | null; error: { message: string } | null }, context: string): T {
@@ -6,12 +7,12 @@ function checked<T>(result: { data: T | null; error: { message: string } | null 
   return result.data as T;
 }
 
-export async function getCurrentUser() {
+export const getCurrentUser = cache(async () => {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
   if (error) throw new Error(`Não foi possível carregar a sessão: ${error.message}`);
   return data.user;
-}
+});
 
 export async function getUserTrips(): Promise<Trip[]> {
   const supabase = await createClient();
@@ -21,10 +22,10 @@ export async function getUserTrips(): Promise<Trip[]> {
   return checked(await supabase.from("trips").select("*").in("id", ids).order("start_date"), "Não foi possível carregar as viagens") as Trip[];
 }
 
-export async function getTripStops(tripId: string): Promise<Stop[]> {
+export const getTripStops = cache(async (tripId: string): Promise<Stop[]> => {
   const supabase = await createClient();
   return checked(await supabase.from("stops").select("*").eq("trip_id", tripId).is("archived_at", null).order("sort_order").order("sequence"), "Não foi possível carregar as cidades") as Stop[];
-}
+});
 
 export async function getTripItinerary(tripId: string): Promise<ItineraryItem[]> {
   const supabase = await createClient();

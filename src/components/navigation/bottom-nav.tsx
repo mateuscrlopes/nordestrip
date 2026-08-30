@@ -3,6 +3,7 @@
 import { Banknote, CalendarDays, Compass, House, MapPinned, Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const links = [
   { href: "/", label: "Início", icon: House },
@@ -15,6 +16,11 @@ const links = [
 
 export function BottomNav({ action }: { action?: React.ReactNode }) {
   const pathname = usePathname();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 pb-[max(.45rem,env(safe-area-inset-bottom))]">
@@ -22,13 +28,17 @@ export function BottomNav({ action }: { action?: React.ReactNode }) {
         <nav className="min-w-0 flex-1" aria-label="Navegação principal">
           <div className="grid grid-cols-6 gap-0.5">
           {links.map(({ href, label, icon: Icon }) => {
-            const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+            const current = href === "/" ? pathname === "/" : pathname.startsWith(href);
+            const active = pendingHref ? pendingHref === href : current;
 
             return (
               <Link
                 key={href}
                 href={href}
-                aria-current={active ? "page" : undefined}
+                aria-current={current ? "page" : undefined}
+                onClick={() => {
+                  if (!current) setPendingHref(href);
+                }}
                 className={`flex min-h-[48px] min-w-0 flex-col items-center justify-center gap-1 rounded-[15px] px-0.5 text-[9.5px] font-medium ${active ? "bg-petrol text-white" : "text-muted hover:bg-pale-blue/35 hover:text-petrol"}`}
               >
                 <Icon size={17} strokeWidth={1.8} />

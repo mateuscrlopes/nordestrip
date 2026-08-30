@@ -6,10 +6,12 @@ import { getCurrentUser, getTripStops } from "@/lib/queries/trips";
 import { redirect } from "next/navigation";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const user = await getCurrentUser();
+  const [user, { trip }] = await Promise.all([
+    getCurrentUser(),
+    getCurrentTrip(),
+  ]);
   if (!user) redirect("/login");
 
-  const { trip } = await getCurrentTrip();
   const stops = trip ? await getTripStops(trip.id) : [];
 
   return (
