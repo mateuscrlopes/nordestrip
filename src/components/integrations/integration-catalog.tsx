@@ -1,3 +1,4 @@
+import { PluggyConnectButton } from "@/components/integrations/pluggy-connect-button";
 import { formatDateTime } from "@/lib/utils/format";
 import { Banknote, BedDouble, BusFront, MapPinned } from "lucide-react";
 
@@ -63,7 +64,13 @@ function matchConnection(item: (typeof catalog)[number], connections: Integratio
   });
 }
 
-export function IntegrationCatalog({ connections }: { connections: IntegrationRecord[] }) {
+export function IntegrationCatalog({
+  connections,
+  tripId,
+}: {
+  connections: IntegrationRecord[];
+  tripId?: string | null;
+}) {
   return (
     <div className="integration-catalog">
       {catalog.map((item) => {
@@ -87,6 +94,13 @@ export function IntegrationCatalog({ connections }: { connections: IntegrationRe
               <p>{item.description}</p>
               {lastSync && <em>Última atualização {formatDateTime(lastSync)}</em>}
               {error && <em className="integration-error">{error}</em>}
+              {item.key === "finance" && tripId && (
+                <PluggyConnectButton
+                  tripId={tripId}
+                  itemId={textValue(connection?.external_connection_id) || null}
+                  status={status}
+                />
+              )}
             </div>
           </div>
         );
