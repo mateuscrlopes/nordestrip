@@ -1,11 +1,13 @@
 import { RecordActions } from "@/components/actions/record-actions";
-import { PageHeader } from "@/components/layout/page-header";
+import { RecordStatus, expenseStatusOptions } from "@/components/actions/record-status";
+import { BudgetPocketsEditor, type BudgetPocket } from "@/components/finance/budget-pockets-editor";
 import { ConnectedAccountsEditor } from "@/components/finance/connected-accounts-editor";
 import { ManualFundEditor } from "@/components/finance/manual-fund-editor";
 import { TransactionReviewActions } from "@/components/finance/transaction-review-actions";
-import { RecordStatus, expenseStatusOptions } from "@/components/actions/record-status";
+import { PageHeader } from "@/components/layout/page-header";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
 import { getCurrentUser, getTripExpenses, getTripFinanceSummary, getTripFinancialTransactions, getTripManualFund, getTripPluggyAccounts } from "@/lib/queries/trips";
+import { createClient } from "@/lib/supabase/server";
 import { formatDateTime, formatMoney } from "@/lib/utils/format";
 import { CreditCard, ReceiptText, ShieldCheck, Wallet } from "lucide-react";
 
@@ -23,18 +25,46 @@ const paymentLabels: Record<string, string> = {
   other: "Outro",
 };
 
+async function getBudgetPockets(tripId: string): Promise<BudgetPocket[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("v_trip_budget_pockets")
+    .select("id,label,kind,allocated_amount,spent_amount,available_amount,sort_order")
+    .eq("trip_id", tripId)
+    .order("sort_order")
+    .order("label");
+
+  if (error) throw new Error(`Não foi possível carregar o orçamento por pessoa: ${error.message}`);
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    label: row.label,
+    kind: row.kind as "shared" | "person",
+    allocatedAmount: Number(row.allocated_amount ?? 0),
+    spentAmount: Number(row.spent_amount ?? 0),
+    availableAmount: Number(row.available_amount ?? 0),
+    sortOrder: Number(row.sort_order ?? 0),
+  }));
+}
+
 export default async function MoneyPage() {
   const user = await getCurrentUser();
   const { trip } = await getCurrentTrip();
-  const [finance, expenses, manualFund, pluggyAccounts, transactions] = trip && user
+  const [finance, expenses, manualFund, pluggyAccounts, transactions, pockets] = trip && user
     ? await Promise.all([
         getTripFinanceSummary(trip.id),
         getTripExpenses(trip.id),
         getTripManualFund(trip.id),
         getTripPluggyAccounts(trip.id, user.id),
         getTripFinancialTransactions(trip.id),
+        getBudgetPockets(trip.id),
       ])
-    : [null, [], null, [], []];
+    : [null, [], null, [], [], [] as BudgetPocket[]];
+
+  const plannedBudget = pockets.reduce((sum, pocket) => sum + pocket.allocatedAmount, 0);
+  const pocketSpent = pockets.reduce((sum, pocket) => sum + pocket.spentAmount, 0);
+  const pocketAvailable = pockets.reduce((sum, pocket) => sum + pocket.availableAmount, 0);
+  const availableToUse = plannedBudget > 0 ? pocketAvailable : finance?.available_to_use ?? null;
 
   const pendingTransactions = transactions
     .filter((transaction) => transaction.reviewStatus === "later")
@@ -54,28 +84,35 @@ export default async function MoneyPage() {
     <>
       <PageHeader
         title="Dinheiro"
-        description="Fundo, compromissos e meios de pagamento da viagem."
+        description="Quanto ainda dá para usar, de quem é cada parte e onde vocês estão pagando."
       />
 
       <div className="space-y-7">
         <section className="finance-hero">
           <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-[12px] font-medium text-petrol/65">Disponível para usar</p>
-              {finance?.available_to_use == null ? (
+            <div className="min-w-0">
+              <p className="text-[12px] font-medium text-petrol/65">Disponível na viagem</p>
+              {availableToUse == null ? (
                 <>
-                  <h2 className="mt-2">Saldo do fundo ainda não definido</h2>
+                  <h2 className="mt-2">Orçamento ainda não definido</h2>
                   <p className="mt-2 max-w-md text-[13px] leading-5 text-muted">
-                    Defina um saldo manual ou conecte uma conta da viagem para calcular o disponível.
+                    Defina quanto fica no compartilhado e quanto fica com cada pessoa.
                   </p>
                 </>
               ) : (
-                <h2 className="mt-1">{money(finance.available_to_use)}</h2>
+                <h2 className="mt-1">{money(availableToUse)}</h2>
+              )}
+              {plannedBudget > 0 && (
+                <p className="mt-2 text-[11px] text-muted">
+                  {money(pocketSpent)} usados de {money(plannedBudget)} planejados.
+                </p>
               )}
             </div>
             <span className="finance-hero-icon"><Wallet size={20} /></span>
           </div>
         </section>
+
+        {trip && pockets.length > 0 && <BudgetPocketsEditor pockets={pockets} />}
 
         {trip && (
           <section>
@@ -101,32 +138,35 @@ export default async function MoneyPage() {
               <strong>{money(finance?.protected_reserve) ?? "—"}</strong>
             </div>
             <div>
-              <span>Gasto líquido</span>
-              <strong>{money(finance?.net_spent) ?? "—"}</strong>
+              <span>Gasto classificado</span>
+              <strong>{plannedBudget > 0 ? money(pocketSpent) : money(finance?.net_spent) ?? "—"}</strong>
             </div>
           </div>
         </section>
 
         <section>
           <div className="section-heading">
-            <h2>Cartão da viagem</h2>
+            <div>
+              <h2>Cartão</h2>
+              <p className="mt-1 text-[10px] text-muted">Meio de pagamento, não dinheiro adicional.</p>
+            </div>
           </div>
           <div className="card-payment-panel">
             <div className="flex items-center gap-3">
               <span className="operational-icon"><CreditCard size={18} /></span>
               <div>
-                <p className="text-[12px] text-white/65">Limite alocado</p>
+                <p className="text-[12px] text-white/65">Limite reservado para a viagem</p>
                 <p className="mt-1 text-[1.2rem] font-semibold text-white">
                   {money(finance?.allocated_card_limit) ?? "Ainda não definido"}
                 </p>
               </div>
             </div>
 
-            <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4">
-              <span className="text-[12px] text-white/65">Bloqueios temporários</span>
-              <strong className="text-[13px] text-white">
-                {money(finance?.active_card_holds) ?? "—"}
-              </strong>
+            <div className="mt-5 flex items-center justify-between gap-4 border-t border-white/10 pt-4">
+              <span className="text-[12px] leading-5 text-white/65">Compras no crédito reduzem o bolso escolhido assim que forem classificadas.</span>
+              {finance?.active_card_holds ? (
+                <strong className="shrink-0 text-[13px] text-white">{money(finance.active_card_holds)}</strong>
+              ) : null}
             </div>
           </div>
         </section>
@@ -134,8 +174,8 @@ export default async function MoneyPage() {
         <section className="finance-note">
           <ShieldCheck size={18} />
           <div>
-            <p>Limite de cartão não é orçamento.</p>
-            <span>O disponível para usar continua sendo a referência principal da viagem.</span>
+            <p>O cartão só muda onde vocês pagam.</p>
+            <span>O orçamento continua sendo Compartilhado + Mateus + Ghustavo.</span>
           </div>
         </section>
 
@@ -143,14 +183,14 @@ export default async function MoneyPage() {
           <div className="section-heading">
             <div>
               <h2>Para revisar</h2>
-              <p className="mt-1 text-[10px] text-muted">Transações novas das fontes escolhidas para a viagem.</p>
+              <p className="mt-1 text-[10px] text-muted">Escolha se cada compra foi compartilhada ou individual.</p>
             </div>
           </div>
 
           {pendingTransactions.length ? (
             <div className="expense-list">
               {pendingTransactions.map((transaction) => (
-                <div key={transaction.id} className="expense-row">
+                <div key={transaction.id} className="expense-row expense-row--review">
                   <span className="settings-row-icon"><ReceiptText size={16} /></span>
                   <div className="min-w-0 flex-1">
                     <p>{transaction.customDescription || transaction.originalDescription || "Transação"}</p>
@@ -165,7 +205,7 @@ export default async function MoneyPage() {
                       </small>
                     )}
                   </div>
-                  <div className="expense-row-actions">
+                  <div className="expense-row-actions expense-row-actions--review">
                     <strong>{formatMoney(Math.abs(transaction.amount))}</strong>
                     <TransactionReviewActions
                       id={transaction.id}
@@ -173,6 +213,7 @@ export default async function MoneyPage() {
                       customDescription={transaction.customDescription}
                       originalDescription={transaction.originalDescription}
                       direction={transaction.direction}
+                      pockets={pockets}
                     />
                   </div>
                 </div>
@@ -223,6 +264,7 @@ export default async function MoneyPage() {
                           customDescription={linkedTransaction.customDescription}
                           originalDescription={linkedTransaction.originalDescription}
                           direction={linkedTransaction.direction}
+                          pockets={pockets}
                         />
                       ) : (
                         <div className="flex items-center gap-2">
