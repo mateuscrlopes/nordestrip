@@ -55,9 +55,18 @@ function scheduleLabel(item: ItineraryItem) {
 
 type ItineraryPlace = {
   id: string;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
   opening_hours?: Record<string, unknown> | null;
   metadata?: Record<string, unknown> | null;
 };
+
+function hasPlaceCoordinates(place?: ItineraryPlace) {
+  if (!place) return false;
+  const latitude = place.latitude == null || place.latitude === "" ? null : Number(place.latitude);
+  const longitude = place.longitude == null || place.longitude === "" ? null : Number(place.longitude);
+  return latitude != null && longitude != null && Number.isFinite(latitude) && Number.isFinite(longitude);
+}
 
 function circuitForPlace(place?: ItineraryPlace) {
   const metadata = place?.metadata;
@@ -659,12 +668,18 @@ export function ItineraryView({
                 return placeAvailability(placeId ? placeById.get(placeId) : undefined, date);
               });
 
+              const geocodedCount = sortedItems.filter((item) => {
+                const placeId = typeof item.place_id === "string" ? item.place_id : null;
+                return hasPlaceCoordinates(placeId ? placeById.get(placeId) : undefined);
+              }).length;
+
               return {
                 ...group,
                 items: sortedItems,
                 openCount: availability.filter((item) => item.status === "open").length,
                 confirmCount: availability.filter((item) => item.status === "confirm").length,
                 closedCount: availability.filter((item) => item.status === "closed").length,
+                geocodedCount,
                 capacity: principalPeriodCapacity(sortedItems, date, placeById, planningWindows),
               };
             });
@@ -761,6 +776,13 @@ export function ItineraryView({
                               <small>Ordem sugerida por período do dia e proximidade</small>
                             </div>
                             <div className="day-circuit-summary">
+                              {circuit.geocodedCount === circuit.items.length ? (
+                                <span className="is-map-ready">Mapa completo</span>
+                              ) : circuit.geocodedCount > 0 ? (
+                                <span className="is-map-partial">{circuit.geocodedCount}/{circuit.items.length} no mapa</span>
+                              ) : (
+                                <span className="is-map-missing">Mapa pendente</span>
+                              )}
                               {circuit.openCount > 0 && <span className="is-open">{circuit.openCount} viáveis</span>}
                               {circuit.confirmCount > 0 && <span className="is-confirm">{circuit.confirmCount} confirmar</span>}
                               {circuit.closedCount > 0 && <span className="is-closed">{circuit.closedCount} fechados</span>}
