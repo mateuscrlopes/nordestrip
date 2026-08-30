@@ -1,3 +1,4 @@
+import "./mobile-polish.css";
 import { OfflineSync } from "@/components/offline/offline-sync";
 import { BottomNav } from "@/components/navigation/bottom-nav";
 import { GlobalAdd } from "@/components/navigation/global-add";
