@@ -58,6 +58,12 @@ function circuitForPlace(place?: ItineraryPlace) {
 
 const itineraryWeekdayKeys = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
+function ideaPriority(priority: unknown) {
+  if (priority === "high") return { key: "high", label: "Principal" };
+  if (priority === "low") return { key: "low", label: "Alternativa" };
+  return { key: "medium", label: "Complemento" };
+}
+
 function placeAvailability(place: ItineraryPlace | undefined, date: string) {
   if (!place || date === "Sem data") {
     return { status: "confirm" as const, label: "Confirmar funcionamento" };
@@ -624,7 +630,12 @@ export function ItineraryView({
                               <div key={item.id} className={`day-idea-row day-idea-row--${availability.status}`}>
                                 <span className="day-circuit-order">{index + 1}</span>
                                 <div className="min-w-0 flex-1">
-                                  <strong>{item.title || item.name || "Local"}</strong>
+                                  <div className="day-idea-title-line">
+                                    <strong>{item.title || item.name || "Local"}</strong>
+                                    <span className={`day-idea-priority day-idea-priority--${ideaPriority(item.priority).key}`}>
+                                      {ideaPriority(item.priority).label}
+                                    </span>
+                                  </div>
                                   <small className={`day-place-availability day-place-availability--${availability.status}`}>
                                     {availability.label}
                                   </small>
