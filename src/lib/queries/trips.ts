@@ -140,6 +140,9 @@ export async function getStopDetails(stopId: string) {
   const places = Array.isArray(bundle.places)
     ? bundle.places as Record<string, unknown>[]
     : [];
+  const documents = Array.isArray(bundle.documents)
+    ? bundle.documents as Record<string, unknown>[]
+    : [];
 
   const selectedAccommodation =
     accommodations.find((item) => ["confirmed", "reserved", "selected"].includes(String(item.status || "")))
@@ -161,6 +164,7 @@ export async function getStopDetails(stopId: string) {
       : null,
     accommodationOptions,
     places,
+    documents,
   };
 }
 

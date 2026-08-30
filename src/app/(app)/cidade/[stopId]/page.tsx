@@ -5,6 +5,7 @@ import { CityItineraryCreator } from "@/components/itinerary/city-itinerary-crea
 import { ItineraryStatusActions } from "@/components/itinerary/itinerary-status-actions";
 import { AccommodationEditor } from "@/components/lodging/accommodation-editor";
 import { AccommodationOptions } from "@/components/lodging/accommodation-options";
+import { DocumentOpenButton, DocumentUploadButton } from "@/components/documents/document-manager";
 import { getStopDetails, getTripCityCovers, getTripPreferences } from "@/lib/queries/trips";
 import { formatDate, formatDateTime, formatTime, valueText } from "@/lib/utils/format";
 import {
@@ -56,6 +57,7 @@ export default async function CityPage({
     outbound,
     accommodationOptions,
     places,
+    documents,
   } = data;
 
   const [covers, preferences] = await Promise.all([
@@ -105,6 +107,8 @@ export default async function CityPage({
     : outboundDate && (!accommodationOptionCheckIn || outboundDate > accommodationOptionCheckIn)
       ? outboundDate
       : "";
+  const documentsFor = (field: string, id?: string | null) =>
+    id ? documents.filter((document) => String(document[field] || "") === id) : [];
 
   return (
     <div className="space-y-7">
@@ -162,6 +166,22 @@ export default async function CityPage({
                   </p>
                 )}
                 <div className="mt-2 flex items-center gap-2">
+                  <DocumentUploadButton
+                    tripId={stop.trip_id}
+                    defaultStopId={stop.id}
+                    transportSegmentId={String(inbound.id)}
+                    defaultType="ticket"
+                    defaultTitle={`${transportLabel(inbound.mode)} ${valueText(inbound.origin_label) || "Origem"} → ${city}`}
+                    compact
+                  />
+                  {documentsFor("transport_segment_id", String(inbound.id)).map((document) => (
+                    <DocumentOpenButton
+                      key={String(document.id)}
+                      storagePath={document.storage_path ? String(document.storage_path) : null}
+                      externalUrl={document.external_url ? String(document.external_url) : null}
+                      label={`Abrir ${String(document.title || "documento")}`}
+                    />
+                  ))}
                   <RecordStatus
                     table="transport_segments"
                     id={String(inbound.id)}
@@ -273,6 +293,22 @@ export default async function CityPage({
                   <p className="mt-2 text-[12px] leading-5 text-muted">{String(accommodation.notes)}</p>
                 )}
                 <div className="mt-3 flex items-center gap-2">
+                  <DocumentUploadButton
+                    tripId={stop.trip_id}
+                    defaultStopId={stop.id}
+                    accommodationId={String(accommodation.id)}
+                    defaultType="voucher"
+                    defaultTitle={`Voucher · ${String(accommodation.name || city)}`}
+                    compact
+                  />
+                  {documentsFor("accommodation_id", String(accommodation.id)).map((document) => (
+                    <DocumentOpenButton
+                      key={String(document.id)}
+                      storagePath={document.storage_path ? String(document.storage_path) : null}
+                      externalUrl={document.external_url ? String(document.external_url) : null}
+                      label={`Abrir ${String(document.title || "documento")}`}
+                    />
+                  ))}
                   <RecordStatus
                     table="accommodations"
                     id={String(accommodation.id)}
@@ -412,6 +448,22 @@ export default async function CityPage({
                       </div>
 
                       <div className="flex shrink-0 items-center gap-1">
+                        <DocumentUploadButton
+                          tripId={stop.trip_id}
+                          defaultStopId={stop.id}
+                          itineraryItemId={String(item.id)}
+                          defaultType="ticket"
+                          defaultTitle={`Ingresso · ${title}`}
+                          compact
+                        />
+                        {documentsFor("itinerary_item_id", String(item.id)).map((document) => (
+                          <DocumentOpenButton
+                            key={String(document.id)}
+                            storagePath={document.storage_path ? String(document.storage_path) : null}
+                            externalUrl={document.external_url ? String(document.external_url) : null}
+                            label={`Abrir ${String(document.title || "documento")}`}
+                          />
+                        ))}
                         <ItineraryStatusActions
                           id={String(item.id)}
                           title={title}
@@ -595,6 +647,23 @@ export default async function CityPage({
                   </p>
                 )}
                 <div className="mt-2 flex items-center gap-2">
+                  <DocumentUploadButton
+                    tripId={stop.trip_id}
+                    defaultStopId={stop.id}
+                    transportSegmentId={String(outbound.id)}
+                    defaultType="ticket"
+                    defaultTitle={`${transportLabel(outbound.mode)} ${city} → ${valueText(outbound.destination_label) || "Destino"}`}
+                    compact
+                  />
+                  {documentsFor("transport_segment_id", String(outbound.id)).map((document) => (
+                    <DocumentOpenButton
+                      key={String(document.id)}
+                      storagePath={document.storage_path ? String(document.storage_path) : null}
+                      externalUrl={document.external_url ? String(document.external_url) : null}
+                      label={`Abrir ${String(document.title || "documento")}`}
+                    />
+                  ))}
+
                   <RecordStatus
                     table="transport_segments"
                     id={String(outbound.id)}

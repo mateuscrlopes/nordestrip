@@ -7,6 +7,7 @@ import { LogoutButton } from "@/components/navigation/logout-button";
 import { PendingItemCreator } from "@/components/pending/pending-item-creator";
 import { ParticipantsManager } from "@/components/participants/participants-manager";
 import { TripSettingsEditor } from "@/components/settings/trip-settings-editor";
+import { DocumentOpenButton, DocumentUploadButton } from "@/components/documents/document-manager";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
 import { getCurrentUser, getTripArchivedRecords, getTripChangeLog, getTripFinanceSettings, getTripMoreData, getTripParticipants, getTripPendingItems, getTripPreferences, getTripStops } from "@/lib/queries/trips";
 import { formatDateTime, formatMoney } from "@/lib/utils/format";
@@ -95,112 +96,172 @@ export default async function MorePage() {
                 </span>
                 <ChevronRight size={17} className="settings-chevron" />
               </summary>
-              <div className="settings-detail">
-                {more.reservations.length > 0 && (
-                  <div className="settings-subsection">
-                    <p>Reservas</p>
-                    {more.reservations.map((reservation) => (
-                      <div key={String(reservation.id)} className="settings-record">
-                        <div>
-                          <strong>{String(reservation.title)}</strong>
-                          <small>
-                            {reservation.supplier ? String(reservation.supplier) : "Sem fornecedor"}
-                          </small>
-                          <div className="mt-2">
-                            <RecordStatus
+              <div className="settings-detail settings-detail--wide">
+                {trip && (
+                  <div className="mb-4">
+                    <DocumentUploadButton
+                      tripId={trip.id}
+                      stops={stops.map((stop) => ({ id: stop.id, name: stop.city || stop.name || "Cidade" }))}
+                    />
+                  </div>
+                )}
+
+                {[
+                  {
+                    key: "transport",
+                    title: "Passagens e transportes",
+                    reservations: more.reservations.filter((item) => String(item.reservation_type) === "transport"),
+                    documents: more.documents.filter((item) => Boolean(item.transport_segment_id)),
+                  },
+                  {
+                    key: "accommodation",
+                    title: "Hospedagem",
+                    reservations: more.reservations.filter((item) => String(item.reservation_type) === "accommodation"),
+                    documents: more.documents.filter((item) => Boolean(item.accommodation_id) || ["voucher", "booking"].includes(String(item.document_type))),
+                  },
+                  {
+                    key: "activities",
+                    title: "Passeios e ingressos",
+                    reservations: more.reservations.filter((item) => ["tour", "ticket", "restaurant"].includes(String(item.reservation_type))),
+                    documents: more.documents.filter((item) => Boolean(item.itinerary_item_id) || (String(item.document_type) === "ticket" && !item.transport_segment_id)),
+                  },
+                  {
+                    key: "personal",
+                    title: "Documentos pessoais e seguro",
+                    reservations: [],
+                    documents: more.documents.filter((item) => ["personal", "insurance"].includes(String(item.document_type))),
+                  },
+                  {
+                    key: "other",
+                    title: "Outros",
+                    reservations: more.reservations.filter((item) => !["transport", "accommodation", "tour", "ticket", "restaurant"].includes(String(item.reservation_type))),
+                    documents: more.documents.filter((item) =>
+                      !item.transport_segment_id
+                      && !item.accommodation_id
+                      && !item.itinerary_item_id
+                      && !["voucher", "booking", "ticket", "personal", "insurance"].includes(String(item.document_type))
+                    ),
+                  },
+                ].map((group) => {
+                  if (!group.reservations.length && !group.documents.length) return null;
+                  return (
+                    <div key={group.key} className="settings-subsection">
+                      <p>{group.title}</p>
+
+                      {group.reservations.map((reservation) => (
+                        <div key={`reservation-${String(reservation.id)}`} className="settings-record">
+                          <div className="min-w-0">
+                            <strong>{String(reservation.title)}</strong>
+                            <small>
+                              {[reservation.supplier, reservation.confirmation_code ? `Localizador ${String(reservation.confirmation_code)}` : null]
+                                .filter(Boolean).join(" · ") || "Reserva"}
+                            </small>
+                            <div className="mt-2">
+                              <RecordStatus
+                                table="reservations"
+                                id={String(reservation.id)}
+                                value={String(reservation.status || "estimated")}
+                                options={reservationStatusOptions}
+                                label={`Status de ${String(reservation.title)}`}
+                                compact
+                              />
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-2">
+                            {reservation.total_amount != null && <b>{formatMoney(Number(reservation.total_amount))}</b>}
+                            {reservation.source_url && (
+                              <a href={String(reservation.source_url)} target="_blank" rel="noreferrer" aria-label="Abrir reserva">
+                                <ExternalLink size={15} />
+                              </a>
+                            )}
+                            <RecordActions
                               table="reservations"
                               id={String(reservation.id)}
-                              value={String(reservation.status || "estimated")}
-                              options={reservationStatusOptions}
-                              label={`Status de ${String(reservation.title)}`}
-                              compact
+                              title={String(reservation.title)}
+                              fields={[
+                                { name: "title", label: "Reserva", required: true },
+                                { name: "supplier", label: "Fornecedor" },
+                                { name: "confirmation_code", label: "Localizador" },
+                                { name: "total_amount", label: "Valor total", type: "number", min: "0", step: "0.01" },
+                                { name: "paid_amount", label: "Valor pago", type: "number", min: "0", step: "0.01" },
+                                { name: "source_url", label: "Link", type: "url" },
+                                { name: "notes", label: "Nota", type: "textarea" },
+                              ]}
+                              values={{
+                                title: reservation.title ?? "",
+                                supplier: reservation.supplier ?? null,
+                                confirmation_code: reservation.confirmation_code ?? null,
+                                total_amount: reservation.total_amount ?? null,
+                                paid_amount: reservation.paid_amount ?? 0,
+                                source_url: reservation.source_url ?? null,
+                                notes: reservation.notes ?? null,
+                              }}
                             />
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {typeof reservation.total_amount === "number" && (
-                            <b>{formatMoney(reservation.total_amount)}</b>
-                          )}
-                          {reservation.source_url && (
-                            <a href={String(reservation.source_url)} target="_blank" rel="noreferrer" aria-label="Abrir reserva">
-                              <ExternalLink size={15} />
-                            </a>
-                          )}
-                          <RecordActions
-                            table="reservations"
-                            id={String(reservation.id)}
-                            title={String(reservation.title)}
-                            fields={[
-                              { name: "title", label: "Reserva", required: true },
-                              { name: "supplier", label: "Fornecedor" },
-                              { name: "confirmation_code", label: "Localizador" },
-                              { name: "total_amount", label: "Valor total", type: "number", min: "0", step: "0.01" },
-                              { name: "paid_amount", label: "Valor pago", type: "number", min: "0", step: "0.01" },
-                              { name: "payment_due_at", label: "Próximo pagamento", type: "datetime-local" },
-                              { name: "source_url", label: "Link", type: "url" },
-                              { name: "notes", label: "Nota", type: "textarea" },
-                            ]}
-                            values={{
-                              title: reservation.title ?? "",
-                              supplier: reservation.supplier ?? null,
-                              confirmation_code: reservation.confirmation_code ?? null,
-                              total_amount: reservation.total_amount ?? null,
-                              paid_amount: reservation.paid_amount ?? 0,
-                              payment_due_at: reservation.payment_due_at ?? null,
-                              source_url: reservation.source_url ?? null,
-                              notes: reservation.notes ?? null,
-                            }}
-                            archiveWarning={
-                              ["purchased", "paid"].includes(String(reservation.status))
-                                ? "Esta reserva já foi comprada ou paga."
-                                : undefined
-                            }
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
 
-                {more.documents.length > 0 && (
-                  <div className="settings-subsection">
-                    <p>Documentos</p>
-                    {more.documents.map((document) => (
-                      <div key={String(document.id)} className="settings-record">
-                        <div>
-                          <strong>{String(document.title)}</strong>
-                          <small>{String(document.document_type || "other")}</small>
+                      {group.documents.map((document) => (
+                        <div key={`document-${String(document.id)}`} className="settings-record">
+                          <div className="min-w-0">
+                            <strong>{String(document.title)}</strong>
+                            <small>
+                              {document.stop_id && stopById.get(String(document.stop_id))
+                                ? `${stopById.get(String(document.stop_id))} · `
+                                : ""}
+                              {document.is_essential ? "Essencial" : "Documento"}
+                            </small>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1">
+                            <DocumentOpenButton
+                              storagePath={document.storage_path ? String(document.storage_path) : null}
+                              externalUrl={document.external_url ? String(document.external_url) : null}
+                              label={`Abrir ${String(document.title)}`}
+                            />
+                            <RecordActions
+                              table="documents"
+                              id={String(document.id)}
+                              title={String(document.title)}
+                              inline
+                              fields={[
+                                { name: "title", label: "Título", required: true },
+                                {
+                                  name: "document_type",
+                                  label: "Categoria",
+                                  type: "select",
+                                  required: true,
+                                  options: [
+                                    { value: "ticket", label: "Passagem ou ingresso" },
+                                    { value: "voucher", label: "Voucher" },
+                                    { value: "booking", label: "Reserva" },
+                                    { value: "receipt", label: "Comprovante" },
+                                    { value: "personal", label: "Documento pessoal" },
+                                    { value: "insurance", label: "Seguro" },
+                                    { value: "other", label: "Outro" },
+                                  ],
+                                },
+                                { name: "external_url", label: "Link", type: "url" },
+                                { name: "is_essential", label: "Documento essencial", type: "checkbox" },
+                                { name: "notes", label: "Nota", type: "textarea" },
+                              ]}
+                              values={{
+                                title: document.title ?? "",
+                                document_type: document.document_type ?? "other",
+                                external_url: document.external_url ?? null,
+                                is_essential: Boolean(document.is_essential),
+                                notes: document.notes ?? null,
+                              }}
+                            />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {document.external_url && (
-                            <a href={String(document.external_url)} target="_blank" rel="noreferrer" aria-label="Abrir documento">
-                              <ExternalLink size={15} />
-                            </a>
-                          )}
-                          <RecordActions
-                            table="documents"
-                            id={String(document.id)}
-                            title={String(document.title)}
-                            fields={[
-                              { name: "title", label: "Título", required: true },
-                              { name: "external_url", label: "Link", type: "url" },
-                              { name: "is_essential", label: "Documento essencial", type: "checkbox" },
-                              { name: "notes", label: "Nota", type: "textarea" },
-                            ]}
-                            values={{
-                              title: document.title ?? "",
-                              external_url: document.external_url ?? null,
-                              is_essential: Boolean(document.is_essential),
-                              notes: document.notes ?? null,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  );
+                })}
 
-                {!more.reservations.length && !more.documents.length && "Nenhuma reserva ou documento registrado ainda."}
+                {!more.reservations.length && !more.documents.length && (
+                  <p>Nenhuma reserva ou documento registrado ainda.</p>
+                )}
               </div>
             </details>
 
