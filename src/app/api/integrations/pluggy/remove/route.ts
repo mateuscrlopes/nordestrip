@@ -1,4 +1,3 @@
-import { deletePluggyItem, getPluggyApiKey, isPluggyConfigured } from "@/lib/integrations/pluggy";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -97,14 +96,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "A conexão informada não pertence a este acesso." }, { status: 403 });
   }
 
-  if (!isPluggyConfigured()) {
-    return Response.json({ error: "Pluggy ainda não está configurado no servidor." }, { status: 503 });
-  }
-
   try {
-    const apiKey = await getPluggyApiKey();
-    await deletePluggyItem(apiKey, itemId);
-
     const accountRows = await supabase
       .from("financial_accounts")
       .select("id,metadata")

@@ -120,10 +120,14 @@ export async function POST(request: Request) {
   try {
     const apiKey = await getPluggyApiKey();
     const item = await getPluggyItem(apiKey, itemId);
-    const expectedClientUserId = `${tripId}:${user.id}`;
+    const connectorName = item.connector?.name?.toLocaleLowerCase("pt-BR") ?? "";
+    const isMeuPluggy = item.connector?.id === 200 || connectorName === "meupluggy";
 
-    if (item.id !== itemId || item.clientUserId !== expectedClientUserId) {
-      return Response.json({ error: "A conexão financeira não pertence a este usuário." }, { status: 403 });
+    if (item.id !== itemId || !isMeuPluggy) {
+      return Response.json(
+        { error: "Este Item ID não corresponde a uma conexão Meu Pluggy desta aplicação." },
+        { status: 403 }
+      );
     }
 
     const accounts = await listPluggyAccounts(apiKey, itemId);

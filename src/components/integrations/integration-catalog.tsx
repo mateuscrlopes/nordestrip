@@ -10,7 +10,7 @@ const catalog = [
     key: "finance",
     title: "Open Finance",
     provider: "Pluggy",
-    description: "Saldo, conta e cartão usados na leitura financeira da viagem.",
+    description: "Importa as conexões que você já autorizou no Demo do Meu Pluggy.",
     aliases: ["pluggy"],
     purposes: ["finance", "open_finance", "banking"],
     icon: Banknote,

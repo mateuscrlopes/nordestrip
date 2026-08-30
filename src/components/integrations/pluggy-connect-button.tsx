@@ -1,83 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-
-type PluggyItemState = {
-  id?: string;
-  status?: string | null;
-  executionStatus?: string | null;
-  statusDetail?: string | null;
-  error?: {
-    code?: string | null;
-    message?: string | null;
-  } | null;
-};
-
-type PluggySuccessData = {
-  id?: string;
-  item?: PluggyItemState;
-};
-
-type PluggyConnectError = {
-  message?: string;
-  data?: {
-    item?: PluggyItemState;
-  };
-};
-
-type PluggyConnectConfig = {
-  connectToken: string;
-  includeSandbox?: boolean;
-  updateItem?: string;
-  selectedConnectorId?: number;
-  forceOauthInBrowser?: boolean;
-  products?: string[];
-  language?: string;
-  onSuccess?: (data: PluggySuccessData) => void | Promise<void>;
-  onError?: (error: PluggyConnectError) => void | Promise<void>;
-};
-
-type PluggyConnectInstance = {
-  init: () => void;
-};
-
-declare global {
-  interface Window {
-    PluggyConnect?: new (config: PluggyConnectConfig) => PluggyConnectInstance;
-  }
-}
-
-const SCRIPT_ID = "pluggy-connect-script";
-const SCRIPT_URL = "https://cdn.pluggy.ai/pluggy-connect/v2.8.2/pluggy-connect.js";
-
-function loadPluggyConnect() {
-  if (typeof window === "undefined") return Promise.reject(new Error("browser-required"));
-  if (window.PluggyConnect) return Promise.resolve();
-
-  return new Promise<void>((resolve, reject) => {
-    const current = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
-
-    const done = () => {
-      if (window.PluggyConnect) resolve();
-      else reject(new Error("pluggy-script-unavailable"));
-    };
-
-    if (current) {
-      current.addEventListener("load", done, { once: true });
-      current.addEventListener("error", () => reject(new Error("pluggy-script-error")), { once: true });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.id = SCRIPT_ID;
-    script.src = SCRIPT_URL;
-    script.async = true;
-    script.addEventListener("load", done, { once: true });
-    script.addEventListener("error", () => reject(new Error("pluggy-script-error")), { once: true });
-    document.head.appendChild(script);
-  });
-}
+import { FormEvent, useMemo, useState } from "react";
 
 async function responseMessage(response: Response, fallback: string) {
   try {
@@ -86,20 +10,6 @@ async function responseMessage(response: Response, fallback: string) {
   } catch {
     return fallback;
   }
-}
-
-function pluggyErrorMessage(error: PluggyConnectError) {
-  const item = error.data?.item;
-  const detail =
-    item?.error?.message ||
-    item?.statusDetail ||
-    item?.executionStatus ||
-    item?.status;
-
-  if (error.message && detail && error.message !== detail) {
-    return `${error.message} · ${detail}`;
-  }
-  return error.message || detail || "A conexão com o Meu Pluggy não foi concluída.";
 }
 
 type StoredPluggyItem = {
@@ -118,7 +28,7 @@ function storedPluggyItems(metadata: unknown, legacyItemId?: string | null) {
   for (const value of rawItems) {
     if (!value || typeof value !== "object" || Array.isArray(value)) continue;
     const record = value as Record<string, unknown>;
-    const id = typeof record.id === "string" && record.id ? record.id : null;
+    const id = typeof record.id === "string" && record.id.trim() ? record.id.trim() : null;
     if (!id) continue;
     const accountNames = Array.isArray(record.account_names)
       ? record.account_names.filter((name): name is string => typeof name === "string" && Boolean(name.trim()))
@@ -139,6 +49,15 @@ function itemLabel(item: StoredPluggyItem) {
   return `${item.accountNames[0]} + ${item.accountNames.length - 1}`;
 }
 
+function parseItemIds(value: string) {
+  return Array.from(new Set(
+    value
+      .split(/[\s,;]+/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+  )).slice(0, 12);
+}
+
 export function PluggyConnectButton({
   tripId,
   itemId,
@@ -152,8 +71,12 @@ export function PluggyConnectButton({
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [itemIdsInput, setItemIdsInput] = useState("");
   const [message, setMessage] = useState("");
-  const items = storedPluggyItems(metadata, itemId);
+  const items = useMemo(
+    () => storedPluggyItems(metadata, itemId),
+    [metadata, itemId]
+  );
 
   function sessionExpired() {
     const next = window.location.pathname + window.location.search;
@@ -169,107 +92,77 @@ export function PluggyConnectButton({
 
     if (response.status === 401) {
       sessionExpired();
-      return;
+      throw new Error("Sessão expirada.");
     }
 
     if (!response.ok) {
-      throw new Error(await responseMessage(response, "Não foi possível sincronizar as contas."));
+      throw new Error(await responseMessage(response, "Não foi possível sincronizar esta conexão."));
     }
 
-    const data = await response.json() as { accountsSynced?: number };
-    const count = typeof data.accountsSynced === "number" ? data.accountsSynced : 0;
-    setMessage(
-      count === 1
-        ? "1 conta sincronizada."
-        : `${count} contas sincronizadas.`
-    );
-    router.refresh();
+    return response.json() as Promise<{
+      accountsSynced?: number;
+      accountNames?: string[];
+    }>;
   }
 
-  async function open(targetItemId?: string | null, additional = false) {
+  async function importItems(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const ids = parseItemIds(itemIdsInput);
+    if (!ids.length) {
+      setMessage("Cole pelo menos um Item ID do Demo da Pluggy.");
+      return;
+    }
+
     setBusy(true);
     setMessage("");
 
     try {
-      const response = await fetch("/api/integrations/pluggy/connect-token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tripId,
-          itemId: targetItemId || null,
-          additional,
-        }),
-      });
+      let totalAccounts = 0;
 
-      if (response.status === 401) {
-        sessionExpired();
-        return;
+      for (let index = 0; index < ids.length; index += 1) {
+        setMessage(`Importando conexão ${index + 1} de ${ids.length}...`);
+        const result = await syncItem(ids[index]);
+        totalAccounts += typeof result.accountsSynced === "number" ? result.accountsSynced : 0;
       }
 
-      if (!response.ok) {
-        throw new Error(await responseMessage(response, "Não foi possível iniciar a conexão."));
-      }
-
-      const data = await response.json() as {
-        accessToken?: unknown;
-        selectedConnectorId?: unknown;
-        includeSandbox?: unknown;
-      };
-
-      if (typeof data.accessToken !== "string" || !data.accessToken) {
-        throw new Error("Token de conexão inválido.");
-      }
-
-      await loadPluggyConnect();
-      if (!window.PluggyConnect) {
-        throw new Error("Não foi possível carregar a conexão financeira.");
-      }
-
-      const selectedConnectorId =
-        typeof data.selectedConnectorId === "number" ? data.selectedConnectorId : null;
-
-      const widget = new window.PluggyConnect({
-        connectToken: data.accessToken,
-        includeSandbox: data.includeSandbox === true,
-        ...(targetItemId ? { updateItem: targetItemId } : {}),
-        ...(selectedConnectorId ? { selectedConnectorId } : {}),
-        forceOauthInBrowser: true,
-        products: ["ACCOUNTS", "CREDIT_CARDS"],
-        language: "pt",
-        onSuccess: async (result) => {
-          const nextItemId = result.item?.id || result.id;
-          if (!nextItemId) {
-            setMessage("A conexão terminou sem identificar a conta.");
-            return;
-          }
-
-          setBusy(true);
-          setMessage("Sincronizando contas...");
-          try {
-            await syncItem(nextItemId);
-          } catch (error) {
-            setMessage(error instanceof Error ? error.message : "Não foi possível sincronizar as contas.");
-          } finally {
-            setBusy(false);
-          }
-        },
-        onError: (error) => {
-          setMessage(pluggyErrorMessage(error));
-          setBusy(false);
-        },
-      });
-
-      widget.init();
-      setBusy(false);
+      setItemIdsInput("");
+      setMessage(
+        ids.length === 1
+          ? `Conexão importada. ${totalAccounts} conta(s) sincronizada(s).`
+          : `${ids.length} conexões importadas. ${totalAccounts} conta(s) sincronizada(s).`
+      );
+      router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Não foi possível iniciar a conexão.");
+      setMessage(error instanceof Error ? error.message : "Não foi possível importar as conexões.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function refreshItem(item: StoredPluggyItem) {
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const result = await syncItem(item.id);
+      const count = typeof result.accountsSynced === "number" ? result.accountsSynced : 0;
+      setMessage(
+        count === 1
+          ? "1 conta atualizada."
+          : `${count} contas atualizadas.`
+      );
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Não foi possível atualizar os dados.");
+    } finally {
       setBusy(false);
     }
   }
 
   async function removeItem(item: StoredPluggyItem) {
     const confirmed = window.confirm(
-      `Remover ${itemLabel(item)} do Nordestrip? O consentimento será revogado na Pluggy e essas contas deixarão de ser usadas no app.`
+      `Remover ${itemLabel(item)} apenas do Nordestrip? O Item continuará existindo no Demo da Pluggy.`
     );
     if (!confirmed) return;
 
@@ -291,7 +184,7 @@ export function PluggyConnectButton({
         throw new Error(await responseMessage(response, "Não foi possível remover a conexão."));
       }
 
-      setMessage("Conexão removida.");
+      setMessage("Conexão removida do Nordestrip. O Item da Pluggy foi preservado.");
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Não foi possível remover a conexão.");
@@ -301,20 +194,47 @@ export function PluggyConnectButton({
   }
 
   return (
-    <div className="mt-3 space-y-2">
+    <div className="mt-3 space-y-3">
+      <div className="rounded-xl bg-sand/55 px-3 py-3">
+        <p className="text-[11px] font-semibold text-petrol">
+          Usar conexões do Meu Pluggy
+        </p>
+        <p className="mt-1 text-[10px] leading-4 text-muted">
+          No Demo da sua aplicação Pluggy, copie o Item ID de cada banco já conectado ao Meu Pluggy e cole abaixo. Use um Item por banco.
+        </p>
+
+        <form onSubmit={importItems} className="mt-3 space-y-2">
+          <textarea
+            value={itemIdsInput}
+            onChange={(event) => setItemIdsInput(event.target.value)}
+            rows={3}
+            placeholder={"Item ID do banco 1\nItem ID do banco 2"}
+            className="w-full rounded-xl border border-petrol/10 bg-white px-3 py-2 text-[11px] text-ink outline-none focus:border-petrol/30"
+          />
+          <button
+            type="submit"
+            disabled={busy}
+            className="inline-flex min-h-9 items-center justify-center rounded-xl bg-petrol px-3 text-[11px] font-semibold text-white disabled:opacity-55"
+          >
+            {busy ? "Importando..." : items.length ? "Importar outro Item" : "Importar Item ID"}
+          </button>
+        </form>
+      </div>
+
       {items.length > 0 && (
         <div className="space-y-2">
           {items.map((item) => (
-            <div key={item.id} className="rounded-xl bg-sand/55 px-3 py-2.5">
+            <div key={item.id} className="rounded-xl bg-surface/75 px-3 py-2.5">
               <p className="text-[11px] font-semibold text-petrol">{itemLabel(item)}</p>
+              <p className="mt-0.5 break-all text-[9px] text-muted">{item.id}</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={() => open(item.id)}
+                  onClick={() => refreshItem(item)}
                   className="rounded-lg bg-pale-blue/65 px-2.5 py-1.5 text-[10px] font-semibold text-petrol disabled:opacity-55"
                 >
-                  Atualizar
+                  Atualizar dados
                 </button>
                 <button
                   type="button"
@@ -322,7 +242,7 @@ export function PluggyConnectButton({
                   onClick={() => removeItem(item)}
                   className="rounded-lg px-2.5 py-1.5 text-[10px] font-semibold text-muted disabled:opacity-55"
                 >
-                  Remover
+                  Remover do Nordestrip
                 </button>
               </div>
             </div>
@@ -330,20 +250,11 @@ export function PluggyConnectButton({
         </div>
       )}
 
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => open(null, items.length > 0)}
-        className="inline-flex min-h-9 items-center justify-center rounded-xl bg-petrol px-3 text-[11px] font-semibold text-white transition hover:bg-[#0d303a] disabled:opacity-55"
-      >
-        {busy
-          ? "Aguarde..."
-          : items.length
-            ? "Adicionar outra conta"
-            : status === "connected"
-              ? "Adicionar conta"
-              : "Conectar Meu Pluggy"}
-      </button>
+      {status === "configured" && items.length === 0 && (
+        <p className="text-[10px] leading-4 text-muted">
+          As credenciais da Pluggy estão configuradas. Falta apenas importar os Item IDs já existentes no Demo.
+        </p>
+      )}
 
       {message && (
         <span role="status" className="block text-[10px] leading-4 text-muted">
