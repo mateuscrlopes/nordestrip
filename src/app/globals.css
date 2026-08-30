@@ -3983,3 +3983,19 @@ input:focus-visible {
     justify-content: center;
   }
 }
+
+
+.day-circuit-summary .is-map-ready {
+  color: #123844;
+  background: rgba(220, 232, 235, .82);
+}
+
+.day-circuit-summary .is-map-partial {
+  color: #526268;
+  background: rgba(220, 232, 235, .42);
+}
+
+.day-circuit-summary .is-map-missing {
+  color: #6c5635;
+  background: rgba(215, 180, 131, .18);
+}
