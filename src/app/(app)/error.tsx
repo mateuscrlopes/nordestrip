@@ -1,0 +1,2 @@
+"use client";
+export default function ErrorPage({ error, reset }: { error: Error; reset: () => void }) { return <div className="card mt-10 p-6"><p className="eyebrow">Não foi possível carregar</p><h1 className="mt-2 text-2xl font-semibold">Algo deu errado com os dados da viagem.</h1><p className="mt-3 text-sm leading-6 text-muted">{error.message}</p><button onClick={reset} className="mt-5 rounded-xl bg-petrol px-4 py-3 text-sm font-semibold text-white">Tentar novamente</button></div>; }
