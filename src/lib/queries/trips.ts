@@ -65,15 +65,16 @@ export async function getTripCityCovers(tripId: string): Promise<CityCover[]> {
 export async function getStopDetails(stopId: string) {
   const supabase = await createClient();
   const stop = checked(await supabase.from("stops").select("*").eq("id", stopId).single(), "Não foi possível carregar a cidade") as Stop;
-  const [accommodation, luggage, activities, pending, inbound, outbound] = await Promise.all([
+  const [accommodation, luggage, activities, pending, inbound, outbound, accommodationQuotes] = await Promise.all([
     supabase.from("accommodations").select("*, place:places(*)").eq("stop_id", stopId).is("archived_at", null).order("created_at", { ascending: false }),
     supabase.from("luggage_plans").select("*").eq("stop_id", stopId).is("archived_at", null),
     supabase.from("itinerary_items").select("*").eq("stop_id", stopId).is("archived_at", null).order("start_time"),
     supabase.from("pending_items").select("*").eq("stop_id", stopId).is("archived_at", null).in("status", ["pending", "checking"]).order("due_at", { nullsFirst: false }),
     supabase.from("transport_segments").select("*").eq("destination_stop_id", stopId).is("archived_at", null).or("status.is.null,status.neq.cancelled").order("arrival_at").limit(1).maybeSingle(),
     supabase.from("transport_segments").select("*").eq("origin_stop_id", stopId).is("archived_at", null).or("status.is.null,status.neq.cancelled").order("departure_at").limit(1).maybeSingle(),
+    supabase.from("accommodation_quotes").select("id,provider,external_id,name,source_url,check_in_date,check_out_date,total_amount,currency,review_score,review_count,address,latitude,longitude,queried_at").eq("stop_id", stopId).is("archived_at", null).order("queried_at", { ascending: false }).limit(12),
   ]);
-  for (const [label, result] of [["hospedagem", accommodation], ["bagagem", luggage], ["atividades", activities], ["pendências", pending], ["chegada", inbound], ["saída", outbound]] as const) {
+  for (const [label, result] of [["hospedagem", accommodation], ["bagagem", luggage], ["atividades", activities], ["pendências", pending], ["chegada", inbound], ["saída", outbound], ["opções de hospedagem", accommodationQuotes]] as const) {
     if (result.error) throw new Error(`Não foi possível carregar ${label}: ${result.error.message}`);
   }
   const luggagePlans = luggage.data ?? [];
@@ -92,6 +93,7 @@ export async function getStopDetails(stopId: string) {
     pending: pending.data ?? [],
     inbound: inbound.data,
     outbound: outbound.data,
+    accommodationQuotes: accommodationQuotes.data ?? [],
   };
 }
 

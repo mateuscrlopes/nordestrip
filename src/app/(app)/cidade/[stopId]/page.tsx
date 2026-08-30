@@ -1,7 +1,7 @@
 import { RecordActions } from "@/components/actions/record-actions";
 import { RecordStatus, accommodationStatusOptions, itineraryStatusOptions, pendingStatusOptions, transportStatusOptions } from "@/components/actions/record-status";
 import { LuggagePlanEditor } from "@/components/logistics/luggage-plan-editor";
-import { AccommodationEditor } from "@/components/lodging/accommodation-editor";
+import { AccommodationEditor } from "@/components/lodging/accommodation-editor";\nimport { AccommodationSearch } from "@/components/lodging/accommodation-search";
 import { getStopDetails, getTripCityCovers, getTripPreferences } from "@/lib/queries/trips";
 import { formatDate, formatDateTime, formatTime, valueText } from "@/lib/utils/format";
 import {
@@ -60,6 +60,7 @@ export default async function CityPage({
     pending,
     inbound,
     outbound,
+    accommodationQuotes,
   } = data;
 
   const [covers, preferences] = await Promise.all([
@@ -94,6 +95,21 @@ export default async function CityPage({
     outbound?.origin_terminal_name,
     outbound?.origin_terminal_address
   );
+  const outboundDate = outbound?.departure_at
+    ? String(outbound.departure_at).slice(0, 10)
+    : outbound?.departure_date
+      ? String(outbound.departure_date)
+      : "";
+  const accommodationSearchCheckIn = accommodation?.check_in_date
+    ? String(accommodation.check_in_date)
+    : stop.start_date
+      ? String(stop.start_date)
+      : "";
+  const accommodationSearchCheckOut = accommodation?.check_out_date
+    ? String(accommodation.check_out_date)
+    : outboundDate && (!accommodationSearchCheckIn || outboundDate > accommodationSearchCheckIn)
+      ? outboundDate
+      : "";
 
   return (
     <div className="space-y-7">
@@ -296,6 +312,32 @@ export default async function CityPage({
             )}
           </div>
         </div>
+
+        <AccommodationSearch
+          tripId={stop.trip_id}
+          stopId={stop.id}
+          city={city}
+          defaultCheckIn={accommodationSearchCheckIn}
+          defaultCheckOut={accommodationSearchCheckOut}
+          currentAccommodationId={accommodation?.id ? String(accommodation.id) : null}
+          currentAccommodationStatus={accommodation?.status ? String(accommodation.status) : null}
+          initialQuotes={accommodationQuotes.map((quote) => ({
+            id: String(quote.id),
+            externalId: quote.external_id ? String(quote.external_id) : null,
+            name: String(quote.name),
+            sourceUrl: quote.source_url ? String(quote.source_url) : null,
+            checkInDate: String(quote.check_in_date),
+            checkOutDate: String(quote.check_out_date),
+            totalAmount: quote.total_amount == null ? null : Number(quote.total_amount),
+            currency: String(quote.currency || "BRL"),
+            reviewScore: quote.review_score == null ? null : Number(quote.review_score),
+            reviewCount: quote.review_count == null ? null : Number(quote.review_count),
+            address: quote.address ? String(quote.address) : null,
+            latitude: quote.latitude == null ? null : Number(quote.latitude),
+            longitude: quote.longitude == null ? null : Number(quote.longitude),
+            queriedAt: String(quote.queried_at),
+          }))}
+        />
       </section>
 
       <section>
