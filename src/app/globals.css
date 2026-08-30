@@ -4011,3 +4011,130 @@ input:focus-visible {
   color: #6c5635;
   background: rgba(215, 180, 131, .18);
 }
+
+
+/* Embedded trip map */
+
+.trip-map-shell {
+  overflow: hidden;
+  border: 1px solid rgba(18, 56, 68, .08);
+  border-radius: 22px;
+  background: rgba(255, 253, 252, .84);
+}
+
+.trip-map-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: .55rem;
+  padding: .7rem;
+  border-bottom: 1px solid rgba(18, 56, 68, .07);
+}
+
+.trip-map-filter {
+  display: grid;
+  gap: .2rem;
+}
+
+.trip-map-filter span {
+  color: #70787a;
+  font-size: .5rem;
+  font-weight: 650;
+}
+
+.trip-map-filter select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid rgba(18, 56, 68, .08);
+  border-radius: 12px;
+  padding: 0 .55rem;
+  background: #fff;
+  color: #17282e;
+  outline: none;
+  font-size: .61rem;
+  font-weight: 650;
+}
+
+.trip-map-canvas {
+  height: min(56vh, 440px);
+  min-height: 320px;
+  background: #e9efee;
+}
+
+.trip-map-canvas .leaflet-control-attribution {
+  font-size: 9px;
+}
+
+.trip-map-canvas .leaflet-popup-content-wrapper,
+.trip-map-canvas .leaflet-popup-tip {
+  box-shadow: 0 8px 26px rgba(18, 56, 68, .12);
+}
+
+.trip-map-canvas .leaflet-popup-content-wrapper {
+  border-radius: 14px;
+}
+
+.trip-map-selected {
+  display: grid;
+  gap: .32rem;
+  padding: .72rem;
+  border-top: 1px solid rgba(18, 56, 68, .07);
+}
+
+.trip-map-selected strong {
+  color: #17282e;
+  font-size: .68rem;
+}
+
+.trip-map-selected p {
+  margin: 0;
+  color: #70787a;
+  font-size: .55rem;
+  line-height: 1.45;
+}
+
+.trip-map-selected-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem;
+}
+
+.trip-map-selected-meta span {
+  border-radius: 999px;
+  padding: .2rem .44rem;
+  background: rgba(220, 232, 235, .58);
+  color: #123844;
+  font-size: .5rem;
+  font-weight: 700;
+}
+
+.trip-map-selected a {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 34px;
+  align-items: center;
+  gap: .3rem;
+  border-radius: 11px;
+  padding: 0 .55rem;
+  background: #123844;
+  color: white;
+  font-size: .54rem;
+  font-weight: 700;
+}
+
+.trip-map-note {
+  padding: .55rem .72rem .7rem;
+  color: #70787a;
+  font-size: .5rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 560px) {
+  .trip-map-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .trip-map-canvas {
+    height: 48vh;
+    min-height: 300px;
+  }
+}

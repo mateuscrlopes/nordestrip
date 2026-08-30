@@ -1,5 +1,6 @@
 import { RecordActions } from "@/components/actions/record-actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { TripMap } from "@/components/map/trip-map";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
 import { getTripPlaces, getTripStops, getTripTransports } from "@/lib/queries/trips";
 import type { Transport } from "@/types/trip";
@@ -210,6 +211,29 @@ export default async function MapPage() {
             ))}
           </div>
         </section>
+
+        {withCoordinates.length > 0 && (
+          <section>
+            <div className="section-heading">
+              <h2>Mapa da viagem</h2>
+            </div>
+            <TripMap
+              places={withCoordinates.map((place) => ({
+                id: String(place.id),
+                stopId: typeof place.stop_id === "string" ? place.stop_id : "",
+                city: typeof place.stop_id === "string" ? String(stopById.get(place.stop_id) || "Cidade") : "Cidade",
+                name: String(place.name || place.title || "Local"),
+                category: typeof place.category === "string" ? place.category : null,
+                address: typeof place.address === "string" ? place.address : null,
+                latitude: Number(place.latitude),
+                longitude: Number(place.longitude),
+                circuit: circuitLabel(place),
+                circuitOrder: Number(placeMetadata(place).circuit_order ?? 999),
+                confidence: coordinateConfidence(place),
+              }))}
+            />
+          </section>
+        )}
 
         <section className="map-integration-panel">
           <div className="flex items-start gap-4">
