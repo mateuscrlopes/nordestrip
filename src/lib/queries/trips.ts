@@ -399,7 +399,7 @@ export async function getTripPluggyAccounts(tripId: string, currentUserId: strin
   const accountIds = accounts.data.map((account) => account.id);
   const links = await supabase
     .from("trip_financial_accounts")
-    .select("financial_account_id,purpose,include_balance_in_available,archived_at")
+    .select("financial_account_id,purpose,allocated_credit_limit,include_balance_in_available,archived_at")
     .eq("trip_id", tripId)
     .in("financial_account_id", accountIds);
 
@@ -408,12 +408,14 @@ export async function getTripPluggyAccounts(tripId: string, currentUserId: strin
   }
 
   return accounts.data.map((account) => {
-    const fundLink = (links.data ?? []).find(
-      (link) =>
-        link.financial_account_id === account.id &&
-        link.purpose === "trip_fund" &&
-        link.archived_at == null
+    const accountLinks = (links.data ?? []).filter(
+      (link) => link.financial_account_id === account.id
     );
+    const activeLinks = accountLinks.filter((link) => link.archived_at == null);
+    const fundLink = activeLinks.find(
+      (link) => link.purpose === "trip_fund" && link.include_balance_in_available
+    );
+    const paymentCardLink = activeLinks.find((link) => link.purpose === "payment_card");
 
     return {
       id: account.id,
@@ -421,12 +423,16 @@ export async function getTripPluggyAccounts(tripId: string, currentUserId: strin
       accountType: account.account_type,
       balance: account.current_balance == null ? null : Number(account.current_balance),
       creditLimit: account.credit_limit == null ? null : Number(account.credit_limit),
+      allocatedCreditLimit:
+        paymentCardLink?.allocated_credit_limit == null
+          ? 0
+          : Number(paymentCardLink.allocated_credit_limit),
       lastSyncedAt: account.last_synced_at ?? null,
-      fundEnabled: Boolean(fundLink?.include_balance_in_available),
+      active: activeLinks.length > 0,
+      fundEnabled: Boolean(fundLink),
     };
   });
 }
-
 
 export async function getTripPlaceCatalog(tripId: string) {
   const supabase = await createClient();
