@@ -3931,10 +3931,17 @@ input:focus-visible {
   font-size: .53rem;
 }
 
-.map-circuit-card > a {
+.map-circuit-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .3rem;
+}
+
+.map-circuit-actions a {
   display: inline-flex;
   min-height: 34px;
-  flex: 0 0 auto;
   align-items: center;
   gap: .3rem;
   border-radius: 12px;
@@ -3978,8 +3985,13 @@ input:focus-visible {
     flex-wrap: wrap;
   }
 
-  .map-circuit-card > a {
+  .map-circuit-actions {
     width: 100%;
+    justify-content: stretch;
+  }
+
+  .map-circuit-actions a {
+    flex: 1 1 92px;
     justify-content: center;
   }
 }
