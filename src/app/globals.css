@@ -3544,3 +3544,66 @@ input:focus-visible {
     flex-direction: column;
   }
 }
+
+
+/* Suggested geographic circuits */
+
+.day-circuit + .day-circuit {
+  margin-top: .72rem;
+  border-top: 1px solid rgba(18, 56, 68, .08);
+  padding-top: .72rem;
+}
+
+.day-circuit-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .7rem;
+  padding: .12rem 0 .42rem;
+}
+
+.day-circuit-heading strong,
+.day-circuit-heading small {
+  display: block;
+}
+
+.day-circuit-heading strong {
+  color: #123844;
+  font-size: .64rem;
+  font-weight: 700;
+}
+
+.day-circuit-heading small {
+  margin-top: .12rem;
+  color: #70787a;
+  font-size: .52rem;
+}
+
+.day-circuit-heading > span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: .2rem .45rem;
+  color: #526268;
+  background: rgba(220, 232, 235, .48);
+  font-size: .52rem;
+  font-weight: 650;
+}
+
+.day-circuit-order {
+  display: grid;
+  width: 1.55rem;
+  height: 1.55rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 999px;
+  color: #123844;
+  background: rgba(220, 232, 235, .68);
+  font-size: .54rem;
+  font-weight: 700;
+}
+
+.place-catalog-facts .place-circuit-chip {
+  color: #123844;
+  background: rgba(220, 232, 235, .62);
+  font-weight: 650;
+}

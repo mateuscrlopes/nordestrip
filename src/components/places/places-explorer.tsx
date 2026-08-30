@@ -38,6 +38,7 @@ type CatalogPlace = {
   opening_hours?: Record<string, unknown> | null;
   last_verified_at?: string | null;
   notes?: string | null;
+  metadata?: Record<string, unknown> | null;
   links?: PlaceLink[] | null;
 };
 
@@ -79,10 +80,11 @@ const categoryLabels: Record<string, string> = {
 const weekdayKeys = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
 function metadataFor(place: CatalogPlace) {
+  const metadata: Record<string, unknown> = { ...(place.metadata ?? {}) };
   for (const link of place.links ?? []) {
-    if (link.metadata && Object.keys(link.metadata).length) return link.metadata;
+    if (link.metadata) Object.assign(metadata, link.metadata);
   }
-  return {} as Record<string, unknown>;
+  return metadata;
 }
 
 function rangeDates(start?: string | null, end?: string | null) {
@@ -203,6 +205,11 @@ function mealTagsText(place: CatalogPlace) {
 
 function areaText(place: CatalogPlace) {
   const value = metadataFor(place).area_label;
+  return typeof value === "string" ? value : null;
+}
+
+function circuitText(place: CatalogPlace) {
+  const value = metadataFor(place).circuit_label;
   return typeof value === "string" ? value : null;
 }
 
@@ -456,6 +463,7 @@ export function PlacesExplorer({
             const cuisine = cuisineText(place);
             const mealTags = mealTagsText(place);
             const area = areaText(place);
+            const circuit = circuitText(place);
             const stop = stops.find((item) => item.id === place.stop_id);
             const travelDates = rangeDates(stop?.start_date, stop?.end_date);
             const officialSource = sourceUrl(place);
@@ -497,8 +505,9 @@ export function PlacesExplorer({
                   </div>
                 )}
 
-                {(rating || price || cuisine || mealTags || condition) && (
+                {(rating || price || cuisine || mealTags || condition || circuit) && (
                   <div className="place-catalog-facts">
+                    {circuit && <span className="place-circuit-chip">Circuito · {circuit}</span>}
                     {rating && (
                       <span className="place-rating">
                         <Star size={11} />

@@ -39,6 +39,22 @@ function scheduleLabel(item: ItineraryItem) {
   return "Flexível";
 }
 
+type ItineraryPlace = {
+  id: string;
+  metadata?: Record<string, unknown> | null;
+};
+
+function circuitForPlace(place?: ItineraryPlace) {
+  const metadata = place?.metadata;
+  const label = metadata && typeof metadata.circuit_label === "string"
+    ? metadata.circuit_label
+    : "Outros locais";
+  const order = metadata && typeof metadata.circuit_order === "number"
+    ? metadata.circuit_order
+    : 999;
+  return { label, order };
+}
+
 export function ItineraryView({
   tripId,
   stops,
@@ -47,6 +63,7 @@ export function ItineraryView({
   transports,
   covers,
   luggagePlans,
+  places,
 }: {
   tripId: string;
   stops: Stop[];
@@ -55,6 +72,7 @@ export function ItineraryView({
   transports: Transport[];
   covers: CityCover[];
   luggagePlans: LuggagePlanSummary[];
+  places: Record<string, unknown>[];
 }) {
   const router = useRouter();
   const [view, setView] = useState<"cities" | "days">("cities");
@@ -72,6 +90,13 @@ export function ItineraryView({
   const stopById = useMemo(
     () => new Map(stops.map((stop) => [stop.id, stop])),
     [stops]
+  );
+
+  const placeById = useMemo(
+    () => new Map(
+      (places as unknown as ItineraryPlace[]).map((place) => [place.id, place])
+    ),
+    [places]
   );
 
   const grouped = useMemo(
@@ -422,6 +447,23 @@ export function ItineraryView({
             const stop = firstStop ? stopById.get(firstStop) : undefined;
             const plannedItems = items.filter((item) => item.status !== "idea");
             const ideaItems = items.filter((item) => item.status === "idea");
+            const ideaCircuits = Array.from(
+              ideaItems.reduce<Map<string, { label: string; items: ItineraryItem[] }>>((groups, item) => {
+                const place = item.place_id ? placeById.get(item.place_id) : undefined;
+                const circuit = circuitForPlace(place);
+                const current = groups.get(circuit.label) ?? { label: circuit.label, items: [] };
+                current.items.push(item);
+                groups.set(circuit.label, current);
+                return groups;
+              }, new Map()).values()
+            ).map((group) => ({
+              ...group,
+              items: [...group.items].sort((a, b) => {
+                const placeA = a.place_id ? placeById.get(a.place_id) : undefined;
+                const placeB = b.place_id ? placeById.get(b.place_id) : undefined;
+                return circuitForPlace(placeA).order - circuitForPlace(placeB).order;
+              }),
+            }));
 
             return (
               <section key={date}>
@@ -507,37 +549,49 @@ export function ItineraryView({
                       <ChevronRight size={16} className="day-ideas-chevron" />
                     </summary>
                     <div className="day-ideas-list">
-                      {ideaItems.map((item) => (
-                        <div key={item.id} className="day-idea-row">
-                          <div className="min-w-0 flex-1">
-                            <strong>{item.title || item.name || "Local"}</strong>
-                            <small>Ideia vinculada ao roteiro</small>
+                      {ideaCircuits.map((circuit) => (
+                        <div key={circuit.label} className="day-circuit">
+                          <div className="day-circuit-heading">
+                            <div>
+                              <strong>{circuit.label}</strong>
+                              <small>Ordem sugerida por proximidade do circuito</small>
+                            </div>
+                            <span>{circuit.items.length} {circuit.items.length === 1 ? "parada" : "paradas"}</span>
                           </div>
-                          <div className="day-idea-actions">
-                            <RecordStatus
-                              table="itinerary_items"
-                              id={item.id}
-                              value={String(item.status || "idea")}
-                              options={itineraryStatusOptions}
-                              label={`Status de ${item.title || item.name || "local"}`}
-                              compact
-                            />
-                            <RecordActions
-                              table="itinerary_items"
-                              id={item.id}
-                              title={String(item.title || item.name || "Local")}
-                              fields={[
-                                { name: "title", label: "Local", required: true },
-                                { name: "activity_date", label: "Data", type: "date" },
-                                { name: "notes", label: "Nota", type: "textarea" },
-                              ]}
-                              values={{
-                                title: String(item.title || item.name || ""),
-                                activity_date: item.activity_date || null,
-                                notes: typeof item.notes === "string" ? item.notes : null,
-                              }}
-                            />
-                          </div>
+                          {circuit.items.map((item, index) => (
+                            <div key={item.id} className="day-idea-row">
+                              <span className="day-circuit-order">{index + 1}</span>
+                              <div className="min-w-0 flex-1">
+                                <strong>{item.title || item.name || "Local"}</strong>
+                                <small>Ideia vinculada ao roteiro</small>
+                              </div>
+                              <div className="day-idea-actions">
+                                <RecordStatus
+                                  table="itinerary_items"
+                                  id={item.id}
+                                  value={String(item.status || "idea")}
+                                  options={itineraryStatusOptions}
+                                  label={`Status de ${item.title || item.name || "local"}`}
+                                  compact
+                                />
+                                <RecordActions
+                                  table="itinerary_items"
+                                  id={item.id}
+                                  title={String(item.title || item.name || "Local")}
+                                  fields={[
+                                    { name: "title", label: "Local", required: true },
+                                    { name: "activity_date", label: "Data", type: "date" },
+                                    { name: "notes", label: "Nota", type: "textarea" },
+                                  ]}
+                                  values={{
+                                    title: String(item.title || item.name || ""),
+                                    activity_date: item.activity_date || null,
+                                    notes: typeof item.notes === "string" ? item.notes : null,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       ))}
                     </div>
