@@ -420,6 +420,8 @@ export function ItineraryView({
           {Object.entries(grouped).map(([date, items]) => {
             const firstStop = items.find((item) => item.stop_id)?.stop_id;
             const stop = firstStop ? stopById.get(firstStop) : undefined;
+            const plannedItems = items.filter((item) => item.status !== "idea");
+            const ideaItems = items.filter((item) => item.status === "idea");
 
             return (
               <section key={date}>
@@ -432,7 +434,7 @@ export function ItineraryView({
                 </div>
 
                 <div className="day-timeline">
-                  {items.map((item) => {
+                  {plannedItems.map((item) => {
                     const fixed = item.schedule_type === "exact" && item.is_anchor === true;
                     const time = itemTime(item);
 
@@ -490,6 +492,57 @@ export function ItineraryView({
                     );
                   })}
                 </div>
+
+                {ideaItems.length > 0 && (
+                  <details className="day-ideas">
+                    <summary>
+                      <span className="day-ideas-heading">
+                        <span className="day-ideas-icon"><MapPin size={15} /></span>
+                        <span>
+                          <strong>Locais para considerar</strong>
+                          <small>Selecionados para este dia, ainda sem ordem ou horário</small>
+                        </span>
+                      </span>
+                      <span className="day-ideas-count">{ideaItems.length}</span>
+                      <ChevronRight size={16} className="day-ideas-chevron" />
+                    </summary>
+                    <div className="day-ideas-list">
+                      {ideaItems.map((item) => (
+                        <div key={item.id} className="day-idea-row">
+                          <div className="min-w-0 flex-1">
+                            <strong>{item.title || item.name || "Local"}</strong>
+                            <small>Ideia vinculada ao roteiro</small>
+                          </div>
+                          <div className="day-idea-actions">
+                            <RecordStatus
+                              table="itinerary_items"
+                              id={item.id}
+                              value={String(item.status || "idea")}
+                              options={itineraryStatusOptions}
+                              label={`Status de ${item.title || item.name || "local"}`}
+                              compact
+                            />
+                            <RecordActions
+                              table="itinerary_items"
+                              id={item.id}
+                              title={String(item.title || item.name || "Local")}
+                              fields={[
+                                { name: "title", label: "Local", required: true },
+                                { name: "activity_date", label: "Data", type: "date" },
+                                { name: "notes", label: "Nota", type: "textarea" },
+                              ]}
+                              values={{
+                                title: String(item.title || item.name || ""),
+                                activity_date: item.activity_date || null,
+                                notes: typeof item.notes === "string" ? item.notes : null,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
               </section>
             );
           })}

@@ -3354,3 +3354,193 @@ input:focus-visible {
 .place-catalog-facts .place-rating svg {
   flex: 0 0 auto;
 }
+
+
+/* More: separated expandable sections */
+
+.settings-list {
+  display: grid;
+  gap: .65rem;
+  overflow: visible;
+  border-top: 0;
+  border-bottom: 0;
+}
+
+.settings-list > * + *,
+.settings-list details + details {
+  border-top: 0;
+}
+
+.settings-list details {
+  overflow: hidden;
+  border: 1px solid rgba(18, 56, 68, .08);
+  border-radius: 20px;
+  background: rgba(255, 253, 252, .76);
+  box-shadow: 0 5px 18px rgba(23, 40, 46, .035);
+}
+
+.settings-list summary {
+  min-height: 72px;
+  padding: .82rem .9rem;
+}
+
+.settings-list details[open] {
+  border-color: rgba(18, 56, 68, .12);
+  background: rgba(255, 253, 252, .94);
+  box-shadow: 0 9px 26px rgba(23, 40, 46, .055);
+}
+
+.settings-list details[open] summary {
+  border-bottom: 1px solid rgba(18, 56, 68, .07);
+}
+
+.settings-list details[open] .settings-row-icon {
+  background: rgba(220, 232, 235, .82);
+}
+
+.settings-detail,
+.settings-detail--wide {
+  margin: .55rem;
+  border-radius: 16px;
+  padding: .82rem !important;
+  background: rgba(247, 243, 236, .62);
+}
+
+.settings-subsection + .settings-subsection {
+  margin-top: .8rem;
+  border-top: 1px solid rgba(18, 56, 68, .07);
+  padding-top: .8rem;
+}
+
+/* Roteiro: selected places that are still ideas */
+
+.day-ideas {
+  overflow: hidden;
+  margin-top: .45rem;
+  border: 1px solid rgba(18, 56, 68, .08);
+  border-radius: 18px;
+  background: rgba(255, 253, 252, .68);
+}
+
+.day-ideas summary {
+  display: flex;
+  min-height: 62px;
+  cursor: pointer;
+  list-style: none;
+  align-items: center;
+  gap: .65rem;
+  padding: .68rem .75rem;
+}
+
+.day-ideas summary::-webkit-details-marker {
+  display: none;
+}
+
+.day-ideas-heading {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: .6rem;
+}
+
+.day-ideas-heading > span:last-child {
+  min-width: 0;
+}
+
+.day-ideas-heading strong,
+.day-ideas-heading small {
+  display: block;
+}
+
+.day-ideas-heading strong {
+  color: #17282e;
+  font-size: .7rem;
+  font-weight: 650;
+}
+
+.day-ideas-heading small {
+  margin-top: .12rem;
+  color: #70787a;
+  font-size: .55rem;
+  line-height: 1.35;
+}
+
+.day-ideas-icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 12px;
+  color: #123844;
+  background: rgba(220, 232, 235, .58);
+}
+
+.day-ideas-count {
+  display: grid;
+  min-width: 1.8rem;
+  height: 1.8rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 999px;
+  color: #123844;
+  background: rgba(220, 232, 235, .58);
+  font-size: .58rem;
+  font-weight: 700;
+}
+
+.day-ideas-chevron {
+  flex: 0 0 auto;
+  color: #70787a;
+  transition: transform 170ms ease;
+}
+
+.day-ideas[open] .day-ideas-chevron {
+  transform: rotate(90deg);
+}
+
+.day-ideas-list {
+  padding: 0 .72rem .58rem;
+}
+
+.day-idea-row {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  gap: .65rem;
+  border-top: 1px solid rgba(18, 56, 68, .06);
+  padding: .55rem 0;
+}
+
+.day-idea-row strong {
+  display: block;
+  color: #17282e;
+  font-size: .68rem;
+  font-weight: 650;
+}
+
+.day-idea-row small {
+  display: block;
+  margin-top: .12rem;
+  color: #70787a;
+  font-size: .54rem;
+}
+
+.day-idea-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: .35rem;
+}
+
+@media (max-width: 430px) {
+  .day-idea-row {
+    align-items: flex-start;
+  }
+
+  .day-idea-actions {
+    align-items: flex-end;
+    flex-direction: column;
+  }
+}

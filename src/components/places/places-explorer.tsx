@@ -230,10 +230,12 @@ function assessDate(
   const fixedCount = dayItems.filter((item) => item.is_anchor).length;
   const totalMinutes = dayItems.reduce((total, item) => {
     const estimate = item.duration_max ?? item.duration_min ?? (item.is_anchor ? 90 : 60);
-    return total + estimate;
+    const weight = item.status === "idea" ? 0.2 : 1;
+    return total + Math.round(estimate * weight);
   }, 0);
   const hasFullDay = dayItems.some(
     (item) =>
+      item.status !== "idea" &&
       item.priority === "high" &&
       Math.max(item.duration_max ?? 0, item.duration_min ?? 0) >= 360
   );
