@@ -3,6 +3,19 @@
   color: #17282e;
 }
 
+.decision-row {
+  align-items: center;
+}
+
+.decision-row > span:first-child,
+.decision-row > svg:last-child {
+  margin-top: 0;
+}
+
+.settings-list details[open] {
+  overflow: visible;
+}
+
 #hospedagem > .mt-3 > .\-mt-11 {
   margin-top: .75rem !important;
   margin-bottom: .75rem;
@@ -40,6 +53,216 @@
 
 .section-heading > * {
   min-width: 0;
+}
+
+.budget-pockets-panel {
+  border: 1px solid rgba(18, 56, 68, .07);
+  border-radius: 22px;
+  padding: 1rem;
+  background: rgba(255, 253, 252, .76);
+}
+
+.budget-pockets-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-radius: 15px;
+  padding: .65rem .75rem;
+  background: rgba(220, 232, 235, .42);
+}
+
+.budget-pockets-total span {
+  color: #526268;
+  font-size: .66rem;
+  font-weight: 650;
+}
+
+.budget-pockets-total strong {
+  color: #123844;
+  font-size: .8rem;
+}
+
+.budget-pockets-list {
+  display: grid;
+  margin-top: .55rem;
+}
+
+.budget-pocket-row {
+  display: flex;
+  min-width: 0;
+  min-height: 62px;
+  align-items: center;
+  gap: .65rem;
+  border-bottom: 1px solid rgba(18, 56, 68, .06);
+  padding: .55rem 0;
+}
+
+.budget-pocket-icon {
+  display: grid;
+  width: 2.15rem;
+  height: 2.15rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 13px;
+  color: #123844;
+  background: rgba(220, 232, 235, .62);
+}
+
+.budget-pocket-row strong,
+.budget-pocket-row small {
+  display: block;
+}
+
+.budget-pocket-row strong {
+  font-size: .73rem;
+  line-height: 1.3;
+}
+
+.budget-pocket-row small {
+  margin-top: .15rem;
+  color: #70787a;
+  font-size: .58rem;
+  line-height: 1.35;
+}
+
+.budget-pocket-input-wrap {
+  display: flex;
+  width: 7.2rem;
+  flex: 0 0 auto;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(18, 56, 68, .09);
+  border-radius: 13px;
+  background: #fffdfc;
+}
+
+.budget-pocket-input-wrap > span {
+  padding-left: .6rem;
+  color: #70787a;
+  font-size: .6rem;
+  font-weight: 650;
+}
+
+.budget-pocket-input-wrap input {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  padding: .45rem .55rem .45rem .25rem;
+  background: transparent;
+  text-align: right;
+  outline: none;
+  font-size: .7rem;
+}
+
+.budget-pockets-save {
+  width: 100%;
+  min-height: 42px;
+  margin-top: .7rem;
+  border-radius: 14px;
+  color: #fff;
+  background: #123844;
+  font-size: .7rem;
+  font-weight: 650;
+}
+
+.transaction-classify-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .35rem;
+  min-width: 13rem;
+}
+
+.transaction-classify-button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: .32rem;
+  border-radius: 12px;
+  padding: 0 .55rem;
+  color: #123844;
+  background: rgba(220, 232, 235, .62);
+  font-size: .59rem;
+  font-weight: 700;
+}
+
+.transaction-secondary-actions {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  gap: .28rem;
+}
+
+.transaction-secondary-actions button {
+  display: grid;
+  width: 1.9rem;
+  height: 1.9rem;
+  place-items: center;
+  border-radius: 10px;
+  color: #70787a;
+  background: rgba(220, 232, 235, .34);
+}
+
+.person-pocket-list {
+  display: grid;
+}
+
+.person-pocket-list > button {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  gap: .7rem;
+  border-bottom: 1px solid rgba(18, 56, 68, .07);
+  text-align: left;
+}
+
+.person-pocket-list strong,
+.person-pocket-list small {
+  display: block;
+}
+
+.person-pocket-list strong {
+  color: #17282e;
+  font-size: .76rem;
+}
+
+.person-pocket-list small {
+  margin-top: .15rem;
+  color: #70787a;
+  font-size: .6rem;
+}
+
+.trip-settings-form {
+  gap: .65rem;
+}
+
+.trip-settings-section {
+  gap: .65rem;
+  padding: .55rem 0;
+}
+
+.trip-settings-grid {
+  gap: .5rem;
+}
+
+.trip-settings-grid label {
+  min-height: 74px;
+  padding: .58rem;
+}
+
+.trip-settings-grid input {
+  min-height: 34px;
+  padding: .45rem .55rem;
+}
+
+.trip-settings-toggles label {
+  min-height: 50px;
+  padding: .55rem 0;
+}
+
+.trip-settings-finance {
+  padding: .72rem;
 }
 
 @media (max-width: 640px) {
@@ -127,6 +350,30 @@
     justify-content: flex-end;
     padding-left: 2.95rem;
   }
+
+  .budget-pocket-row {
+    flex-wrap: wrap;
+  }
+
+  .budget-pocket-input-wrap {
+    width: calc(100% - 2.8rem);
+    margin-left: 2.8rem;
+  }
+
+  .expense-row--review {
+    align-items: flex-start;
+  }
+
+  .expense-row-actions--review {
+    width: 100%;
+    align-items: stretch;
+    padding-left: 2.9rem;
+  }
+
+  .transaction-classify-actions {
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 @media (max-width: 420px) {
@@ -140,6 +387,11 @@
     align-items: center;
     justify-content: space-between;
     padding-left: 2.9rem;
+  }
+
+  .expense-row-actions--review {
+    align-items: flex-end;
+    flex-direction: column;
   }
 
   .settings-record {
