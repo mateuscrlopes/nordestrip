@@ -1,6 +1,8 @@
 import { RecordActions } from "@/components/actions/record-actions";
-import { RecordStatus, accommodationStatusOptions, itineraryStatusOptions, pendingStatusOptions, transportStatusOptions } from "@/components/actions/record-status";
+import { RecordStatus, accommodationStatusOptions, pendingStatusOptions, transportStatusOptions } from "@/components/actions/record-status";
 import { LuggagePlanEditor } from "@/components/logistics/luggage-plan-editor";
+import { CityItineraryCreator } from "@/components/itinerary/city-itinerary-creator";
+import { ItineraryStatusActions } from "@/components/itinerary/itinerary-status-actions";
 import { AccommodationEditor } from "@/components/lodging/accommodation-editor";
 import { AccommodationOptions } from "@/components/lodging/accommodation-options";
 import { getStopDetails, getTripCityCovers, getTripPreferences } from "@/lib/queries/trips";
@@ -62,6 +64,7 @@ export default async function CityPage({
     inbound,
     outbound,
     accommodationOptions,
+    places,
   } = data;
 
   const [covers, preferences] = await Promise.all([
@@ -349,60 +352,142 @@ export default async function CityPage({
       <section>
         <div className="section-heading">
           <h2>Roteiro na cidade</h2>
+          <CityItineraryCreator
+            tripId={stop.trip_id}
+            stopId={stop.id}
+            defaultDate={stop.start_date}
+            places={places.map((place) => ({
+              id: String(place.id),
+              name: String(place.name),
+              category: place.category ? String(place.category) : null,
+            }))}
+          />
         </div>
         {activities.length ? (
-          <div className="day-timeline">
+          <div className="space-y-1">
             {activities.map((item) => {
-              const fixed = item.schedule_type === "exact" && item.is_anchor === true;
-              const time = item.start_time ? String(item.start_time).slice(0, 5) : null;
+              const title = String(item.place_name || item.title || item.name || "Atividade");
+              const contextTitle =
+                item.place_name && item.title && item.place_name !== item.title
+                  ? String(item.title)
+                  : null;
+              const start = item.start_time ? String(item.start_time).slice(0, 5) : null;
+              const end = item.end_time ? String(item.end_time).slice(0, 5) : null;
+              const period =
+                item.period === "morning" ? "Manhã"
+                  : item.period === "afternoon" ? "Tarde"
+                    : item.period === "evening" ? "Noite"
+                      : null;
+              const schedule =
+                start && end ? `${start}–${end}`
+                  : start ? start
+                    : end ? `até ${end}`
+                      : period || "Flexível";
+              const kind =
+                item.item_type === "meal" ? "Refeição"
+                  : item.item_type === "logistics" ? "Logística"
+                    : item.item_type === "note" ? "Nota"
+                      : null;
 
               return (
-                <div key={String(item.id)} className="day-timeline-row">
-                  <div className="day-timeline-marker" aria-hidden="true">
-                    <span className={fixed ? "is-fixed" : ""} />
-                    <i />
+                <div key={String(item.id)} className="grid grid-cols-[54px_minmax(0,1fr)] gap-3 border-b border-petrol/8 py-3 last:border-b-0">
+                  <div className="pt-0.5 text-right">
+                    <strong className="block text-[11px] font-semibold text-petrol">{schedule}</strong>
+                    {item.activity_date && (
+                      <span className="mt-0.5 block text-[9px] text-muted">{formatDate(item.activity_date)}</span>
+                    )}
                   </div>
-                  <div className="min-w-0 flex-1 pb-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-[15px] font-semibold leading-5">
-                          {String(item.title ?? item.name ?? "Atividade")}
-                        </p>
-                        <p className="mt-1 text-[12px] text-muted">
-                          {scheduleLabel(item.schedule_type, item.is_anchor)}
-                        </p>
-                        <div className="mt-2 flex items-center gap-2">
-                          <RecordStatus
-                            table="itinerary_items"
-                            id={String(item.id)}
-                            value={String(item.status || "planned")}
-                            options={itineraryStatusOptions}
-                            label={`Status de ${String(item.title ?? "atividade")}`}
-                            compact
-                          />
-                          <RecordActions
-                            table="itinerary_items"
-                            id={String(item.id)}
-                            title={String(item.title ?? item.name ?? "Atividade")}
-                            fields={[
-                              { name: "title", label: "Atividade", required: true },
-                              { name: "activity_date", label: "Data", type: "date" },
-                              { name: "notes", label: "Nota", type: "textarea" },
-                            ]}
-                            values={{
-                              title: String(item.title ?? item.name ?? ""),
-                              activity_date: item.activity_date ?? null,
-                              notes: item.notes ?? null,
-                            }}
-                          />
+
+                  <div className="min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <p className="text-[14px] font-semibold leading-5">{title}</p>
+                          {kind && (
+                            <span className="rounded-full bg-sand/55 px-2 py-0.5 text-[9px] font-medium text-petrol/70">
+                              {kind}
+                            </span>
+                          )}
                         </div>
+                        {contextTitle && (
+                          <p className="mt-0.5 text-[10px] leading-4 text-muted">{contextTitle}</p>
+                        )}
+                        {item.place_address && (
+                          <p className="mt-0.5 text-[10px] leading-4 text-muted">{String(item.place_address)}</p>
+                        )}
+                        {item.notes && (
+                          <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-muted">{String(item.notes)}</p>
+                        )}
                       </div>
-                      {time && (
-                        <span className="flex shrink-0 items-center gap-1 text-[12px] font-medium text-petrol">
-                          <Clock3 size={13} />
-                          {time}
-                        </span>
-                      )}
+
+                      <div className="flex shrink-0 items-center gap-1">
+                        <ItineraryStatusActions
+                          id={String(item.id)}
+                          title={title}
+                          status={String(item.status || "planned")}
+                        />
+                        <RecordActions
+                          table="itinerary_items"
+                          id={String(item.id)}
+                          title={title}
+                          inline
+                          fields={[
+                            { name: "title", label: "Atividade", required: true },
+                            {
+                              name: "item_type",
+                              label: "Tipo",
+                              type: "select",
+                              required: true,
+                              options: [
+                                { value: "activity", label: "Atividade" },
+                                { value: "meal", label: "Refeição" },
+                                { value: "logistics", label: "Logística" },
+                                { value: "note", label: "Nota" },
+                              ],
+                            },
+                            { name: "activity_date", label: "Data", type: "date" },
+                            {
+                              name: "schedule_type",
+                              label: "Organização do horário",
+                              type: "select",
+                              required: true,
+                              options: [
+                                { value: "none", label: "Flexível / sem horário" },
+                                { value: "period", label: "Período do dia" },
+                                { value: "window", label: "Janela de horário" },
+                                { value: "from", label: "A partir de" },
+                                { value: "until", label: "Até" },
+                                { value: "exact", label: "Horário marcado" },
+                              ],
+                            },
+                            {
+                              name: "period",
+                              label: "Período",
+                              type: "select",
+                              options: [
+                                { value: "morning", label: "Manhã" },
+                                { value: "afternoon", label: "Tarde" },
+                                { value: "evening", label: "Noite" },
+                              ],
+                            },
+                            { name: "start_time", label: "Início", type: "time" },
+                            { name: "end_time", label: "Fim", type: "time" },
+                            { name: "is_anchor", label: "Horário é compromisso fixo", type: "checkbox" },
+                            { name: "notes", label: "Nota", type: "textarea" },
+                          ]}
+                          values={{
+                            title: String(item.title ?? item.name ?? ""),
+                            item_type: item.item_type ?? "activity",
+                            activity_date: item.activity_date ?? null,
+                            schedule_type: item.schedule_type ?? "none",
+                            period: item.period ?? null,
+                            start_time: item.start_time ?? null,
+                            end_time: item.end_time ?? null,
+                            is_anchor: item.is_anchor === true,
+                            notes: item.notes ?? null,
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>

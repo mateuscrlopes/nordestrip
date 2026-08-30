@@ -15,7 +15,7 @@ type TableName =
   | "documents"
   | "places";
 
-type FieldType = "text" | "date" | "datetime-local" | "number" | "url" | "textarea" | "select" | "checkbox";
+type FieldType = "text" | "date" | "time" | "datetime-local" | "number" | "url" | "textarea" | "select" | "checkbox";
 
 export type EditField = {
   name: string;
@@ -45,6 +45,7 @@ export function RecordActions({
   fields,
   values,
   archiveWarning,
+  inline = false,
 }: {
   table: TableName;
   id: string;
@@ -52,6 +53,7 @@ export function RecordActions({
   fields: EditField[];
   values: Record<string, FieldValue>;
   archiveWarning?: string;
+  inline?: boolean;
 }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -173,33 +175,62 @@ export function RecordActions({
 
   return (
     <div className="record-actions">
-      <button
-        type="button"
-        className="record-actions-trigger"
-        aria-label={`Ações de ${title}`}
-        onClick={() => setMenuOpen((value) => !value)}
-      >
-        <MoreHorizontal size={17} />
-      </button>
-
-      {menuOpen && (
-        <div className="record-actions-menu">
+      {inline ? (
+        <div className="flex items-center gap-1">
           <button
             type="button"
+            className="add-icon-button"
+            aria-label={`Editar ${title}`}
+            title="Editar"
             onClick={() => {
               setEditing(true);
-              setMenuOpen(false);
               setError("");
             }}
           >
             <Pencil size={15} />
-            Editar
           </button>
-          <button type="button" className="is-danger" disabled={archiving} onClick={archive}>
+          <button
+            type="button"
+            className="add-icon-button"
+            aria-label={`Arquivar ${title}`}
+            title="Arquivar"
+            disabled={archiving}
+            onClick={archive}
+          >
             <Archive size={15} />
-            {archiving ? "Arquivando..." : "Arquivar"}
           </button>
         </div>
+      ) : (
+        <>
+          <button
+            type="button"
+            className="record-actions-trigger"
+            aria-label={`Ações de ${title}`}
+            onClick={() => setMenuOpen((value) => !value)}
+          >
+            <MoreHorizontal size={17} />
+          </button>
+
+          {menuOpen && (
+            <div className="record-actions-menu">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditing(true);
+                  setMenuOpen(false);
+                  setError("");
+                }}
+              >
+                <Pencil size={15} />
+                Editar
+              </button>
+              <button type="button" className="is-danger" disabled={archiving} onClick={archive}>
+                <Archive size={15} />
+                {archiving ? "Arquivando..." : "Arquivar"}
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {editing && (

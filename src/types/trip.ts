@@ -114,6 +114,9 @@ export type ItineraryItem = Record<string, unknown> & {
   trip_id?: string;
   stop_id?: string | null;
   place_id?: string | null;
+  place_name?: string | null;
+  place_address?: string | null;
+  place_category?: string | null;
   activity_date?: string | null;
   title?: string | null;
   name?: string | null;
