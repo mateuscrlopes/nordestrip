@@ -8,18 +8,92 @@
   line-height: 1.45;
 }
 
+/* City itinerary: only visit + more stay visible. Existing actions remain mounted and are reused by the menu. */
+.itinerary-status-control {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: .3rem;
+}
+
+.itinerary-visit-button,
+.itinerary-more-button {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 11px;
+  color: #123844;
+  background: rgba(220, 232, 235, .52);
+}
+
+.itinerary-visit-button.is-visited {
+  color: #fff;
+  background: #123844;
+}
+
+.itinerary-actions-popover {
+  position: absolute;
+  top: calc(100% + .4rem);
+  right: 0;
+  z-index: 45;
+  width: 190px;
+  overflow: hidden;
+  border: 1px solid rgba(18, 56, 68, .09);
+  border-radius: 16px;
+  padding: .35rem;
+  background: #fffdfc;
+  box-shadow: 0 16px 40px rgba(23, 40, 46, .16);
+}
+
+.itinerary-actions-popover button {
+  display: flex;
+  width: 100%;
+  min-height: 38px;
+  align-items: center;
+  gap: .55rem;
+  border-radius: 11px;
+  padding: 0 .65rem;
+  color: #17282e;
+  font-size: .69rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.itinerary-actions-popover button:hover {
+  background: rgba(220, 232, 235, .46);
+}
+
+.itinerary-actions-popover button.is-danger {
+  color: #8a3f3f;
+}
+
+/* Hide the old individual buttons only on rows that now have the consolidated action control. */
+div:has(> .itinerary-status-control) > button[title="Anexar documento"],
+div:has(> .itinerary-status-control) > span.inline-flex,
+div:has(> .itinerary-status-control) > .record-actions {
+  display: none;
+}
+
+/* Move the existing lodging add trigger visually into the lodging card. */
+#hospedagem {
+  position: relative;
+}
+
+#hospedagem > .mt-3 > div:first-child {
+  position: absolute;
+  top: 3rem;
+  right: 1rem;
+  z-index: 5;
+  margin: 0;
+}
+
+#hospedagem .accommodation-panel > .min-w-0 {
+  padding-right: 2.8rem;
+}
+
 @media (max-width: 640px) {
-  .section-heading + .space-y-1 .add-icon-button {
-    width: 1.75rem;
-    height: 1.75rem;
-    border-radius: 10px;
-  }
-
-  .section-heading + .space-y-1 .record-actions .add-icon-button {
-    width: 1.75rem;
-    height: 1.75rem;
-  }
-
   .section-heading + .space-y-1 > div {
     grid-template-columns: 48px minmax(0, 1fr);
     gap: .6rem;
