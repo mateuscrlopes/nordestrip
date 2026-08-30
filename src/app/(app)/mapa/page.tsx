@@ -136,6 +136,7 @@ export default async function MapPage() {
     ? await Promise.all([getTripPlaces(trip.id), getTripStops(trip.id), getTripTransports(trip.id)])
     : [[], [], []];
 
+  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
   const operationalLocations = transportLocations(transports);
   const withCoordinates = places.filter((place) => hasCoordinates(place.latitude, place.longitude));
   const addressOnly = places.filter(
@@ -218,6 +219,7 @@ export default async function MapPage() {
               <h2>Mapa da viagem</h2>
             </div>
             <TripMap
+              apiKey={googleMapsApiKey}
               places={withCoordinates.map((place) => ({
                 id: String(place.id),
                 stopId: typeof place.stop_id === "string" ? place.stop_id : "",
