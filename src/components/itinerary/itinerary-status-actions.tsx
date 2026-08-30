@@ -1,25 +1,27 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { BadgeCheck, Footprints } from "lucide-react";
+import { Archive, BadgeCheck, ExternalLink, Footprints, MoreHorizontal, Paperclip, Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export function ItineraryStatusActions({
   id,
   title,
   status,
-  mode = "both",
 }: {
   id: string;
   title: string;
   status: string;
-  mode?: "both" | "confirm-only" | "visited-only";
 }) {
   const router = useRouter();
+  const rootRef = useRef<HTMLDivElement>(null);
   const [current, setCurrent] = useState(status);
   const [saving, setSaving] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [hasDocument, setHasDocument] = useState(false);
   const [error, setError] = useState("");
+
   const confirmed = current === "confirmed" || current === "done";
   const visited = current === "done";
 
@@ -40,34 +42,92 @@ export function ItineraryStatusActions({
     setSaving(false);
   }
 
-  const base = "grid h-8 w-8 shrink-0 place-items-center rounded-[11px] text-petrol transition disabled:opacity-45";
+  function parentActionArea() {
+    return rootRef.current?.parentElement ?? null;
+  }
+
+  function clickSibling(selector: string) {
+    const button = parentActionArea()?.querySelector<HTMLButtonElement>(selector);
+    button?.click();
+    setMenuOpen(false);
+  }
+
+  function toggleMenu() {
+    const next = !menuOpen;
+    if (next) {
+      setHasDocument(Boolean(parentActionArea()?.querySelector(':scope > span button[title^="Abrir"]')));
+    }
+    setMenuOpen(next);
+  }
 
   return (
-    <div className="flex items-center gap-1">
-      {mode !== "visited-only" && (
-        <button
-          type="button"
-          className={`${base} ${confirmed ? "bg-pale-blue/80" : "bg-pale-blue/45"}`}
-          aria-label={confirmed ? `Remover confirmação de ${title}` : `Confirmar ${title}`}
-          title={confirmed ? "Confirmado" : "Confirmar"}
-          disabled={saving || visited}
-          onClick={() => update(confirmed ? "planned" : "confirmed")}
-        >
-          <BadgeCheck size={14} />
-        </button>
+    <div ref={rootRef} className="itinerary-status-control">
+      <button
+        type="button"
+        className={`itinerary-visit-button ${visited ? "is-visited" : ""}`}
+        aria-label={visited ? `Marcar ${title} como não visitado` : `Marcar ${title} como visitado`}
+        title={visited ? "Visitado" : "Marcar como visitado"}
+        disabled={saving}
+        onClick={() => update(visited ? "confirmed" : "done")}
+      >
+        <Footprints size={15} />
+      </button>
+
+      <button
+        type="button"
+        className="itinerary-more-button"
+        aria-label={`Mais ações de ${title}`}
+        aria-expanded={menuOpen}
+        title="Mais ações"
+        onClick={toggleMenu}
+      >
+        <MoreHorizontal size={17} />
+      </button>
+
+      {menuOpen && (
+        <div className="itinerary-actions-popover" role="menu">
+          <button type="button" role="menuitem" onClick={() => clickSibling(':scope > button[title="Anexar documento"]')}>
+            <Paperclip size={15} />
+            Anexar documento
+          </button>
+
+          {hasDocument && (
+            <button type="button" role="menuitem" onClick={() => clickSibling(':scope > span button[title^="Abrir"]')}>
+              <ExternalLink size={15} />
+              Abrir documento
+            </button>
+          )}
+
+          <button
+            type="button"
+            role="menuitem"
+            disabled={saving || visited}
+            onClick={() => {
+              void update(confirmed ? "planned" : "confirmed");
+              setMenuOpen(false);
+            }}
+          >
+            <BadgeCheck size={15} />
+            {confirmed ? "Remover confirmação" : "Confirmar"}
+          </button>
+
+          <button type="button" role="menuitem" onClick={() => clickSibling(':scope > .record-actions button[title="Editar"]')}>
+            <Pencil size={15} />
+            Editar
+          </button>
+
+          <button
+            type="button"
+            role="menuitem"
+            className="is-danger"
+            onClick={() => clickSibling(':scope > .record-actions button[title="Arquivar"]')}
+          >
+            <Archive size={15} />
+            Arquivar
+          </button>
+        </div>
       )}
-      {mode !== "confirm-only" && (
-        <button
-          type="button"
-          className={`${base} ${visited ? "bg-petrol text-white" : "bg-pale-blue/45"}`}
-          aria-label={visited ? `Marcar ${title} como não visitado` : `Marcar ${title} como visitado`}
-          title={visited ? "Visitado" : "Marcar como visitado"}
-          disabled={saving}
-          onClick={() => update(visited ? "confirmed" : "done")}
-        >
-          <Footprints size={14} />
-        </button>
-      )}
+
       {error && <span className="sr-only" role="status">{error}</span>}
     </div>
   );
