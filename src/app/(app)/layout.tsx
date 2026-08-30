@@ -1,6 +1,7 @@
 import { OfflineSync } from "@/components/offline/offline-sync";
 import { BottomNav } from "@/components/navigation/bottom-nav";
 import { GlobalAdd } from "@/components/navigation/global-add";
+import { ContextBackButton } from "@/components/navigation/context-back-button";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
 import { getCurrentUser, getTripStops } from "@/lib/queries/trips";
 import { redirect } from "next/navigation";
@@ -17,6 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="mx-auto min-h-screen w-full max-w-[720px] px-5 pb-44 pt-5 md:px-8 md:pt-8">
       <OfflineSync tripId={trip?.id ?? null} />
+      <ContextBackButton />
       {children}
       <BottomNav
         action={

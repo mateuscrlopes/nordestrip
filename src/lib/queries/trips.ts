@@ -50,6 +50,30 @@ export const getTripStops = cache(async (tripId: string): Promise<Stop[]> => {
   return checked(await supabase.from("stops").select("*").eq("trip_id", tripId).is("archived_at", null).order("sort_order").order("sequence"), "Não foi possível carregar as cidades") as Stop[];
 });
 
+export async function getTripItineraryBundle(tripId: string) {
+  const supabase = await createClient();
+  const bundle = checked(
+    await supabase.rpc("get_trip_itinerary_bundle", { p_trip_id: tripId }),
+    "Não foi possível carregar o roteiro"
+  ) as Record<string, unknown> | null;
+
+  const array = <T,>(value: unknown) => Array.isArray(value) ? value as T[] : [];
+
+  return {
+    stops: array<Stop>(bundle?.stops),
+    days: array<ItineraryItem>(bundle?.days),
+    pending: array<PendingItem>(bundle?.pending),
+    transports: array<Transport>(bundle?.transports),
+    covers: array<CityCover>(bundle?.covers),
+    luggagePlans: array<LuggagePlanSummary>(bundle?.luggage_plans),
+    places: array<Record<string, unknown>>(bundle?.places),
+    preferences:
+      bundle?.preferences && typeof bundle.preferences === "object" && !Array.isArray(bundle.preferences)
+        ? bundle.preferences as TripPreferences
+        : null,
+  };
+}
+
 export async function getTripItinerary(tripId: string): Promise<ItineraryItem[]> {
   const supabase = await createClient();
   return checked(await supabase.from("v_itinerary_day").select("*").eq("trip_id", tripId).order("activity_date"), "Não foi possível carregar o roteiro") as ItineraryItem[];

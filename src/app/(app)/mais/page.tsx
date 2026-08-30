@@ -325,7 +325,7 @@ export default async function MorePage() {
         <section>
           <p className="settings-group-title">Sistema</p>
           <div className="settings-list">
-            <details className="group" open>
+            <details className="group">
               <summary>
                 <span className="settings-row-icon"><Plug size={17} /></span>
                 <span className="min-w-0 flex-1">
