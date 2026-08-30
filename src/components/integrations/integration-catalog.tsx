@@ -34,10 +34,10 @@ const catalog = [
   {
     key: "routing",
     title: "Mapas e rotas",
-    provider: "Provedor de mapas",
-    description: "Coordenadas, estimativas de trajeto e abertura da navegação externa.",
-    aliases: ["maps", "google_maps", "mapbox", "routing"],
-    purposes: ["routing", "maps", "location"],
+    provider: "MapTiler + openrouteservice",
+    description: "Mapa interno, circuitos e rotas reais a pé da viagem.",
+    aliases: ["maptiler_openrouteservice", "maptiler", "openrouteservice", "maps", "routing"],
+    purposes: ["maps_and_routes", "routing", "maps", "location"],
     icon: MapPinned,
   },
 ];
