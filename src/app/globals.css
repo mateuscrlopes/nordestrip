@@ -3770,3 +3770,78 @@ input:focus-visible {
   font-weight: 700;
   line-height: 1.2;
 }
+
+
+/* Circuit capacity */
+
+.trip-planning-note {
+  margin: .15rem 0 0;
+  color: #70787a;
+  font-size: .56rem;
+  line-height: 1.45;
+}
+
+.day-circuit-capacity {
+  display: grid;
+  gap: .38rem;
+  margin: .12rem 0 .55rem;
+}
+
+.day-capacity-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: .18rem .6rem;
+  border: 1px solid rgba(18, 56, 68, .07);
+  border-radius: 13px;
+  padding: .48rem .56rem;
+  background: rgba(247, 243, 236, .46);
+}
+
+.day-capacity-row > div strong,
+.day-capacity-row > div span,
+.day-capacity-row > small {
+  display: block;
+}
+
+.day-capacity-row > div strong {
+  color: #17282e;
+  font-size: .57rem;
+  font-weight: 700;
+}
+
+.day-capacity-row > div span {
+  margin-top: .08rem;
+  color: #526268;
+  font-size: .54rem;
+}
+
+.day-capacity-row > em {
+  align-self: center;
+  border-radius: 999px;
+  padding: .17rem .4rem;
+  font-size: .49rem;
+  font-style: normal;
+  font-weight: 750;
+}
+
+.day-capacity-row > small {
+  grid-column: 1 / -1;
+  color: #70787a;
+  font-size: .49rem;
+}
+
+.day-capacity-row--fit > em {
+  color: #123844;
+  background: rgba(220, 232, 235, .74);
+}
+
+.day-capacity-row--tight > em,
+.day-capacity-row--incomplete > em {
+  color: #6c5635;
+  background: rgba(215, 180, 131, .20);
+}
+
+.day-capacity-row--overflow > em {
+  color: #7a3e28;
+  background: rgba(122, 62, 40, .10);
+}

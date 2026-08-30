@@ -41,6 +41,54 @@ function optionalNumber(form: FormData, name: string) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+type PlanningWindows = {
+  morning_start: string;
+  morning_end: string;
+  afternoon_start: string;
+  afternoon_end: string;
+  evening_start: string;
+  evening_end: string;
+  meal_break_minutes: number;
+};
+
+const defaultPlanningWindows: PlanningWindows = {
+  morning_start: "08:00",
+  morning_end: "12:00",
+  afternoon_start: "12:00",
+  afternoon_end: "18:00",
+  evening_start: "18:00",
+  evening_end: "22:00",
+  meal_break_minutes: 60,
+};
+
+function planningWindows(extra?: Record<string, unknown>): PlanningWindows {
+  const value = extra?.planning_windows;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return defaultPlanningWindows;
+  const record = value as Record<string, unknown>;
+
+  return {
+    morning_start: typeof record.morning_start === "string" ? record.morning_start : defaultPlanningWindows.morning_start,
+    morning_end: typeof record.morning_end === "string" ? record.morning_end : defaultPlanningWindows.morning_end,
+    afternoon_start: typeof record.afternoon_start === "string" ? record.afternoon_start : defaultPlanningWindows.afternoon_start,
+    afternoon_end: typeof record.afternoon_end === "string" ? record.afternoon_end : defaultPlanningWindows.afternoon_end,
+    evening_start: typeof record.evening_start === "string" ? record.evening_start : defaultPlanningWindows.evening_start,
+    evening_end: typeof record.evening_end === "string" ? record.evening_end : defaultPlanningWindows.evening_end,
+    meal_break_minutes: typeof record.meal_break_minutes === "number"
+      ? record.meal_break_minutes
+      : defaultPlanningWindows.meal_break_minutes,
+  };
+}
+
+function timeValue(form: FormData, name: string, fallback: string) {
+  const raw = String(form.get(name) ?? "").trim();
+  return /^\d{2}:\d{2}$/.test(raw) ? raw : fallback;
+}
+
+function timeMinutes(value: string) {
+  const [hours, minutes] = value.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
 export function TripSettingsEditor({
   tripId,
   preferences,
@@ -53,6 +101,7 @@ export function TripSettingsEditor({
   const router = useRouter();
   const currentPreferences = preferences || ({ trip_id: tripId, ...defaultPreferences } as TripPreferences);
   const currentFinance = finance || ({ trip_id: tripId, ...defaultFinance } as TripFinanceSettings);
+  const currentPlanning = planningWindows(currentPreferences.extra);
 
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
@@ -61,6 +110,26 @@ export function TripSettingsEditor({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+
+    const nextPlanning: PlanningWindows = {
+      morning_start: timeValue(form, "morning_start", currentPlanning.morning_start),
+      morning_end: timeValue(form, "morning_end", currentPlanning.morning_end),
+      afternoon_start: timeValue(form, "afternoon_start", currentPlanning.afternoon_start),
+      afternoon_end: timeValue(form, "afternoon_end", currentPlanning.afternoon_end),
+      evening_start: timeValue(form, "evening_start", currentPlanning.evening_start),
+      evening_end: timeValue(form, "evening_end", currentPlanning.evening_end),
+      meal_break_minutes: numberValue(form, "meal_break_minutes", currentPlanning.meal_break_minutes),
+    };
+
+    if (
+      timeMinutes(nextPlanning.morning_end) <= timeMinutes(nextPlanning.morning_start) ||
+      timeMinutes(nextPlanning.afternoon_end) <= timeMinutes(nextPlanning.afternoon_start) ||
+      timeMinutes(nextPlanning.evening_end) <= timeMinutes(nextPlanning.evening_start) ||
+      nextPlanning.meal_break_minutes < 0
+    ) {
+      setError("Revise as janelas do roteiro: o fim precisa ser depois do início e a pausa não pode ser negativa.");
+      return;
+    }
 
     const payloadPreferences = {
       trip_id: tripId,
@@ -74,7 +143,10 @@ export function TripSettingsEditor({
       live_location_enabled: form.get("live_location_enabled") === "on",
       api_refresh_mode: String(form.get("api_refresh_mode") || "manual_when_stale"),
       offline_essential_data: form.get("offline_essential_data") === "on",
-      extra: currentPreferences.extra || {},
+      extra: {
+        ...(currentPreferences.extra || {}),
+        planning_windows: nextPlanning,
+      },
       updated_at: new Date().toISOString(),
     };
 
@@ -131,6 +203,52 @@ export function TripSettingsEditor({
           <option value="balanced">Equilibrado</option>
           <option value="full">Intenso</option>
         </select>
+      </section>
+
+      <section className="trip-settings-section trip-planning-settings">
+        <div className="trip-settings-finance-heading">
+          <strong>Janelas do roteiro</strong>
+          <span>Usadas para estimar quanto cabe em cada período sem transformar sugestões em horários fixos.</span>
+        </div>
+        <div className="trip-settings-grid">
+          <label>
+            <span>Manhã · início</span>
+            <input name="morning_start" type="time" defaultValue={currentPlanning.morning_start} />
+          </label>
+          <label>
+            <span>Manhã · fim</span>
+            <input name="morning_end" type="time" defaultValue={currentPlanning.morning_end} />
+          </label>
+          <label>
+            <span>Tarde · início</span>
+            <input name="afternoon_start" type="time" defaultValue={currentPlanning.afternoon_start} />
+          </label>
+          <label>
+            <span>Tarde · fim</span>
+            <input name="afternoon_end" type="time" defaultValue={currentPlanning.afternoon_end} />
+          </label>
+          <label>
+            <span>Noite · início</span>
+            <input name="evening_start" type="time" defaultValue={currentPlanning.evening_start} />
+          </label>
+          <label>
+            <span>Noite · fim</span>
+            <input name="evening_end" type="time" defaultValue={currentPlanning.evening_end} />
+          </label>
+          <label>
+            <span>Pausa mínima para refeição</span>
+            <input
+              name="meal_break_minutes"
+              type="number"
+              min="0"
+              defaultValue={currentPlanning.meal_break_minutes}
+            />
+            <small>minutos</small>
+          </label>
+        </div>
+        <p className="trip-planning-note">
+          A pausa é reservada nos blocos de tarde e noite. Tempo de deslocamento entre locais só entra quando o mapa tiver dados de rota.
+        </p>
       </section>
 
       <section className="trip-settings-section trip-settings-grid">

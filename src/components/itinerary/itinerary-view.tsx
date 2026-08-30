@@ -5,7 +5,7 @@ import { RecordStatus, itineraryStatusOptions } from "@/components/actions/recor
 import { RouteCityManager } from "@/components/itinerary/route-city-manager";
 import { createClient } from "@/lib/supabase/client";
 import { formatDate } from "@/lib/utils/format";
-import type { CityCover, ItineraryItem, LuggagePlanSummary, PendingItem, Stop, Transport } from "@/types/trip";
+import type { CityCover, ItineraryItem, LuggagePlanSummary, PendingItem, Stop, Transport, TripPreferences } from "@/types/trip";
 import {
   ArrowDown,
   ArrowRight,
@@ -78,6 +78,125 @@ function ideaPriority(priority: unknown) {
   return { key: "medium", label: "Complemento" };
 }
 
+type ItineraryPlanningWindows = {
+  morning_start: string;
+  morning_end: string;
+  afternoon_start: string;
+  afternoon_end: string;
+  evening_start: string;
+  evening_end: string;
+  meal_break_minutes: number;
+};
+
+const defaultItineraryPlanningWindows: ItineraryPlanningWindows = {
+  morning_start: "08:00",
+  morning_end: "12:00",
+  afternoon_start: "12:00",
+  afternoon_end: "18:00",
+  evening_start: "18:00",
+  evening_end: "22:00",
+  meal_break_minutes: 60,
+};
+
+function itineraryPlanningWindows(preferences: TripPreferences | null): ItineraryPlanningWindows {
+  const raw = preferences?.extra?.planning_windows;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return defaultItineraryPlanningWindows;
+  const value = raw as Record<string, unknown>;
+
+  return {
+    morning_start: typeof value.morning_start === "string" ? value.morning_start : defaultItineraryPlanningWindows.morning_start,
+    morning_end: typeof value.morning_end === "string" ? value.morning_end : defaultItineraryPlanningWindows.morning_end,
+    afternoon_start: typeof value.afternoon_start === "string" ? value.afternoon_start : defaultItineraryPlanningWindows.afternoon_start,
+    afternoon_end: typeof value.afternoon_end === "string" ? value.afternoon_end : defaultItineraryPlanningWindows.afternoon_end,
+    evening_start: typeof value.evening_start === "string" ? value.evening_start : defaultItineraryPlanningWindows.evening_start,
+    evening_end: typeof value.evening_end === "string" ? value.evening_end : defaultItineraryPlanningWindows.evening_end,
+    meal_break_minutes: typeof value.meal_break_minutes === "number"
+      ? value.meal_break_minutes
+      : defaultItineraryPlanningWindows.meal_break_minutes,
+  };
+}
+
+function clockMinutes(value: string) {
+  const [hours, minutes] = value.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function periodCapacity(period: unknown, windows: ItineraryPlanningWindows) {
+  if (period === "morning") {
+    return Math.max(0, clockMinutes(windows.morning_end) - clockMinutes(windows.morning_start));
+  }
+  if (period === "afternoon") {
+    return Math.max(
+      0,
+      clockMinutes(windows.afternoon_end) - clockMinutes(windows.afternoon_start) - windows.meal_break_minutes
+    );
+  }
+  if (period === "evening") {
+    return Math.max(
+      0,
+      clockMinutes(windows.evening_end) - clockMinutes(windows.evening_start) - windows.meal_break_minutes
+    );
+  }
+  return 0;
+}
+
+function compactDuration(minutes: number) {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (!hours) return `${rest}min`;
+  if (!rest) return `${hours}h`;
+  return `${hours}h${String(rest).padStart(2, "0")}`;
+}
+
+function principalPeriodCapacity(
+  items: ItineraryItem[],
+  date: string,
+  placeById: Map<string, ItineraryPlace>,
+  windows: ItineraryPlanningWindows
+) {
+  return ["morning", "afternoon", "evening"]
+    .map((period) => {
+      const principal = items.filter((item) => {
+        if (item.period !== period || item.priority !== "high") return false;
+        const placeId = typeof item.place_id === "string" ? item.place_id : null;
+        const availability = placeAvailability(placeId ? placeById.get(placeId) : undefined, date);
+        return availability.status !== "closed";
+      });
+      if (!principal.length) return null;
+
+      let min = 0;
+      let max = 0;
+      let missing = 0;
+
+      for (const item of principal) {
+        const minValue = typeof item.duration_min === "number" ? item.duration_min : null;
+        const maxValue = typeof item.duration_max === "number" ? item.duration_max : minValue;
+        if (minValue == null || maxValue == null) {
+          missing += 1;
+          continue;
+        }
+        min += minValue;
+        max += maxValue;
+      }
+
+      const capacity = periodCapacity(period, windows);
+      let state: "fit" | "tight" | "overflow" | "incomplete" = "fit";
+      if (missing > 0) state = "incomplete";
+      else if (min > capacity) state = "overflow";
+      else if (max > capacity) state = "tight";
+
+      return { period, min, max, missing, capacity, state };
+    })
+    .filter(Boolean) as Array<{
+      period: string;
+      min: number;
+      max: number;
+      missing: number;
+      capacity: number;
+      state: "fit" | "tight" | "overflow" | "incomplete";
+    }>;
+}
+
 function placeAvailability(place: ItineraryPlace | undefined, date: string) {
   if (!place || date === "Sem data") {
     return { status: "confirm" as const, label: "Confirmar funcionamento" };
@@ -124,6 +243,7 @@ export function ItineraryView({
   covers,
   luggagePlans,
   places,
+  preferences,
 }: {
   tripId: string;
   stops: Stop[];
@@ -133,6 +253,7 @@ export function ItineraryView({
   covers: CityCover[];
   luggagePlans: LuggagePlanSummary[];
   places: Record<string, unknown>[];
+  preferences: TripPreferences | null;
 }) {
   const router = useRouter();
   const [view, setView] = useState<"cities" | "days">("cities");
@@ -157,6 +278,11 @@ export function ItineraryView({
       (places as unknown as ItineraryPlace[]).map((place) => [place.id, place])
     ),
     [places]
+  );
+
+  const planningWindows = useMemo(
+    () => itineraryPlanningWindows(preferences),
+    [preferences]
   );
 
   const grouped = useMemo(
@@ -539,6 +665,7 @@ export function ItineraryView({
                 openCount: availability.filter((item) => item.status === "open").length,
                 confirmCount: availability.filter((item) => item.status === "confirm").length,
                 closedCount: availability.filter((item) => item.status === "closed").length,
+                capacity: principalPeriodCapacity(sortedItems, date, placeById, planningWindows),
               };
             });
 
@@ -639,6 +766,33 @@ export function ItineraryView({
                               {circuit.closedCount > 0 && <span className="is-closed">{circuit.closedCount} fechados</span>}
                             </div>
                           </div>
+
+                          {circuit.capacity.length > 0 && (
+                            <div className="day-circuit-capacity">
+                              {circuit.capacity.map((summary) => (
+                                <div key={summary.period} className={`day-capacity-row day-capacity-row--${summary.state}`}>
+                                  <div>
+                                    <strong>{periodLabel(summary.period)}</strong>
+                                    <span>
+                                      Principais {summary.missing
+                                        ? `${summary.missing} sem duração completa`
+                                        : `${compactDuration(summary.min)}–${compactDuration(summary.max)}`}
+                                    </span>
+                                  </div>
+                                  <em>
+                                    {summary.state === "fit" && "Cabe"}
+                                    {summary.state === "tight" && "Apertado"}
+                                    {summary.state === "overflow" && "Não cabe"}
+                                    {summary.state === "incomplete" && "Incompleto"}
+                                  </em>
+                                  <small>
+                                    Janela útil {compactDuration(summary.capacity)} · deslocamento não incluído
+                                  </small>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
                           {circuit.items.map((item, index) => {
                             const placeId = typeof item.place_id === "string" ? item.place_id : null;
                             const availability = placeAvailability(placeId ? placeById.get(placeId) : undefined, date);
