@@ -114,9 +114,9 @@ export default async function HomePage() {
 
   const shortcuts = [
     { href: "/roteiro", label: "Roteiro", icon: CalendarDays },
-    { href: "/mais", label: "Reservas", icon: TicketCheck },
+    { href: "/mais?section=reservas#reservas", label: "Reservas", icon: TicketCheck },
     { href: "/dinheiro", label: "Dinheiro", icon: Banknote },
-    { href: "/mais", label: "Pendências", icon: ClipboardList },
+    { href: "/mais?section=pendencias#pendencias", label: "Pendências", icon: ClipboardList },
   ];
 
   const coverStyle = heroImage
@@ -202,7 +202,7 @@ export default async function HomePage() {
           <div className="section-heading">
             <h2>Próxima decisão</h2>
           </div>
-          <Link href="/mais" className="decision-row group">
+          <Link href="/mais?section=pendencias#pendencias" className="decision-row group">
             <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-sand/28 text-petrol">
               <CheckCircle2 size={18} strokeWidth={1.8} />
             </span>
@@ -255,11 +255,11 @@ export default async function HomePage() {
         <section className="pb-2">
           <div className="section-heading">
             <h2>Alertas</h2>
-            <Link href="/mais">Ver todos</Link>
+            <Link href="/mais?section=pendencias#pendencias">Ver todos</Link>
           </div>
           <div className="divide-y divide-petrol/8 rounded-[22px] bg-surface/72 px-5">
             {pending.slice(1, 4).map((item) => (
-              <Link key={item.id} href="/mais" className="flex min-h-12 items-center justify-between gap-4 py-4">
+              <Link key={item.id} href="/mais?section=pendencias#pendencias" className="flex min-h-12 items-center justify-between gap-4 py-4">
                 <span className="line-clamp-2 text-sm font-medium">{item.title}</span>
                 <ChevronRight size={17} className="shrink-0 text-muted" />
               </Link>
