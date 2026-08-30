@@ -224,6 +224,15 @@ function mealCategory(category?: string | null) {
   return ["restaurant", "cafe", "bakery", "bar"].includes(category || "");
 }
 
+function itineraryState(item?: CatalogItineraryItem) {
+  if (!item) return null;
+  if (item.status === "confirmed") return "Confirmado";
+  if (item.status === "planned") return "Planejado";
+  if (item.priority === "high") return "Principal";
+  if (item.priority === "low") return "Alternativa";
+  return "Complemento";
+}
+
 function assessDate(
   place: CatalogPlace,
   date: string,
@@ -391,6 +400,28 @@ export function PlacesExplorer({
     window.setTimeout(() => setNotice(""), 2200);
   }
 
+  async function moveItineraryItem(item: CatalogItineraryItem, place: CatalogPlace, date: string) {
+    setSavingDate(date);
+    setError("");
+    const supabase = createClient();
+    const { error: updateError } = await supabase
+      .from("itinerary_items")
+      .update({ activity_date: date })
+      .eq("id", item.id);
+
+    if (updateError) {
+      setError(updateError.message);
+      setSavingDate(null);
+      return;
+    }
+
+    setSavingDate(null);
+    setSelectedPlace(null);
+    setNotice(`${place.name} movido para ${dateLabel(date)}`);
+    router.refresh();
+    window.setTimeout(() => setNotice(""), 2200);
+  }
+
   return (
     <>
       <div className="places-city-tabs" aria-label="Cidades da viagem">
@@ -468,12 +499,17 @@ export function PlacesExplorer({
             const travelDates = rangeDates(stop?.start_date, stop?.end_date);
             const officialSource = sourceUrl(place);
             const map = mapsUrl(place);
+            const itineraryEntry = currentItinerary.find(
+              (item) => item.place_id === place.id && item.status !== "cancelled"
+            );
+            const routeState = itineraryState(itineraryEntry);
 
             return (
               <article key={place.id} className="place-catalog-card">
                 <div className="place-catalog-topline">
                   <span>{categoryLabels[place.category || "other"] || place.category || "Local"}</span>
                   {area && <em>{area}</em>}
+                  {routeState && <em className="is-itinerary">No roteiro · {routeState}</em>}
                 </div>
 
                 <h2>{place.name}</h2>
@@ -543,7 +579,7 @@ export function PlacesExplorer({
                   </div>
                   <button type="button" onClick={() => { setSelectedPlace(place); setError(""); }}>
                     <CalendarPlus size={15} />
-                    Adicionar ao roteiro
+                    {itineraryEntry ? "Ajustar no roteiro" : "Adicionar ao roteiro"}
                   </button>
                 </div>
               </article>
@@ -559,12 +595,17 @@ export function PlacesExplorer({
 
       {notice && <div className="add-toast" role="status">{notice}</div>}
 
-      {selectedPlace && (
+      {selectedPlace && (() => {
+        const existingEntry = currentItinerary.find(
+          (item) => item.place_id === selectedPlace.id && item.status !== "cancelled"
+        );
+
+        return (
         <div className="add-overlay" onClick={() => setSelectedPlace(null)}>
           <section className="add-sheet" onClick={(event) => event.stopPropagation()}>
             <div className="add-sheet-header">
               <div>
-                <h2>Adicionar ao roteiro</h2>
+                <h2>{existingEntry ? "Ajustar no roteiro" : "Adicionar ao roteiro"}</h2>
                 <p>{selectedPlace.name}</p>
               </div>
               <button type="button" className="add-icon-button" aria-label="Fechar" onClick={() => setSelectedPlace(null)}>
@@ -576,6 +617,7 @@ export function PlacesExplorer({
               {selectedDateAssessments.map((assessment) => {
                 const { date, dayItems, fixedCount, totalMinutes } = assessment;
                 const alreadyAdded = dayItems.some((item) => item.place_id === selectedPlace.id);
+                const isCurrentDate = existingEntry?.activity_date === date;
                 const hours = currentHours(selectedPlace, date);
                 const isRecommended = recommendedDate === date;
 
@@ -599,15 +641,23 @@ export function PlacesExplorer({
                         </small>
                       )}
                     </div>
-                    {alreadyAdded ? (
-                      <span className="place-date-added"><Check size={14} /> Já está</span>
+                    {isCurrentDate || alreadyAdded ? (
+                      <span className="place-date-added"><Check size={14} /> Neste dia</span>
                     ) : (
                       <button
                         type="button"
                         disabled={savingDate === date || assessment.blocked}
-                        onClick={() => addToItinerary(selectedPlace, date)}
+                        onClick={() =>
+                          existingEntry
+                            ? moveItineraryItem(existingEntry, selectedPlace, date)
+                            : addToItinerary(selectedPlace, date)
+                        }
                       >
-                        {savingDate === date ? "Adicionando..." : assessment.blocked ? "Fechado" : "Escolher"}
+                        {savingDate === date
+                          ? existingEntry ? "Movendo..." : "Adicionando..."
+                          : assessment.blocked
+                            ? "Fechado"
+                            : existingEntry ? "Mover" : "Escolher"}
                       </button>
                     )}
                   </div>
@@ -621,7 +671,8 @@ export function PlacesExplorer({
             {error && <p className="add-error" role="alert">{error}</p>}
           </section>
         </div>
-      )}
+        );
+      })()}
     </>
   );
 }
