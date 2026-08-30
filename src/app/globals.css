@@ -3670,3 +3670,36 @@ input:focus-visible {
     justify-content: flex-start;
   }
 }
+
+
+/* Suggested itinerary priority */
+
+.day-idea-title-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .35rem;
+}
+
+.day-idea-priority {
+  border-radius: 999px;
+  padding: .16rem .4rem;
+  font-size: .49rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.day-idea-priority--high {
+  color: #123844;
+  background: rgba(220, 232, 235, .78);
+}
+
+.day-idea-priority--medium {
+  color: #526268;
+  background: rgba(220, 232, 235, .38);
+}
+
+.day-idea-priority--low {
+  color: #6c5635;
+  background: rgba(215, 180, 131, .18);
+}
