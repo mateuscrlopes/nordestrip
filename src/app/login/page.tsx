@@ -87,14 +87,14 @@ export default function LoginPage() {
     <main className="login-shell grid min-h-screen place-items-center px-5 py-10 sm:py-12">
       <section className="w-full max-w-sm">
         <div className="mb-9 flex flex-col items-center gap-2.5 text-center">
-          <div className="grid h-[72px] w-[104px] place-items-center overflow-hidden">
+          <div className="grid h-[82px] w-[116px] place-items-center">
             <Image
               src="/ghumat-mark.png"
               alt=""
               width={104}
               height={72}
               priority
-              className="h-full w-full object-contain"
+              className="h-[72px] w-[104px] object-contain"
             />
           </div>
           <span className="text-[1.75rem] font-semibold leading-none tracking-[-.055em] text-ink">
