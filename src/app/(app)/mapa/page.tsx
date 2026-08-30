@@ -55,13 +55,14 @@ function directionsUrls(places: Record<string, unknown>[]) {
   const point = (place: Record<string, unknown>) =>
     `${coordinateValue(place.latitude)},${coordinateValue(place.longitude)}`;
 
-  // Maps URLs support up to 3 waypoints in mobile browsers.
-  // Keep each segment at a maximum of 5 locations: origin + 3 waypoints + destination.
+  // Keep up to 10 ordered locations in one external route. Larger circuits
+  // continue from the previous destination so no point disappears between parts.
+  const maxLocations = 10;
   const chunks: Record<string, unknown>[][] = [];
   let start = 0;
 
   while (start < located.length - 1) {
-    const end = Math.min(start + 4, located.length - 1);
+    const end = Math.min(start + maxLocations - 1, located.length - 1);
     chunks.push(located.slice(start, end + 1));
     start = end;
   }
@@ -279,8 +280,8 @@ export default async function MapPage({ searchParams }: MapPageProps) {
             <div className="min-w-0 flex-1">
               <h2>Geografia do roteiro</h2>
               <p>
-                {withCoordinates.length} de {places.length} locais já têm coordenadas ({coordinateCoverage}%).
-                O mapa interno usa MapTiler e os circuitos selecionados calculam distância e tempo a pé pelo openrouteservice.
+                {withCoordinates.length} de {places.length} locais já estão prontos no mapa ({coordinateCoverage}%).
+                Os circuitos organizam os pontos na ordem da visita e mostram uma estimativa de percurso a pé.
               </p>
               <div className="map-coverage-bar" aria-label={`${coordinateCoverage}% dos locais com coordenadas`}>
                 <span style={{ width: `${coordinateCoverage}%` }} />
@@ -309,7 +310,7 @@ export default async function MapPage({ searchParams }: MapPageProps) {
                     <span className="map-circuit-icon"><Route size={17} /></span>
                     <div className="min-w-0 flex-1">
                       <strong>{circuit.label}</strong>
-                      <small>{circuit.city} · {circuit.places.length} pontos georreferenciados</small>
+                      <small>{circuit.city} · {circuit.places.length} pontos na rota</small>
                     </div>
                     {routes.length > 0 && (
                       <div className="map-circuit-actions">
@@ -332,7 +333,7 @@ export default async function MapPage({ searchParams }: MapPageProps) {
               })}
             </div>
             <p className="map-circuit-note">
-              Os links externos continuam disponíveis para navegação. No mapa interno, circuitos urbanos selecionados usam rota real a pé; passeios de embarcação e bate-voltas ficam fora desse cálculo.
+              Até 10 pontos seguem juntos em uma única rota no Google Maps. Circuitos maiores são divididos em poucos trechos contínuos, sem perder a sequência da visita.
             </p>
           </section>
         )}
