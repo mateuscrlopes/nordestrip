@@ -77,6 +77,29 @@ export async function getStopDetails(stopId: string) {
   for (const [label, result] of [["hospedagem", accommodation], ["bagagem", luggage], ["atividades", activities], ["pendências", pending], ["chegada", inbound], ["saída", outbound], ["opções de hospedagem", accommodationQuotes]] as const) {
     if (result.error) throw new Error(`Não foi possível carregar ${label}: ${result.error.message}`);
   }
+  let transportQuotes: Record<string, unknown>[] = [];
+  if (
+    outbound.data?.mode === "bus" &&
+    outbound.data.origin_stop_id &&
+    outbound.data.destination_stop_id
+  ) {
+    const quotes = await supabase
+      .from("transport_quotes")
+      .select("id,provider,external_id,departure_at,arrival_at,duration_minutes,operator,service_class,origin_terminal_name,destination_terminal_name,total_amount,currency,seats_available,source_url,queried_at")
+      .eq("trip_id", stop.trip_id)
+      .eq("origin_stop_id", outbound.data.origin_stop_id)
+      .eq("destination_stop_id", outbound.data.destination_stop_id)
+      .eq("provider", "geckoapi_clickbus")
+      .is("archived_at", null)
+      .order("queried_at", { ascending: false })
+      .limit(12);
+
+    if (quotes.error) {
+      throw new Error(`Não foi possível carregar as opções de ônibus: ${quotes.error.message}`);
+    }
+    transportQuotes = quotes.data ?? [];
+  }
+
   const luggagePlans = luggage.data ?? [];
   const accommodations = accommodation.data ?? [];
   const selectedAccommodation =
@@ -94,6 +117,7 @@ export async function getStopDetails(stopId: string) {
     inbound: inbound.data,
     outbound: outbound.data,
     accommodationQuotes: accommodationQuotes.data ?? [],
+    transportQuotes,
   };
 }
 

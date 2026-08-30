@@ -3,6 +3,7 @@ import { RecordStatus, accommodationStatusOptions, itineraryStatusOptions, pendi
 import { LuggagePlanEditor } from "@/components/logistics/luggage-plan-editor";
 import { AccommodationEditor } from "@/components/lodging/accommodation-editor";
 import { AccommodationSearch } from "@/components/lodging/accommodation-search";
+import { BusSearch } from "@/components/transport/bus-search";
 import { getStopDetails, getTripCityCovers, getTripPreferences } from "@/lib/queries/trips";
 import { formatDate, formatDateTime, formatTime, valueText } from "@/lib/utils/format";
 import {
@@ -62,6 +63,7 @@ export default async function CityPage({
     inbound,
     outbound,
     accommodationQuotes,
+    transportQuotes,
   } = data;
 
   const [covers, preferences] = await Promise.all([
@@ -577,6 +579,32 @@ export default async function CityPage({
             )}
           </div>
         </div>
+
+        {outbound?.mode === "bus" && outbound.origin_stop_id && outbound.destination_stop_id && (
+          <BusSearch
+            tripId={stop.trip_id}
+            transportId={String(outbound.id)}
+            originLabel={city}
+            destinationLabel={valueText(outbound.destination_label) || "Próximo destino"}
+            transportStatus={String(outbound.status || "planned")}
+            initialQuotes={transportQuotes.map((quote) => ({
+              id: String(quote.id),
+              externalId: quote.external_id ? String(quote.external_id) : null,
+              departureAt: quote.departure_at ? String(quote.departure_at) : null,
+              arrivalAt: quote.arrival_at ? String(quote.arrival_at) : null,
+              durationMinutes: quote.duration_minutes == null ? null : Number(quote.duration_minutes),
+              operator: quote.operator ? String(quote.operator) : null,
+              serviceClass: quote.service_class ? String(quote.service_class) : null,
+              originTerminalName: quote.origin_terminal_name ? String(quote.origin_terminal_name) : null,
+              destinationTerminalName: quote.destination_terminal_name ? String(quote.destination_terminal_name) : null,
+              farePerPassenger: quote.total_amount == null ? null : Number(quote.total_amount),
+              currency: String(quote.currency || "BRL"),
+              seatsAvailable: quote.seats_available == null ? null : Number(quote.seats_available),
+              sourceUrl: quote.source_url ? String(quote.source_url) : null,
+              queriedAt: String(quote.queried_at),
+            }))}
+          />
+        )}
       </section>
     </div>
   );
