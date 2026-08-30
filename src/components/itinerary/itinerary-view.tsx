@@ -507,7 +507,7 @@ export function ItineraryView({
 
   return (
     <>
-      <div className="segment-control mb-7" role="tablist" aria-label="Visualização do roteiro">
+      <div className="segment-control mb-5" role="tablist" aria-label="Visualização do roteiro">
         <button
           type="button"
           role="tab"
@@ -721,10 +721,13 @@ export function ItineraryView({
           </div>
         </>
       ) : (
-        <div className="space-y-8">
-          {Object.entries(grouped).map(([date, items]) => {
+        <div className="day-list">
+          {Object.entries(grouped).map(([date, items], dayIndex, entries) => {
             const firstStop = items.find((item) => item.stop_id)?.stop_id;
             const stop = firstStop ? stopById.get(firstStop) : undefined;
+            const previousItems = dayIndex > 0 ? entries[dayIndex - 1]?.[1] ?? [] : [];
+            const previousStopId = previousItems.find((item) => item.stop_id)?.stop_id;
+            const startsNewCity = Boolean(stop && stop.id !== previousStopId);
             const plannedItems = items.filter((item) => item.status !== "idea");
             const ideaItems = items.filter((item) => item.status === "idea");
             const ideaCircuits = Array.from(
@@ -777,13 +780,29 @@ export function ItineraryView({
             });
 
             return (
-              <section key={date}>
+              <section
+                key={date}
+                className={startsNewCity ? "day-section day-section--city-start" : "day-section"}
+              >
+                {startsNewCity && stop && (
+                  <div className="day-city-divider">
+                    <span className="day-city-divider-icon"><MapPin size={14} /></span>
+                    <div>
+                      <small>Cidade</small>
+                      <strong>{cityName(stop)}</strong>
+                    </div>
+                  </div>
+                )}
+
                 <div className="day-heading">
                   <div>
-                    <p>{date === "Sem data" ? "Sem data" : formatDate(date)}</p>
-                    {stop && <h2>{cityName(stop)}</h2>}
+                    <p>{stop ? cityName(stop) : "Roteiro"}</p>
+                    <h2>{date === "Sem data" ? "Sem data" : formatDate(date)}</h2>
                   </div>
-                  <CalendarDays size={18} />
+                  <div className="day-heading-meta">
+                    <span>{items.length} {items.length === 1 ? "item" : "itens"}</span>
+                    <CalendarDays size={17} />
+                  </div>
                 </div>
 
                 <div className="day-timeline">
@@ -798,7 +817,7 @@ export function ItineraryView({
                           <i />
                         </div>
 
-                        <div className="min-w-0 flex-1 pb-5">
+                        <div className="min-w-0 flex-1 pb-3">
                           <div className="flex items-start justify-between gap-4">
                             <div>
                               <p className="text-[15px] font-semibold leading-5">
