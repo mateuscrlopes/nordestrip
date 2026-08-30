@@ -47,26 +47,42 @@ function circuitLabel(place: Record<string, unknown>) {
   return typeof value === "string" && value ? value : null;
 }
 
-function directionsUrl(places: Record<string, unknown>[]) {
+function directionsUrls(places: Record<string, unknown>[]) {
   const located = places.filter((place) => hasCoordinates(place.latitude, place.longitude));
-  if (located.length < 2) return null;
+  if (located.length < 2) return [];
 
   const point = (place: Record<string, unknown>) =>
     `${coordinateValue(place.latitude)},${coordinateValue(place.longitude)}`;
 
-  const origin = point(located[0]);
-  const destination = point(located[located.length - 1]);
-  const waypoints = located.slice(1, -1).map(point).join("|");
+  // Maps URLs support up to 3 waypoints in mobile browsers.
+  // Keep each segment at a maximum of 5 locations: origin + 3 waypoints + destination.
+  const chunks: Record<string, unknown>[][] = [];
+  let start = 0;
 
-  const params = new URLSearchParams({
-    api: "1",
-    origin,
-    destination,
-    travelmode: "walking",
+  while (start < located.length - 1) {
+    const end = Math.min(start + 4, located.length - 1);
+    chunks.push(located.slice(start, end + 1));
+    start = end;
+  }
+
+  return chunks.map((chunk, index) => {
+    const origin = point(chunk[0]);
+    const destination = point(chunk[chunk.length - 1]);
+    const waypoints = chunk.slice(1, -1).map(point).join("|");
+
+    const params = new URLSearchParams({
+      api: "1",
+      origin,
+      destination,
+      travelmode: "walking",
+    });
+    if (waypoints) params.set("waypoints", waypoints);
+
+    return {
+      label: chunks.length === 1 ? "Abrir rota" : `Trecho ${index + 1}`,
+      url: `https://www.google.com/maps/dir/?${params.toString()}`,
+    };
   });
-  if (waypoints) params.set("waypoints", waypoints);
-
-  return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
 
 type OperationalLocation = {
@@ -225,7 +241,7 @@ export default async function MapPage() {
             </div>
             <div className="map-circuit-list">
               {circuitGroups.map((circuit) => {
-                const url = directionsUrl(circuit.places);
+                const routes = directionsUrls(circuit.places);
                 return (
                   <div key={`${circuit.city}-${circuit.label}`} className="map-circuit-card">
                     <span className="map-circuit-icon"><Route size={17} /></span>
@@ -233,11 +249,21 @@ export default async function MapPage() {
                       <strong>{circuit.label}</strong>
                       <small>{circuit.city} · {circuit.places.length} pontos georreferenciados</small>
                     </div>
-                    {url && (
-                      <a href={url} target="_blank" rel="noreferrer" aria-label={`Abrir circuito ${circuit.label} no Google Maps`}>
-                        <Navigation size={16} />
-                        Abrir rota
-                      </a>
+                    {routes.length > 0 && (
+                      <div className="map-circuit-actions">
+                        {routes.map((route) => (
+                          <a
+                            key={route.label}
+                            href={route.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            aria-label={`${route.label} de ${circuit.label} no Google Maps`}
+                          >
+                            <Navigation size={16} />
+                            {route.label}
+                          </a>
+                        ))}
+                      </div>
                     )}
                   </div>
                 );
