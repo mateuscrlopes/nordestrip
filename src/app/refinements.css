@@ -1,4 +1,13 @@
-/* Small-screen itinerary refinements: keep actions secondary to content. */
+/* Itinerary refinements: keep actions secondary to content and explain time estimates. */
+.day-circuit-capacity::before {
+  content: "Tempo estimado — soma o tempo das visitas principais e a caminhada entre elas. ‘Cabe’ significa que tudo entra no período do dia.";
+  display: block;
+  margin-bottom: .15rem;
+  color: #70787a;
+  font-size: .56rem;
+  line-height: 1.45;
+}
+
 @media (max-width: 640px) {
   .section-heading + .space-y-1 .add-icon-button {
     width: 1.75rem;
@@ -11,19 +20,21 @@
     height: 1.75rem;
   }
 
+  .section-heading + .space-y-1 > div {
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: .6rem;
+  }
+
+  .section-heading + .space-y-1 > div > div:last-child > div:first-child {
+    gap: .45rem;
+  }
+
   .day-idea-row {
     gap: .45rem;
   }
 
   .day-idea-actions {
     gap: .25rem;
-  }
-
-  .day-idea-actions .record-status select {
-    min-height: 28px;
-    max-width: 7.2rem;
-    padding: .28rem 1.45rem .28rem .52rem;
-    font-size: .6rem;
   }
 
   .day-idea-actions .record-actions-trigger {
