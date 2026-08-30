@@ -2,6 +2,7 @@
 
 import { RefreshCw, WalletCards } from "lucide-react";
 import { useRouter } from "next/navigation";
+import PluggyConnect from "pluggy-connect-sdk";
 import { useState } from "react";
 
 type PluggySuccessData = {
@@ -39,7 +40,6 @@ export function PluggyConnectButton({
         throw new Error(tokenData.error || "Não foi possível iniciar a conexão.");
       }
 
-      const { default: PluggyConnect } = await import("pluggy-connect-sdk");
       const widget = new PluggyConnect({
         connectToken: tokenData.accessToken,
         includeSandbox: false,
