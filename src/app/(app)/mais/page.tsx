@@ -335,7 +335,11 @@ export default async function MorePage() {
                 <ChevronRight size={17} className="settings-chevron" />
               </summary>
               <div className="settings-detail settings-detail--wide">
-                <IntegrationCatalog connections={more.integrations} />
+                <IntegrationCatalog
+                  connections={more.integrations}
+                  tripId={trip?.id ?? ""}
+                  pluggyConfigured={Boolean(process.env.PLUGGY_CLIENT_ID && process.env.PLUGGY_CLIENT_SECRET)}
+                />
               </div>
             </details>
 
