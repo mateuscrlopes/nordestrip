@@ -1,7 +1,15 @@
 "use client";
 
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Navigation, TriangleAlert } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+
+declare global {
+  interface Window {
+    google?: any;
+    __nordestripGoogleMapsPromise?: Promise<void>;
+    __nordestripGoogleMapsReady?: () => void;
+  }
+}
 
 type MapPlace = {
   id: string;
@@ -17,20 +25,76 @@ type MapPlace = {
   confidence: "verified" | "approximate" | null;
 };
 
+type RouteSummary = {
+  distanceMeters: number;
+  durationMillis: number;
+};
+
 function googleMapsUrl(place: MapPlace) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     `${place.latitude},${place.longitude}`
   )}`;
 }
 
-export function TripMap({ places }: { places: MapPlace[] }) {
+function loadGoogleMaps(apiKey: string) {
+  if (typeof window === "undefined") {
+    return Promise.reject(new Error("Google Maps só pode ser carregado no navegador."));
+  }
+  if (window.google?.maps?.importLibrary) return Promise.resolve();
+  if (window.__nordestripGoogleMapsPromise) return window.__nordestripGoogleMapsPromise;
+
+  window.__nordestripGoogleMapsPromise = new Promise<void>((resolve, reject) => {
+    const callbackName = "__nordestripGoogleMapsReady";
+    window.__nordestripGoogleMapsReady = () => {
+      resolve();
+      delete window.__nordestripGoogleMapsReady;
+    };
+
+    const script = document.createElement("script");
+    script.async = true;
+    script.defer = true;
+    script.src =
+      `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&v=weekly&loading=async&callback=${callbackName}`;
+    script.onerror = () => {
+      window.__nordestripGoogleMapsPromise = undefined;
+      reject(new Error("Não foi possível carregar o Google Maps."));
+    };
+    document.head.appendChild(script);
+  });
+
+  return window.__nordestripGoogleMapsPromise;
+}
+
+function formatDistance(meters: number) {
+  if (meters < 1000) return `${Math.round(meters)} m`;
+  return `${(meters / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km`;
+}
+
+function formatDuration(milliseconds: number) {
+  const minutes = Math.max(1, Math.round(milliseconds / 60000));
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+
+  if (!hours) return `${minutes} min`;
+  if (!rest) return `${hours}h`;
+  return `${hours}h ${rest}min`;
+}
+
+export function TripMap({ places, apiKey }: { places: MapPlace[]; apiKey: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<import("leaflet").Map | null>(null);
-  const layerRef = useRef<import("leaflet").LayerGroup | null>(null);
+  const mapRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+  const polylinesRef = useRef<any[]>([]);
+  const infoWindowRef = useRef<any>(null);
+  const renderVersionRef = useRef(0);
+
   const [city, setCity] = useState("all");
   const [circuit, setCircuit] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(places[0]?.id ?? null);
   const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState("");
+  const [routeSummary, setRouteSummary] = useState<RouteSummary | null>(null);
+  const [routeState, setRouteState] = useState<"idle" | "loading" | "ready" | "unavailable">("idle");
 
   const cities = useMemo(
     () => Array.from(new Set(places.map((place) => place.city))).sort((a, b) => a.localeCompare(b, "pt-BR")),
@@ -58,106 +122,203 @@ export function TripMap({ places }: { places: MapPlace[] }) {
   const selected = places.find((place) => place.id === selectedId) ?? null;
 
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
+    if (!apiKey || !containerRef.current || mapRef.current) return;
 
     let cancelled = false;
 
-    import("leaflet").then((L) => {
-      if (cancelled || !containerRef.current || mapRef.current) return;
+    loadGoogleMaps(apiKey)
+      .then(async () => {
+        if (cancelled || !containerRef.current || mapRef.current || !window.google?.maps) return;
 
-      const map = L.map(containerRef.current, {
-        zoomControl: true,
-        attributionControl: true,
-      }).setView([-8.5, -40], 5);
+        const maps = window.google.maps;
+        const { Map } = await maps.importLibrary("maps");
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(map);
+        mapRef.current = new Map(containerRef.current, {
+          center: { lat: -8.5, lng: -40 },
+          zoom: 5,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+          clickableIcons: false,
+          gestureHandling: "greedy",
+        });
 
-      const layer = L.layerGroup().addTo(map);
-      mapRef.current = map;
-      layerRef.current = layer;
-      window.setTimeout(() => map.invalidateSize(), 0);
-      setMapReady(true);
-    });
+        infoWindowRef.current = new maps.InfoWindow();
+        setMapReady(true);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setMapError(error instanceof Error ? error.message : "Não foi possível carregar o Google Maps.");
+        }
+      });
 
     return () => {
       cancelled = true;
-      mapRef.current?.remove();
-      mapRef.current = null;
-      layerRef.current = null;
     };
-  }, []);
+  }, [apiKey]);
 
   useEffect(() => {
     const map = mapRef.current;
-    const layer = layerRef.current;
-    if (!mapReady || !map || !layer) return;
+    const maps = window.google?.maps;
+    if (!mapReady || !map || !maps) return;
 
-    layer.clearLayers();
+    const renderVersion = ++renderVersionRef.current;
 
-    import("leaflet").then((L) => {
-      const bounds: [number, number][] = [];
+    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current = [];
 
-      const grouped = visiblePlaces.reduce<Map<string, MapPlace[]>>((groups, place) => {
-        if (!place.circuit || place.category === "excursion") return groups;
-        const key = `${place.stopId}::${place.circuit}`;
-        const current = groups.get(key) ?? [];
-        current.push(place);
-        groups.set(key, current);
-        return groups;
-      }, new Map());
+    polylinesRef.current.forEach((polyline) => polyline.setMap(null));
+    polylinesRef.current = [];
 
-      for (const group of grouped.values()) {
-        const sorted = [...group].sort((a, b) => a.circuitOrder - b.circuitOrder);
-        if (sorted.length >= 2) {
-          L.polyline(
-            sorted.map((place) => [place.latitude, place.longitude] as [number, number]),
-            {
-              color: "#537985",
-              weight: 3,
-              opacity: .5,
-              dashArray: "7 7",
-            }
-          ).addTo(layer);
-        }
-      }
+    infoWindowRef.current?.close();
+    setRouteSummary(null);
+    setRouteState(circuit === "all" ? "idle" : "loading");
 
-      visiblePlaces.forEach((place) => {
-        bounds.push([place.latitude, place.longitude]);
+    const bounds = new maps.LatLngBounds();
 
-        const marker = L.circleMarker([place.latitude, place.longitude], {
-          radius: selectedId === place.id ? 9 : 7,
-          color: "#123844",
-          weight: selectedId === place.id ? 3 : 2,
-          fillColor: place.confidence === "approximate" ? "#d7b483" : "#ffffff",
+    const grouped = visiblePlaces.reduce<Map<string, MapPlace[]>>((groups, place) => {
+      if (!place.circuit || place.category === "excursion") return groups;
+      const key = `${place.stopId}::${place.circuit}`;
+      const current = groups.get(key) ?? [];
+      current.push(place);
+      groups.set(key, current);
+      return groups;
+    }, new Map());
+
+    visiblePlaces.forEach((place) => {
+      const position = { lat: place.latitude, lng: place.longitude };
+      bounds.extend(position);
+
+      const marker = new maps.Marker({
+        position,
+        map,
+        title: place.name,
+        icon: {
+          path: maps.SymbolPath.CIRCLE,
+          scale: selectedId === place.id ? 9 : 7,
+          fillColor: place.confidence === "approximate" ? "#D7B483" : "#FFFFFF",
           fillOpacity: 1,
-        }).addTo(layer);
-
-        const popup = document.createElement("div");
-        const strong = document.createElement("strong");
-        strong.textContent = place.name;
-        popup.appendChild(strong);
-        if (place.circuit) {
-          const detail = document.createElement("div");
-          detail.textContent = place.circuit;
-          detail.style.marginTop = "4px";
-          detail.style.fontSize = "11px";
-          popup.appendChild(detail);
-        }
-
-        marker.bindPopup(popup);
-        marker.on("click", () => setSelectedId(place.id));
+          strokeColor: "#123844",
+          strokeWeight: selectedId === place.id ? 3 : 2,
+        },
       });
 
-      if (bounds.length === 1) {
-        map.setView(bounds[0], 15);
-      } else if (bounds.length > 1) {
-        map.fitBounds(bounds, { padding: [28, 28], maxZoom: 16 });
-      }
+      marker.addListener("click", () => {
+        setSelectedId(place.id);
+
+        if (infoWindowRef.current) {
+          const content = document.createElement("div");
+          const title = document.createElement("strong");
+          title.textContent = place.name;
+          content.appendChild(title);
+
+          if (place.circuit) {
+            const detail = document.createElement("div");
+            detail.textContent = place.circuit;
+            detail.style.marginTop = "4px";
+            detail.style.fontSize = "11px";
+            content.appendChild(detail);
+          }
+
+          infoWindowRef.current.setContent(content);
+          infoWindowRef.current.open({ map, anchor: marker });
+        }
+      });
+
+      markersRef.current.push(marker);
     });
-  }, [mapReady, selectedId, visiblePlaces]);
+
+    const drawFallbackLines = () => {
+      grouped.forEach((group) => {
+        const sorted = [...group].sort((a, b) => a.circuitOrder - b.circuitOrder);
+        if (sorted.length < 2) return;
+
+        const polyline = new maps.Polyline({
+          map,
+          path: sorted.map((place) => ({ lat: place.latitude, lng: place.longitude })),
+          strokeColor: "#537985",
+          strokeOpacity: 0.45,
+          strokeWeight: 3,
+        });
+
+        polylinesRef.current.push(polyline);
+      });
+    };
+
+    const drawRealRoute = async () => {
+      if (circuit === "all") {
+        drawFallbackLines();
+        return;
+      }
+
+      const routePlaces = [...visiblePlaces]
+        .filter((place) => place.category !== "excursion")
+        .sort((a, b) => a.circuitOrder - b.circuitOrder);
+
+      if (routePlaces.length < 2) {
+        setRouteState("idle");
+        return;
+      }
+
+      try {
+        const { Route } = await maps.importLibrary("routes");
+        const first = routePlaces[0];
+        const last = routePlaces[routePlaces.length - 1];
+
+        const { routes } = await Route.computeRoutes({
+          origin: { lat: first.latitude, lng: first.longitude },
+          destination: { lat: last.latitude, lng: last.longitude },
+          intermediates: routePlaces.slice(1, -1).map((place) => ({
+            location: { lat: place.latitude, lng: place.longitude },
+          })),
+          travelMode: "WALKING",
+          fields: ["path", "distanceMeters", "durationMillis"],
+        });
+
+        if (renderVersion !== renderVersionRef.current) return;
+
+        const route = routes?.[0];
+
+        if (!route) {
+          drawFallbackLines();
+          setRouteState("unavailable");
+          return;
+        }
+
+        const routePolylines = route.createPolylines({
+          polylineOptions: {
+            strokeColor: "#123844",
+            strokeOpacity: 0.82,
+            strokeWeight: 4,
+          },
+        });
+
+        routePolylines.forEach((polyline: any) => {
+          polyline.setMap(map);
+          polylinesRef.current.push(polyline);
+        });
+
+        setRouteSummary({
+          distanceMeters: Number(route.distanceMeters || 0),
+          durationMillis: Number(route.durationMillis || 0),
+        });
+        setRouteState("ready");
+      } catch {
+        if (renderVersion !== renderVersionRef.current) return;
+        drawFallbackLines();
+        setRouteState("unavailable");
+      }
+    };
+
+    void drawRealRoute();
+
+    if (visiblePlaces.length === 1) {
+      map.setCenter({ lat: visiblePlaces[0].latitude, lng: visiblePlaces[0].longitude });
+      map.setZoom(15);
+    } else if (visiblePlaces.length > 1) {
+      map.fitBounds(bounds, 36);
+    }
+  }, [circuit, mapReady, selectedId, visiblePlaces]);
 
   function changeCity(value: string) {
     setCity(value);
@@ -172,6 +333,18 @@ export function TripMap({ places }: { places: MapPlace[] }) {
       ? cityPlaces[0]
       : cityPlaces.find((place) => place.circuit === value);
     setSelectedId(next?.id ?? null);
+  }
+
+  if (!apiKey) {
+    return (
+      <div className="trip-map-setup">
+        <TriangleAlert size={18} />
+        <div>
+          <strong>Google Maps pronto para configurar</strong>
+          <p>Adicione NEXT_PUBLIC_GOOGLE_MAPS_API_KEY na Netlify para ativar o mapa interno.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -194,7 +367,39 @@ export function TripMap({ places }: { places: MapPlace[] }) {
         </label>
       </div>
 
-      <div ref={containerRef} className="trip-map-canvas" aria-label="Mapa interativo dos locais da viagem" />
+      {mapError ? (
+        <div className="trip-map-error">
+          <TriangleAlert size={18} />
+          <div>
+            <strong>Não foi possível carregar o Google Maps</strong>
+            <p>{mapError} Verifique a chave, faturamento e as restrições de domínio/API.</p>
+          </div>
+        </div>
+      ) : (
+        <div ref={containerRef} className="trip-map-canvas" aria-label="Google Maps interativo dos locais da viagem" />
+      )}
+
+      {circuit !== "all" && (
+        <div className="trip-map-route-summary">
+          <span className="trip-map-route-icon"><Navigation size={15} /></span>
+          <div>
+            <strong>
+              {routeState === "loading" && "Calculando rota a pé..."}
+              {routeState === "ready" && routeSummary &&
+                `${formatDistance(routeSummary.distanceMeters)} · ${formatDuration(routeSummary.durationMillis)} a pé`}
+              {routeState === "unavailable" && "Rota real indisponível"}
+              {routeState === "idle" && "Selecione um circuito com pelo menos dois pontos"}
+            </strong>
+            <small>
+              {routeState === "ready"
+                ? "Tempo e distância calculados pelo Google."
+                : routeState === "unavailable"
+                  ? "A sequência aproximada continua visível; confira se a Routes API está habilitada."
+                  : "O cálculo só é feito para o circuito selecionado."}
+            </small>
+          </div>
+        </div>
+      )}
 
       {selected && (
         <div className="trip-map-selected">
@@ -213,7 +418,7 @@ export function TripMap({ places }: { places: MapPlace[] }) {
       )}
 
       <p className="trip-map-note">
-        As linhas tracejadas mostram a sequência aproximada dos circuitos. O caminho por ruas e o tempo real de deslocamento serão calculados quando o provedor de rotas estiver configurado.
+        Ao selecionar um circuito, o Nordestrip solicita ao Google a rota real a pé. Sem circuito selecionado, as linhas servem apenas para visualizar a sequência planejada.
       </p>
     </div>
   );
