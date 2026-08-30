@@ -41,6 +41,7 @@ function scheduleLabel(item: ItineraryItem) {
 
 type ItineraryPlace = {
   id: string;
+  opening_hours?: Record<string, unknown> | null;
   metadata?: Record<string, unknown> | null;
 };
 
@@ -53,6 +54,45 @@ function circuitForPlace(place?: ItineraryPlace) {
     ? metadata.circuit_order
     : 999;
   return { label, order };
+}
+
+const itineraryWeekdayKeys = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+
+function placeAvailability(place: ItineraryPlace | undefined, date: string) {
+  if (!place || date === "Sem data") {
+    return { status: "confirm" as const, label: "Confirmar funcionamento" };
+  }
+
+  const metadata = place.metadata ?? {};
+  const confidence = typeof metadata.confidence === "string" ? metadata.confidence : "reconfirm";
+  const hours = place.opening_hours;
+
+  if (hours?.always_open === true) {
+    return confidence === "verified"
+      ? { status: "open" as const, label: "Acesso livre" }
+      : { status: "confirm" as const, label: "Acesso livre · reconfirmar" };
+  }
+
+  const weekly = hours?.weekly;
+  if (weekly && typeof weekly === "object" && !Array.isArray(weekly)) {
+    const day = new Date(`${date}T12:00:00Z`).getUTCDay();
+    const slots = (weekly as Record<string, unknown>)[itineraryWeekdayKeys[day]];
+
+    if (Array.isArray(slots)) {
+      if (!slots.length) return { status: "closed" as const, label: "Fechado neste dia" };
+
+      const labels = slots
+        .filter((slot) => Array.isArray(slot) && slot.length >= 2)
+        .map((slot) => `${String(slot[0])}–${String(slot[1])}`);
+      const hoursLabel = labels.length ? labels.join(" / ") : "Horário publicado";
+
+      return confidence === "verified"
+        ? { status: "open" as const, label: hoursLabel }
+        : { status: "confirm" as const, label: `${hoursLabel} · reconfirmar` };
+    }
+  }
+
+  return { status: "confirm" as const, label: "Horário a confirmar" };
 }
 
 export function ItineraryView({
@@ -457,16 +497,27 @@ export function ItineraryView({
                 groups.set(circuit.label, current);
                 return groups;
               }, new Map()).values()
-            ).map((group) => ({
-              ...group,
-              items: [...group.items].sort((a, b) => {
+            ).map((group) => {
+              const sortedItems = [...group.items].sort((a, b) => {
                 const placeAId = typeof a.place_id === "string" ? a.place_id : null;
                 const placeBId = typeof b.place_id === "string" ? b.place_id : null;
                 const placeA = placeAId ? placeById.get(placeAId) : undefined;
                 const placeB = placeBId ? placeById.get(placeBId) : undefined;
                 return circuitForPlace(placeA).order - circuitForPlace(placeB).order;
-              }),
-            }));
+              });
+              const availability = sortedItems.map((item) => {
+                const placeId = typeof item.place_id === "string" ? item.place_id : null;
+                return placeAvailability(placeId ? placeById.get(placeId) : undefined, date);
+              });
+
+              return {
+                ...group,
+                items: sortedItems,
+                openCount: availability.filter((item) => item.status === "open").length,
+                confirmCount: availability.filter((item) => item.status === "confirm").length,
+                closedCount: availability.filter((item) => item.status === "closed").length,
+              };
+            });
 
             return (
               <section key={date}>
@@ -559,42 +610,53 @@ export function ItineraryView({
                               <strong>{circuit.label}</strong>
                               <small>Ordem sugerida por proximidade do circuito</small>
                             </div>
-                            <span>{circuit.items.length} {circuit.items.length === 1 ? "parada" : "paradas"}</span>
-                          </div>
-                          {circuit.items.map((item, index) => (
-                            <div key={item.id} className="day-idea-row">
-                              <span className="day-circuit-order">{index + 1}</span>
-                              <div className="min-w-0 flex-1">
-                                <strong>{item.title || item.name || "Local"}</strong>
-                                <small>Ideia vinculada ao roteiro</small>
-                              </div>
-                              <div className="day-idea-actions">
-                                <RecordStatus
-                                  table="itinerary_items"
-                                  id={item.id}
-                                  value={String(item.status || "idea")}
-                                  options={itineraryStatusOptions}
-                                  label={`Status de ${item.title || item.name || "local"}`}
-                                  compact
-                                />
-                                <RecordActions
-                                  table="itinerary_items"
-                                  id={item.id}
-                                  title={String(item.title || item.name || "Local")}
-                                  fields={[
-                                    { name: "title", label: "Local", required: true },
-                                    { name: "activity_date", label: "Data", type: "date" },
-                                    { name: "notes", label: "Nota", type: "textarea" },
-                                  ]}
-                                  values={{
-                                    title: String(item.title || item.name || ""),
-                                    activity_date: item.activity_date || null,
-                                    notes: typeof item.notes === "string" ? item.notes : null,
-                                  }}
-                                />
-                              </div>
+                            <div className="day-circuit-summary">
+                              {circuit.openCount > 0 && <span className="is-open">{circuit.openCount} viáveis</span>}
+                              {circuit.confirmCount > 0 && <span className="is-confirm">{circuit.confirmCount} confirmar</span>}
+                              {circuit.closedCount > 0 && <span className="is-closed">{circuit.closedCount} fechados</span>}
                             </div>
-                          ))}
+                          </div>
+                          {circuit.items.map((item, index) => {
+                            const placeId = typeof item.place_id === "string" ? item.place_id : null;
+                            const availability = placeAvailability(placeId ? placeById.get(placeId) : undefined, date);
+
+                            return (
+                              <div key={item.id} className={`day-idea-row day-idea-row--${availability.status}`}>
+                                <span className="day-circuit-order">{index + 1}</span>
+                                <div className="min-w-0 flex-1">
+                                  <strong>{item.title || item.name || "Local"}</strong>
+                                  <small className={`day-place-availability day-place-availability--${availability.status}`}>
+                                    {availability.label}
+                                  </small>
+                                </div>
+                                <div className="day-idea-actions">
+                                  <RecordStatus
+                                    table="itinerary_items"
+                                    id={item.id}
+                                    value={String(item.status || "idea")}
+                                    options={itineraryStatusOptions}
+                                    label={`Status de ${item.title || item.name || "local"}`}
+                                    compact
+                                  />
+                                  <RecordActions
+                                    table="itinerary_items"
+                                    id={item.id}
+                                    title={String(item.title || item.name || "Local")}
+                                    fields={[
+                                      { name: "title", label: "Local", required: true },
+                                      { name: "activity_date", label: "Data", type: "date" },
+                                      { name: "notes", label: "Nota", type: "textarea" },
+                                    ]}
+                                    values={{
+                                      title: String(item.title || item.name || ""),
+                                      activity_date: item.activity_date || null,
+                                      notes: typeof item.notes === "string" ? item.notes : null,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       ))}
                     </div>
