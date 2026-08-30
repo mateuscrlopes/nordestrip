@@ -3703,3 +3703,10 @@ input:focus-visible {
   color: #6c5635;
   background: rgba(215, 180, 131, .18);
 }
+
+
+.place-catalog-topline em.is-itinerary {
+  color: #123844;
+  background: rgba(220, 232, 235, .72);
+  font-weight: 700;
+}
