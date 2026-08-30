@@ -211,7 +211,26 @@ export function TripMap({
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: `https://api.maptiler.com/maps/streets-v4/style.json?key=${encodeURIComponent(mapTilerKey)}`,
+      style: {
+        version: 8,
+        sources: {
+          "maptiler-basemap": {
+            type: "raster",
+            tiles: [
+              `https://api.maptiler.com/maps/streets-v4/256/{z}/{x}/{y}.png?key=${encodeURIComponent(mapTilerKey)}`,
+            ],
+            tileSize: 256,
+            attribution: "© MapTiler © OpenStreetMap contributors",
+          },
+        },
+        layers: [
+          {
+            id: "maptiler-basemap",
+            type: "raster",
+            source: "maptiler-basemap",
+          },
+        ],
+      },
       center: [-40, -8.5],
       zoom: 4.2,
     });
