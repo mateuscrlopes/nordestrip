@@ -1,7 +1,8 @@
 import { RecordActions } from "@/components/actions/record-actions";
 import { RecordStatus, accommodationStatusOptions, itineraryStatusOptions, pendingStatusOptions, transportStatusOptions } from "@/components/actions/record-status";
 import { LuggagePlanEditor } from "@/components/logistics/luggage-plan-editor";
-import { AccommodationEditor } from "@/components/lodging/accommodation-editor";\nimport { AccommodationSearch } from "@/components/lodging/accommodation-search";
+import { AccommodationEditor } from "@/components/lodging/accommodation-editor";
+import { AccommodationSearch } from "@/components/lodging/accommodation-search";
 import { getStopDetails, getTripCityCovers, getTripPreferences } from "@/lib/queries/trips";
 import { formatDate, formatDateTime, formatTime, valueText } from "@/lib/utils/format";
 import {
