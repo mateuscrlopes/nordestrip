@@ -306,6 +306,55 @@ export async function getTripManualFund(tripId: string) {
 }
 
 
+export async function getTripPluggyAccounts(tripId: string, currentUserId: string) {
+  const supabase = await createClient();
+
+  const accounts = await supabase
+    .from("financial_accounts")
+    .select("id,display_name,account_type,current_balance,credit_limit,last_synced_at")
+    .eq("owner_user_id", currentUserId)
+    .eq("provider", "pluggy")
+    .is("archived_at", null)
+    .order("display_name");
+
+  if (accounts.error) {
+    throw new Error(`Não foi possível carregar as contas conectadas: ${accounts.error.message}`);
+  }
+
+  if (!accounts.data?.length) return [];
+
+  const accountIds = accounts.data.map((account) => account.id);
+  const links = await supabase
+    .from("trip_financial_accounts")
+    .select("financial_account_id,purpose,include_balance_in_available,archived_at")
+    .eq("trip_id", tripId)
+    .in("financial_account_id", accountIds);
+
+  if (links.error) {
+    throw new Error(`Não foi possível carregar os vínculos financeiros: ${links.error.message}`);
+  }
+
+  return accounts.data.map((account) => {
+    const fundLink = (links.data ?? []).find(
+      (link) =>
+        link.financial_account_id === account.id &&
+        link.purpose === "trip_fund" &&
+        link.archived_at == null
+    );
+
+    return {
+      id: account.id,
+      displayName: account.display_name,
+      accountType: account.account_type,
+      balance: account.current_balance == null ? null : Number(account.current_balance),
+      creditLimit: account.credit_limit == null ? null : Number(account.credit_limit),
+      lastSyncedAt: account.last_synced_at ?? null,
+      fundEnabled: Boolean(fundLink?.include_balance_in_available),
+    };
+  });
+}
+
+
 export async function getTripPlaceCatalog(tripId: string) {
   const supabase = await createClient();
   return checked(

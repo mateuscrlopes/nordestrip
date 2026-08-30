@@ -1,9 +1,9 @@
 import { RecordActions } from "@/components/actions/record-actions";
 import { PageHeader } from "@/components/layout/page-header";
-import { ManualFundEditor } from "@/components/finance/manual-fund-editor";
+import { ConnectedAccountsEditor } from "@/components/finance/connected-accounts-editor";\nimport { ManualFundEditor } from "@/components/finance/manual-fund-editor";
 import { RecordStatus, expenseStatusOptions } from "@/components/actions/record-status";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
-import { getTripExpenses, getTripFinanceSummary, getTripManualFund } from "@/lib/queries/trips";
+import { getCurrentUser, getTripExpenses, getTripFinanceSummary, getTripManualFund, getTripPluggyAccounts } from "@/lib/queries/trips";
 import { formatDateTime, formatMoney } from "@/lib/utils/format";
 import { CreditCard, ReceiptText, ShieldCheck, Wallet } from "lucide-react";
 
@@ -22,14 +22,16 @@ const paymentLabels: Record<string, string> = {
 };
 
 export default async function MoneyPage() {
+  const user = await getCurrentUser();
   const { trip } = await getCurrentTrip();
-  const [finance, expenses, manualFund] = trip
+  const [finance, expenses, manualFund, pluggyAccounts] = trip && user
     ? await Promise.all([
         getTripFinanceSummary(trip.id),
         getTripExpenses(trip.id),
         getTripManualFund(trip.id),
+        getTripPluggyAccounts(trip.id, user.id),
       ])
-    : [null, [], null];
+    : [null, [], null, []];
 
   return (
     <>
@@ -62,6 +64,10 @@ export default async function MoneyPage() {
           <section>
             <ManualFundEditor tripId={trip.id} fund={manualFund} />
           </section>
+        )}
+
+        {trip && pluggyAccounts.length > 0 && (
+          <ConnectedAccountsEditor tripId={trip.id} accounts={pluggyAccounts} />
         )}
 
         <section>
