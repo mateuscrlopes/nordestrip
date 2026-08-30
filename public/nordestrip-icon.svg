@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Nordestrip">
+  <rect width="512" height="512" rx="112" fill="#123844"/>
+  <path d="M157 343c34-74 55-102 99-144 34-32 70-47 102-47" fill="none" stroke="#F7F3EC" stroke-width="34" stroke-linecap="round"/>
+  <circle cx="157" cy="343" r="28" fill="#C66B4E"/>
+  <path d="M358 114c-47 0-85 38-85 85 0 65 85 151 85 151s85-86 85-151c0-47-38-85-85-85Zm0 119a34 34 0 1 1 0-68 34 34 0 0 1 0 68Z" fill="#F7F3EC"/>
+</svg>

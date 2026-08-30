@@ -1,3 +1,4 @@
+import { OfflineSync } from "@/components/offline/offline-sync";
 import { BottomNav } from "@/components/navigation/bottom-nav";
 import { GlobalAdd } from "@/components/navigation/global-add";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
@@ -13,6 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="mx-auto min-h-screen w-full max-w-[720px] px-5 pb-44 pt-5 md:px-8 md:pt-8">
+      <OfflineSync tripId={trip?.id ?? null} />
       {children}
       <BottomNav
         action={

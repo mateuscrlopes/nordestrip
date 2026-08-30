@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   title: { default: "Nordestrip", template: "%s | Nordestrip" },
   description: "Central compartilhada da viagem",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/nordestrip-icon.svg",
+    apple: "/ghumat-mark.png",
+  },
   appleWebApp: { capable: true, title: "Nordestrip" },
 };
 

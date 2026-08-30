@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#123844" />
+  <title>Nordestrip · Offline</title>
+  <style>
+    :root{color-scheme:light;--bg:#f7f3ec;--surface:#fffdf9;--ink:#263238;--muted:#6f7777;--petrol:#123844;--blue:#dcebed;--terracotta:#c66b4e;--line:rgba(18,56,68,.10)}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    main{max-width:720px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 24px) 20px calc(env(safe-area-inset-bottom) + 48px)}
+    header{margin-bottom:28px}.eyebrow{margin:0 0 5px;color:var(--terracotta);font-size:11px;font-weight:750;letter-spacing:.08em;text-transform:uppercase}
+    h1{margin:0;color:var(--petrol);font-size:30px;line-height:1.05}header p{margin:9px 0 0;color:var(--muted);font-size:12px}
+    .notice{margin:18px 0 26px;padding:14px 16px;border-radius:18px;background:var(--blue);color:var(--petrol)}
+    .notice strong{display:block;font-size:12px}.notice span{display:block;margin-top:3px;font-size:11px;opacity:.75}
+    section{margin-top:26px}h2{margin:0 0 10px;color:var(--petrol);font-size:16px}
+    .card{padding:14px 15px;border-radius:20px;background:var(--surface);box-shadow:0 1px 0 rgba(18,56,68,.05)}
+    .stack{display:grid;gap:9px}.row{padding:12px 0;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:0}
+    .row strong{display:block;color:var(--petrol);font-size:13px}.row small,.meta{display:block;margin-top:3px;color:var(--muted);font-size:11px}
+    .city{margin-top:12px}.city:first-child{margin-top:0}.city-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+    .pill{display:inline-flex;margin-top:6px;padding:4px 8px;border-radius:999px;background:var(--blue);color:var(--petrol);font-size:9px;font-weight:700}
+    .item{padding:9px 0 0 14px;border-left:2px solid rgba(18,56,68,.12);margin-left:4px}.item strong{font-size:12px}.item small{color:var(--muted);font-size:10px}
+    a{color:var(--petrol);font-weight:700;text-decoration:none}.retry{display:inline-flex;margin-top:20px;padding:10px 13px;border-radius:12px;background:var(--petrol);color:white;font-size:11px}
+    .empty{padding:28px 18px;text-align:center;color:var(--muted)}.empty strong{display:block;color:var(--petrol);margin-bottom:5px}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">Modo offline</p>
+    <h1>Nordestrip</h1>
+    <p>Consulta local do último pacote salvo neste aparelho.</p>
+  </header>
+  <div id="app"></div>
+</main>
+<script>
+(() => {
+  const root = document.getElementById("app");
+  const active = localStorage.getItem("nordestrip:offline:active");
+  const raw = active ? localStorage.getItem("nordestrip:offline:" + active) : null;
+
+  const esc = (value) => String(value ?? "")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  const date = (value) => {
+    if (!value) return "";
+    const parsed = new Date(String(value).length === 10 ? value + "T12:00:00" : value);
+    return Number.isNaN(parsed.getTime()) ? esc(value) : new Intl.DateTimeFormat("pt-BR",{day:"2-digit",month:"2-digit"}).format(parsed);
+  };
+  const dateTime = (value) => {
+    if (!value) return "";
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? esc(value) : new Intl.DateTimeFormat("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}).format(parsed);
+  };
+  const time = (value) => value ? esc(String(value).slice(0,5)) : "";
+  const text = (...values) => values.filter(Boolean).join(" · ");
+
+  if (!raw) {
+    root.innerHTML = '<div class="card empty"><strong>Nenhum pacote offline salvo</strong>Abra o Nordestrip com internet uma vez para preparar os dados desta viagem.</div><a class="retry" href="/">Tentar novamente</a>';
+    return;
+  }
+
+  let data;
+  try { data = JSON.parse(raw); } catch {
+    root.innerHTML = '<div class="card empty"><strong>Pacote offline inválido</strong>Reconecte para salvar uma nova cópia da viagem.</div><a class="retry" href="/">Tentar novamente</a>';
+    return;
+  }
+
+  const stops = Array.isArray(data.stops) ? data.stops : [];
+  const itinerary = Array.isArray(data.itinerary) ? data.itinerary : [];
+  const transports = Array.isArray(data.transports) ? data.transports : [];
+  const accommodations = Array.isArray(data.accommodations) ? data.accommodations : [];
+  const luggage = Array.isArray(data.luggage) ? data.luggage : [];
+  const documents = Array.isArray(data.documents) ? data.documents : [];
+  const pending = Array.isArray(data.pending) ? data.pending : [];
+  const places = Array.isArray(data.places) ? data.places : [];
+
+  const placeById = new Map(places.map((place) => [place.id, place]));
+  const stopById = new Map(stops.map((stop) => [stop.id, stop]));
+  const accommodationFor = (stopId) => accommodations.find((item) => item.stop_id === stopId && ["confirmed","reserved","selected"].includes(item.status)) || accommodations.find((item) => item.stop_id === stopId);
+  const luggageFor = (stopId) => luggage.filter((item) => item.stop_id === stopId);
+  const itemsFor = (stopId) => itinerary.filter((item) => item.stop_id === stopId);
+  const pendingFor = (stopId) => pending.filter((item) => item.stop_id === stopId);
+
+  const generated = data.generatedAt ? dateTime(data.generatedAt) : "horário desconhecido";
+  let html = '<div class="notice"><strong>Sem conexão com a internet</strong><span>Dados salvos em ' + esc(generated) + '. Reconecte para atualizar informações que podem ter mudado.</span></div>';
+
+  if (transports.length) {
+    html += '<section><h2>Deslocamentos</h2><div class="card stack">';
+    html += transports.map((transport) => {
+      const origin = transport.origin_label || stopById.get(transport.origin_stop_id)?.name || "Origem";
+      const destination = transport.destination_label || stopById.get(transport.destination_stop_id)?.name || "Destino";
+      const when = transport.departure_at ? dateTime(transport.departure_at) : date(transport.departure_date);
+      const arrival = transport.arrival_at ? dateTime(transport.arrival_at) : date(transport.arrival_date);
+      const terminal = text(transport.origin_terminal_name, transport.origin_terminal_address);
+      const detail = text(when, transport.operator, transport.service_class);
+      return '<div class="row"><strong>' + esc(origin) + ' → ' + esc(destination) + '</strong><small>' + esc(detail || "Horário a confirmar") + '</small>' +
+        (arrival ? '<small>Chegada ' + esc(arrival) + '</small>' : '') +
+        (terminal ? '<small>' + esc(terminal) + '</small>' : '') +
+        (transport.booking_reference ? '<span class="pill">Localizador ' + esc(transport.booking_reference) + '</span>' : '') + '</div>';
+    }).join("");
+    html += '</div></section>';
+  }
+
+  html += '<section><h2>Cidades e roteiro</h2><div class="stack">';
+  html += stops.map((stop) => {
+    const lodging = accommodationFor(stop.id);
+    const lodgingPlace = lodging?.place_id ? placeById.get(lodging.place_id) : null;
+    const cityItems = itemsFor(stop.id);
+    const cityLuggage = luggageFor(stop.id);
+    const cityPending = pendingFor(stop.id);
+    const dates = stop.start_date ? date(stop.start_date) + (stop.end_date && stop.end_date !== stop.start_date ? " — " + date(stop.end_date) : "") : "Data pendente";
+
+    let inner = '<div class="city-head"><div><strong>' + esc(stop.name) + '</strong><span class="meta">' + esc(dates) + '</span></div><span class="pill">' + esc(stop.state_code || "Brasil") + '</span></div>';
+
+    if (lodging) {
+      inner += '<div class="row"><strong>Hospedagem · ' + esc(lodging.name) + '</strong><small>' +
+        esc(text(lodgingPlace?.address, lodging.check_in_date ? "Check-in " + date(lodging.check_in_date) : "", lodging.check_out_date ? "Check-out " + date(lodging.check_out_date) : "")) +
+        '</small></div>';
+    }
+
+    if (cityLuggage.length) {
+      inner += '<div class="row"><strong>Bagagem</strong>' + cityLuggage.map((plan) =>
+        '<small>' + esc((plan.phase === "arrival" ? "Chegada" : "Saída") + ": " + (plan.strategy || plan.status || "a confirmar")) + '</small>'
+      ).join("") + '</div>';
+    }
+
+    if (cityItems.length) {
+      inner += '<div class="row"><strong>Roteiro</strong>' + cityItems.map((item) => {
+        const place = item.place_id ? placeById.get(item.place_id) : null;
+        const schedule = text(item.start_time ? time(item.start_time) : "", item.period, place?.address);
+        return '<div class="item"><strong>' + esc(item.title) + '</strong><small>' + esc(schedule || "Horário flexível") + '</small></div>';
+      }).join("") + '</div>';
+    }
+
+    if (cityPending.length) {
+      inner += '<div class="row"><strong>Pendências</strong>' + cityPending.map((item) =>
+        '<small>' + esc(item.title + (item.due_at ? " · prazo " + dateTime(item.due_at) : "")) + '</small>'
+      ).join("") + '</div>';
+    }
+
+    return '<div class="card city">' + inner + '</div>';
+  }).join("");
+  html += '</div></section>';
+
+  if (documents.length) {
+    html += '<section><h2>Documentos essenciais</h2><div class="card">';
+    html += documents.map((document) =>
+      '<div class="row"><strong>' + esc(document.title) + '</strong><small>' + esc(text(document.document_type, document.notes)) + '</small></div>'
+    ).join("");
+    html += '</div></section>';
+  }
+
+  html += '<a class="retry" href="/">Tentar reconectar</a>';
+  root.innerHTML = html;
+})();
+</script>
+</body>
+</html>
