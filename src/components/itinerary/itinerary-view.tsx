@@ -30,10 +30,24 @@ function itemTime(item: ItineraryItem) {
   return item.start_time ? item.start_time.slice(0, 5) : null;
 }
 
+function periodLabel(value: unknown) {
+  if (value === "morning") return "Manhã";
+  if (value === "afternoon") return "Tarde";
+  if (value === "evening") return "Noite";
+  return null;
+}
+
+function periodRank(value: unknown) {
+  if (value === "morning") return 1;
+  if (value === "afternoon") return 2;
+  if (value === "evening") return 3;
+  return 4;
+}
+
 function scheduleLabel(item: ItineraryItem) {
   if (item.schedule_type === "exact" && item.is_anchor) return "Horário fixo";
   if (item.schedule_type === "window") return "Janela de horário";
-  if (item.schedule_type === "period") return "Período";
+  if (item.schedule_type === "period") return periodLabel(item.period) || "Período";
   if (item.schedule_type === "from") return "A partir de";
   if (item.schedule_type === "until") return "Até";
   return "Flexível";
@@ -505,6 +519,9 @@ export function ItineraryView({
               }, new Map()).values()
             ).map((group) => {
               const sortedItems = [...group.items].sort((a, b) => {
+                const periodDifference = periodRank(a.period) - periodRank(b.period);
+                if (periodDifference !== 0) return periodDifference;
+
                 const placeAId = typeof a.place_id === "string" ? a.place_id : null;
                 const placeBId = typeof b.place_id === "string" ? b.place_id : null;
                 const placeA = placeAId ? placeById.get(placeAId) : undefined;
@@ -614,7 +631,7 @@ export function ItineraryView({
                           <div className="day-circuit-heading">
                             <div>
                               <strong>{circuit.label}</strong>
-                              <small>Ordem sugerida por proximidade do circuito</small>
+                              <small>Ordem sugerida por período do dia e proximidade</small>
                             </div>
                             <div className="day-circuit-summary">
                               {circuit.openCount > 0 && <span className="is-open">{circuit.openCount} viáveis</span>}
@@ -632,6 +649,9 @@ export function ItineraryView({
                                 <div className="min-w-0 flex-1">
                                   <div className="day-idea-title-line">
                                     <strong>{item.title || item.name || "Local"}</strong>
+                                    {periodLabel(item.period) && (
+                                      <span className="day-idea-period">{periodLabel(item.period)}</span>
+                                    )}
                                     <span className={`day-idea-priority day-idea-priority--${ideaPriority(item.priority).key}`}>
                                       {ideaPriority(item.priority).label}
                                     </span>
