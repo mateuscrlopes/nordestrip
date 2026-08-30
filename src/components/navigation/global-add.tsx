@@ -58,6 +58,23 @@ function numberOrNull(form: FormData, name: string) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function findStopByLabel(stops: StopOption[], label: string | null) {
+  if (!label) return undefined;
+  const normalized = label
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLocaleLowerCase("pt-BR");
+
+  return stops.find((stop) =>
+    stop.name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLocaleLowerCase("pt-BR") === normalized
+  );
+}
+
 function CityField({
   stops,
   name = "stop_id",
@@ -165,10 +182,10 @@ export function GlobalAdd({
 
     if (kind === "transport") {
       table = "transport_segments";
-      const originStopId = nullable(form, "origin_stop_id");
-      const destinationStopId = nullable(form, "destination_stop_id");
-      const originStop = stops.find((stop) => stop.id === originStopId);
-      const destinationStop = stops.find((stop) => stop.id === destinationStopId);
+      const originLabel = nullable(form, "origin_label");
+      const destinationLabel = nullable(form, "destination_label");
+      const originStop = findStopByLabel(stops, originLabel);
+      const destinationStop = findStopByLabel(stops, destinationLabel);
       const departureAtRaw = nullable(form, "departure_at");
       const arrivalAtRaw = nullable(form, "arrival_at");
       const departureAt = departureAtRaw ? new Date(departureAtRaw) : null;
@@ -182,28 +199,22 @@ export function GlobalAdd({
 
       payload = {
         ...payload,
-        origin_stop_id: originStopId,
-        destination_stop_id: destinationStopId,
-        origin_label: nullable(form, "origin_label") || originStop?.name || null,
-        destination_label: nullable(form, "destination_label") || destinationStop?.name || null,
-        mode: value(form, "mode") || "bus",
+        origin_stop_id: originStop?.id ?? null,
+        destination_stop_id: destinationStop?.id ?? null,
+        origin_label: originLabel,
+        destination_label: destinationLabel,
+        mode: value(form, "mode") || "other",
         status: value(form, "status") || "planned",
-        departure_date: departureAtRaw?.slice(0, 10) || nullable(form, "departure_date"),
-        arrival_date: arrivalAtRaw?.slice(0, 10) || nullable(form, "arrival_date"),
+        departure_date: departureAtRaw?.slice(0, 10) || null,
+        arrival_date: arrivalAtRaw?.slice(0, 10) || null,
         departure_at: departureAt ? departureAt.toISOString() : null,
         arrival_at: arrivalAt ? arrivalAt.toISOString() : null,
         origin_terminal_name: nullable(form, "origin_terminal_name"),
-        origin_terminal_address: nullable(form, "origin_terminal_address"),
         destination_terminal_name: nullable(form, "destination_terminal_name"),
-        destination_terminal_address: nullable(form, "destination_terminal_address"),
         operator: nullable(form, "operator"),
-        service_class: nullable(form, "service_class"),
         booking_reference: nullable(form, "booking_reference"),
         amount: numberOrNull(form, "amount"),
         source: "manual",
-        source_url: nullable(form, "source_url"),
-        has_checked_baggage: form.get("has_checked_baggage") === "on",
-        baggage_notes: nullable(form, "baggage_notes"),
         notes: nullable(form, "notes"),
       };
     }
@@ -429,17 +440,35 @@ export function GlobalAdd({
 
                 {kind === "transport" && (
                   <>
-                    <div className="add-grid">
-                      <CityField stops={stops} name="origin_stop_id" label="Sai de uma cidade do roteiro" defaultStopId={contextualStopId} />
-                      <CityField stops={stops} name="destination_stop_id" label="Chega em uma cidade do roteiro" />
-                    </div>
-                    <div className="add-grid">
-                      <label className="add-field"><span>Origem</span><input name="origin_label" placeholder="Ex.: São Paulo" /></label>
-                      <label className="add-field"><span>Destino</span><input name="destination_label" placeholder="Ex.: São Luís" /></label>
-                    </div>
+                    <datalist id="transport-stop-options">
+                      {stops.map((stop) => <option key={stop.id} value={stop.name} />)}
+                    </datalist>
+
                     <div className="add-grid">
                       <label className="add-field">
-                        <span>Modal</span>
+                        <span>Origem</span>
+                        <input
+                          name="origin_label"
+                          list="transport-stop-options"
+                          required
+                          defaultValue={contextualStopId ? stops.find((stop) => stop.id === contextualStopId)?.name || "" : ""}
+                          placeholder="Cidade ou local de saída"
+                        />
+                      </label>
+                      <label className="add-field">
+                        <span>Destino</span>
+                        <input
+                          name="destination_label"
+                          list="transport-stop-options"
+                          required
+                          placeholder="Cidade ou local de chegada"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="add-grid">
+                      <label className="add-field">
+                        <span>Tipo</span>
                         <select name="mode" defaultValue="bus">
                           <option value="flight">Voo</option>
                           <option value="bus">Ônibus</option>
@@ -458,30 +487,25 @@ export function GlobalAdd({
                         </select>
                       </label>
                     </div>
+
                     <div className="add-grid">
-                      <label className="add-field"><span>Saída exata</span><input name="departure_at" type="datetime-local" /></label>
-                      <label className="add-field"><span>Chegada exata</span><input name="arrival_at" type="datetime-local" /></label>
+                      <label className="add-field"><span>Saída</span><input name="departure_at" type="datetime-local" /></label>
+                      <label className="add-field"><span>Chegada</span><input name="arrival_at" type="datetime-local" /></label>
                     </div>
-                    <div className="add-grid">
-                      <label className="add-field"><span>Data da saída, se horário pendente</span><input name="departure_date" type="date" /></label>
-                      <label className="add-field"><span>Data da chegada, se horário pendente</span><input name="arrival_date" type="date" /></label>
-                    </div>
+
+                    <label className="add-field"><span>Empresa</span><input name="operator" placeholder="Ex.: LATAM, Guanabara" /></label>
+
                     <div className="add-grid">
                       <label className="add-field"><span>Terminal de saída</span><input name="origin_terminal_name" placeholder="Aeroporto, rodoviária..." /></label>
-                      <label className="add-field"><span>Endereço da saída</span><input name="origin_terminal_address" /></label>
+                      <label className="add-field"><span>Terminal de chegada</span><input name="destination_terminal_name" placeholder="Aeroporto, rodoviária..." /></label>
                     </div>
-                    <div className="add-grid">
-                      <label className="add-field"><span>Terminal de chegada</span><input name="destination_terminal_name" /></label>
-                      <label className="add-field"><span>Endereço da chegada</span><input name="destination_terminal_address" /></label>
-                    </div>
-                    <label className="add-field"><span>Empresa</span><input name="operator" placeholder="Ex.: LATAM, Guanabara" /></label>
+
                     <div className="add-grid">
                       <label className="add-field"><span>Localizador</span><input name="booking_reference" /></label>
                       <label className="add-field"><span>Valor</span><input name="amount" inputMode="decimal" placeholder="0,00" /></label>
                     </div>
-                                        <label className="add-check"><input name="has_checked_baggage" type="checkbox" /><span>Inclui bagagem despachada ou no bagageiro</span></label>
-                    <label className="add-field"><span>Bagagem</span><textarea name="baggage_notes" rows={2} placeholder="Regras, quantidade, peso ou observações" /></label>
-                    <label className="add-field"><span>Nota</span><textarea name="notes" rows={3} /></label>
+
+                    <label className="add-field"><span>Observações</span><textarea name="notes" rows={3} /></label>
                   </>
                 )}
 
