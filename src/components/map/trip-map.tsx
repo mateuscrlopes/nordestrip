@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, TriangleAlert } from "lucide-react";
+import { ExternalLink, Navigation, TriangleAlert } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type LatLngLiteral = { lat: number; lng: number };
@@ -30,6 +30,24 @@ type GoogleInfoWindowInstance = {
   open: (options: { map: GoogleMapInstance; anchor: GoogleMarkerInstance }) => void;
 };
 
+type GoogleRouteInstance = {
+  distanceMeters?: number;
+  durationMillis?: number;
+  createPolylines: (options?: { polylineOptions?: Record<string, unknown> }) => GooglePolylineInstance[];
+};
+
+type GoogleRoutesLibrary = {
+  Route: {
+    computeRoutes: (request: {
+      origin: LatLngLiteral;
+      destination: LatLngLiteral;
+      intermediates?: Array<{ location: LatLngLiteral }>;
+      travelMode: "WALKING";
+      fields: string[];
+    }) => Promise<{ routes: GoogleRouteInstance[] }>;
+  };
+};
+
 type GoogleMapsRuntime = {
   importLibrary: (name: string) => Promise<unknown>;
   Map: new (container: HTMLElement, options: Record<string, unknown>) => GoogleMapInstance;
@@ -48,6 +66,11 @@ declare global {
   }
 }
 
+type RouteSummary = {
+  distanceMeters: number;
+  durationMillis: number;
+};
+
 type MapPlace = {
   id: string;
   stopId: string;
@@ -61,6 +84,21 @@ type MapPlace = {
   circuitOrder: number;
   confidence: "verified" | "approximate" | null;
 };
+
+function formatDistance(meters: number) {
+  if (meters < 1000) return `${Math.round(meters)} m`;
+  return `${(meters / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} km`;
+}
+
+function formatDuration(milliseconds: number) {
+  const minutes = Math.max(1, Math.round(milliseconds / 60000));
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+
+  if (!hours) return `${minutes} min`;
+  if (!rest) return `${hours}h`;
+  return `${hours}h ${rest}min`;
+}
 
 function googleMapsUrl(place: MapPlace) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
@@ -107,12 +145,15 @@ export function TripMap({ places, apiKey }: { places: MapPlace[]; apiKey: string
   const markersRef = useRef<GoogleMarkerInstance[]>([]);
   const polylinesRef = useRef<GooglePolylineInstance[]>([]);
   const infoWindowRef = useRef<GoogleInfoWindowInstance | null>(null);
+  const renderVersionRef = useRef(0);
 
   const [city, setCity] = useState("all");
   const [circuit, setCircuit] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(places[0]?.id ?? null);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState("");
+  const [routeSummary, setRouteSummary] = useState<RouteSummary | null>(null);
+  const [routeState, setRouteState] = useState<"idle" | "loading" | "ready" | "unavailable">("idle");
 
   const cities = useMemo(
     () => Array.from(new Set(places.map((place) => place.city))).sort((a, b) => a.localeCompare(b, "pt-BR")),
@@ -181,6 +222,8 @@ export function TripMap({ places, apiKey }: { places: MapPlace[]; apiKey: string
 
     if (!mapReady || !map || !maps) return;
 
+    const renderVersion = ++renderVersionRef.current;
+
     markersRef.current.forEach((marker) => marker.setMap(null));
     markersRef.current = [];
 
@@ -188,6 +231,8 @@ export function TripMap({ places, apiKey }: { places: MapPlace[]; apiKey: string
     polylinesRef.current = [];
 
     infoWindowRef.current?.close();
+    setRouteSummary(null);
+    setRouteState(circuit === "all" ? "idle" : "loading");
 
     const bounds = new maps.LatLngBounds();
 
@@ -202,20 +247,22 @@ export function TripMap({ places, apiKey }: { places: MapPlace[]; apiKey: string
       return groups;
     }, new Map());
 
-    grouped.forEach((group) => {
-      const sorted = [...group].sort((a, b) => a.circuitOrder - b.circuitOrder);
-      if (sorted.length < 2) return;
+    const drawFallbackLines = () => {
+      grouped.forEach((group) => {
+        const sorted = [...group].sort((a, b) => a.circuitOrder - b.circuitOrder);
+        if (sorted.length < 2) return;
 
-      const polyline = new maps.Polyline({
-        map,
-        path: sorted.map((place) => ({ lat: place.latitude, lng: place.longitude })),
-        strokeColor: "#537985",
-        strokeOpacity: 0.48,
-        strokeWeight: 3,
+        const polyline = new maps.Polyline({
+          map,
+          path: sorted.map((place) => ({ lat: place.latitude, lng: place.longitude })),
+          strokeColor: "#537985",
+          strokeOpacity: 0.48,
+          strokeWeight: 3,
+        });
+
+        polylinesRef.current.push(polyline);
       });
-
-      polylinesRef.current.push(polyline);
-    });
+    };
 
     visiblePlaces.forEach((place) => {
       const position = { lat: place.latitude, lng: place.longitude };
@@ -258,13 +305,80 @@ export function TripMap({ places, apiKey }: { places: MapPlace[]; apiKey: string
       markersRef.current.push(marker);
     });
 
+    const drawRealRoute = async () => {
+      if (circuit === "all") {
+        drawFallbackLines();
+        return;
+      }
+
+      const routePlaces = [...visiblePlaces]
+        .filter((place) => place.category !== "excursion")
+        .sort((a, b) => a.circuitOrder - b.circuitOrder);
+
+      if (routePlaces.length < 2) {
+        setRouteState("idle");
+        return;
+      }
+
+      try {
+        const routesLibrary = await maps.importLibrary("routes") as GoogleRoutesLibrary;
+        const first = routePlaces[0];
+        const last = routePlaces[routePlaces.length - 1];
+
+        const { routes } = await routesLibrary.Route.computeRoutes({
+          origin: { lat: first.latitude, lng: first.longitude },
+          destination: { lat: last.latitude, lng: last.longitude },
+          intermediates: routePlaces.slice(1, -1).map((place) => ({
+            location: { lat: place.latitude, lng: place.longitude },
+          })),
+          travelMode: "WALKING",
+          fields: ["path", "distanceMeters", "durationMillis"],
+        });
+
+        if (renderVersion !== renderVersionRef.current) return;
+
+        const route = routes[0];
+
+        if (!route) {
+          drawFallbackLines();
+          setRouteState("unavailable");
+          return;
+        }
+
+        const routePolylines = route.createPolylines({
+          polylineOptions: {
+            strokeColor: "#123844",
+            strokeOpacity: 0.82,
+            strokeWeight: 4,
+          },
+        });
+
+        routePolylines.forEach((polyline) => {
+          polyline.setMap(map);
+          polylinesRef.current.push(polyline);
+        });
+
+        setRouteSummary({
+          distanceMeters: Number(route.distanceMeters || 0),
+          durationMillis: Number(route.durationMillis || 0),
+        });
+        setRouteState("ready");
+      } catch {
+        if (renderVersion !== renderVersionRef.current) return;
+        drawFallbackLines();
+        setRouteState("unavailable");
+      }
+    };
+
+    void drawRealRoute();
+
     if (visiblePlaces.length === 1) {
       map.setCenter({ lat: visiblePlaces[0].latitude, lng: visiblePlaces[0].longitude });
       map.setZoom(15);
     } else if (visiblePlaces.length > 1) {
       map.fitBounds(bounds, 36);
     }
-  }, [mapReady, selectedId, visiblePlaces]);
+  }, [circuit, mapReady, selectedId, visiblePlaces]);
 
   function changeCity(value: string) {
     setCity(value);
@@ -335,6 +449,28 @@ export function TripMap({ places, apiKey }: { places: MapPlace[]; apiKey: string
         />
       )}
 
+      {circuit !== "all" && (
+        <div className="trip-map-route-summary">
+          <span className="trip-map-route-icon"><Navigation size={15} /></span>
+          <div>
+            <strong>
+              {routeState === "loading" && "Calculando rota a pé..."}
+              {routeState === "ready" && routeSummary &&
+                `${formatDistance(routeSummary.distanceMeters)} · ${formatDuration(routeSummary.durationMillis)} a pé`}
+              {routeState === "unavailable" && "Rota real indisponível"}
+              {routeState === "idle" && "Selecione um circuito com pelo menos dois pontos"}
+            </strong>
+            <small>
+              {routeState === "ready"
+                ? "Tempo e distância calculados pelo Google."
+                : routeState === "unavailable"
+                  ? "A sequência aproximada continua visível; confira se a Routes API está habilitada."
+                  : "O cálculo só é feito para o circuito selecionado."}
+            </small>
+          </div>
+        </div>
+      )}
+
       {selected && (
         <div className="trip-map-selected">
           <strong>{selected.name}</strong>
@@ -359,7 +495,7 @@ export function TripMap({ places, apiKey }: { places: MapPlace[]; apiKey: string
       )}
 
       <p className="trip-map-note">
-        As linhas mostram a sequência planejada dos pontos. A próxima camada adiciona o caminho real e o tempo de deslocamento pela Google Routes API.
+        Ao selecionar um circuito, o Nordestrip solicita ao Google a rota real a pé. Sem circuito selecionado, as linhas mostram apenas a sequência planejada.
       </p>
     </div>
   );
