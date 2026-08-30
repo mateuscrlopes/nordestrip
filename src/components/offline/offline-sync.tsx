@@ -27,7 +27,8 @@ export function OfflineSync({ tripId }: { tripId: string | null }) {
     setOnline(navigator.onLine);
     if (!tripId) return;
 
-    setLastSavedAt(savedTime(tripId));
+    const activeTripId = tripId;
+    setLastSavedAt(savedTime(activeTripId));
 
     let cancelled = false;
 
@@ -44,15 +45,15 @@ export function OfflineSync({ tripId }: { tripId: string | null }) {
       if (cancelled || !navigator.onLine) return;
 
       try {
-        const response = await fetch(`/api/offline/snapshot?tripId=${encodeURIComponent(tripId)}`, {
+        const response = await fetch(`/api/offline/snapshot?tripId=${encodeURIComponent(activeTripId)}`, {
           credentials: "same-origin",
           cache: "no-store",
         });
         if (!response.ok) return;
 
         const data = await response.json() as { generatedAt?: unknown };
-        localStorage.setItem(snapshotKey(tripId), JSON.stringify(data));
-        localStorage.setItem(ACTIVE_TRIP_KEY, tripId);
+        localStorage.setItem(snapshotKey(activeTripId), JSON.stringify(data));
+        localStorage.setItem(ACTIVE_TRIP_KEY, activeTripId);
         if (typeof data.generatedAt === "string") {
           setLastSavedAt(data.generatedAt);
         }

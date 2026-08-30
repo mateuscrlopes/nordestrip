@@ -55,6 +55,7 @@ export function AccommodationSearch({
   currentAccommodationId,
   currentAccommodationStatus,
   initialQuotes,
+  defaultOpen = false,
 }: {
   tripId: string;
   stopId: string;
@@ -64,9 +65,10 @@ export function AccommodationSearch({
   currentAccommodationId?: string | null;
   currentAccommodationStatus?: string | null;
   initialQuotes: SavedAccommodationQuote[];
+  defaultOpen?: boolean;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [checkIn, setCheckIn] = useState(defaultCheckIn);
   const [checkOut, setCheckOut] = useState(defaultCheckOut);
   const [adults, setAdults] = useState(2);

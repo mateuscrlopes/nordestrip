@@ -40,10 +40,13 @@ function terminalMapsUrl(name?: unknown, address?: unknown) {
 
 export default async function CityPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ stopId: string }>;
+  searchParams: Promise<{ integration?: string }>;
 }) {
   const { stopId } = await params;
+  const { integration } = await searchParams;
 
   let data;
   try {
@@ -255,7 +258,7 @@ export default async function CityPage({
         </div>
       </section>
 
-      <section>
+      <section id="hospedagem">
         <div className="section-heading">
           <h2>Hospedagem</h2>
         </div>
@@ -324,6 +327,7 @@ export default async function CityPage({
           defaultCheckOut={accommodationSearchCheckOut}
           currentAccommodationId={accommodation?.id ? String(accommodation.id) : null}
           currentAccommodationStatus={accommodation?.status ? String(accommodation.status) : null}
+          defaultOpen={integration === "lodging"}
           initialQuotes={accommodationQuotes.map((quote) => ({
             id: String(quote.id),
             externalId: quote.external_id ? String(quote.external_id) : null,
@@ -466,7 +470,7 @@ export default async function CityPage({
         </section>
       )}
 
-      <section className="pb-2">
+      <section id="saida" className="pb-2">
         <div className="section-heading">
           <h2>Saída</h2>
         </div>
@@ -587,6 +591,7 @@ export default async function CityPage({
             originLabel={city}
             destinationLabel={valueText(outbound.destination_label) || "Próximo destino"}
             transportStatus={String(outbound.status || "planned")}
+            defaultOpen={integration === "bus"}
             initialQuotes={transportQuotes.map((quote) => ({
               id: String(quote.id),
               externalId: quote.external_id ? String(quote.external_id) : null,

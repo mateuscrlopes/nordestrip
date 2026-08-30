@@ -1,6 +1,7 @@
 import { PluggyConnectButton } from "@/components/integrations/pluggy-connect-button";
 import { formatDateTime } from "@/lib/utils/format";
 import { Banknote, BedDouble, BusFront, MapPinned } from "lucide-react";
+import Link from "next/link";
 
 type IntegrationRecord = Record<string, unknown>;
 
@@ -67,9 +68,13 @@ function matchConnection(item: (typeof catalog)[number], connections: Integratio
 export function IntegrationCatalog({
   connections,
   tripId,
+  accommodationStopId,
+  busStopId,
 }: {
   connections: IntegrationRecord[];
   tripId?: string | null;
+  accommodationStopId?: string | null;
+  busStopId?: string | null;
 }) {
   return (
     <div className="integration-catalog">
@@ -100,6 +105,22 @@ export function IntegrationCatalog({
                   itemId={textValue(connection?.external_connection_id) || null}
                   status={status}
                 />
+              )}
+              {item.key === "accommodation" && accommodationStopId && (
+                <Link
+                  href={`/cidade/${accommodationStopId}?integration=lodging#hospedagem`}
+                  className="mt-3 inline-flex min-h-9 items-center justify-center rounded-xl bg-pale-blue/55 px-3 text-[11px] font-semibold text-petrol"
+                >
+                  Pesquisar hospedagem
+                </Link>
+              )}
+              {item.key === "transport" && busStopId && (
+                <Link
+                  href={`/cidade/${busStopId}?integration=bus#saida`}
+                  className="mt-3 inline-flex min-h-9 items-center justify-center rounded-xl bg-pale-blue/55 px-3 text-[11px] font-semibold text-petrol"
+                >
+                  Pesquisar ônibus
+                </Link>
               )}
             </div>
           </div>

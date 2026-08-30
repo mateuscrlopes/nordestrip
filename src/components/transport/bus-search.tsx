@@ -57,6 +57,7 @@ export function BusSearch({
   destinationLabel,
   transportStatus,
   initialQuotes,
+  defaultOpen = false,
 }: {
   tripId: string;
   transportId: string;
@@ -64,9 +65,10 @@ export function BusSearch({
   destinationLabel: string;
   transportStatus: string;
   initialQuotes: SavedTransportQuote[];
+  defaultOpen?: boolean;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<GeckoBusResult[]>([]);
   const [quotes, setQuotes] = useState(initialQuotes);
