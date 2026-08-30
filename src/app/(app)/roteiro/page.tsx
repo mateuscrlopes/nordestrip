@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { ItineraryView } from "@/components/itinerary/itinerary-view";
+import { RouteGeographyControl } from "@/components/itinerary/route-geography-control";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
 import { getTripItineraryBundle } from "@/lib/queries/trips";
 
@@ -27,6 +28,7 @@ export default async function ItineraryPage() {
         title="Roteiro"
         description="Cidades, dias e deslocamentos da viagem."
       />
+      <RouteGeographyControl tripId={trip.id} />
       <ItineraryView
         tripId={trip.id}
         stops={stops}
