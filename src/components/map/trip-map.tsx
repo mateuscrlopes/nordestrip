@@ -1,7 +1,8 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import maplibregl, { type Map as MapLibreMap, type Marker, type Popup } from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
+import type { Map as MapLibreMap, Marker, Popup } from "maplibre-gl";
 import { ExternalLink, Navigation, TriangleAlert } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -228,11 +229,12 @@ export function TripMap({
     });
 
     mapRef.current = map;
+    const markers = markersRef.current;
 
     return () => {
       popupRef.current?.remove();
-      markersRef.current.forEach(({ marker }) => marker.remove());
-      markersRef.current.clear();
+      markers.forEach(({ marker }) => marker.remove());
+      markers.clear();
       map.remove();
       mapRef.current = null;
     };
@@ -281,7 +283,6 @@ export function TripMap({
       element.className = [
         "trip-map-marker",
         place.confidence === "approximate" ? "trip-map-marker--approx" : "",
-        selectedId === place.id ? "is-selected" : "",
       ].filter(Boolean).join(" ");
       element.setAttribute("aria-label", place.name);
 
