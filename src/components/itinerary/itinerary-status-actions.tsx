@@ -41,26 +41,26 @@ export function ItineraryStatusActions({
   }
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="itinerary-status-actions">
       <button
         type="button"
-        className={`add-icon-button ${confirmed ? "bg-pale-blue/70 text-petrol" : ""}`}
+        className={`itinerary-row-action ${confirmed ? "is-confirmed" : ""}`}
         aria-label={confirmed ? `Remover confirmação de ${title}` : `Confirmar ${title}`}
         title={confirmed ? "Confirmado" : "Confirmar"}
         disabled={saving || visited}
         onClick={() => update(confirmed ? "planned" : "confirmed")}
       >
-        <BadgeCheck size={15} />
+        <BadgeCheck size={14} />
       </button>
       <button
         type="button"
-        className={`add-icon-button ${visited ? "bg-petrol text-white" : ""}`}
+        className={`itinerary-row-action ${visited ? "is-visited" : ""}`}
         aria-label={visited ? `Marcar ${title} como não visitado` : `Marcar ${title} como visitado`}
         title={visited ? "Visitado" : "Marcar como visitado"}
         disabled={saving}
         onClick={() => update(visited ? "confirmed" : "done")}
       >
-        <Footprints size={15} />
+        <Footprints size={14} />
       </button>
       {error && <span className="sr-only" role="status">{error}</span>}
     </div>
