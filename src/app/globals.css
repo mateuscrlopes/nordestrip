@@ -3607,3 +3607,66 @@ input:focus-visible {
   background: rgba(220, 232, 235, .62);
   font-weight: 650;
 }
+
+
+/* Circuit feasibility on travel dates */
+
+.day-circuit-summary {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .28rem;
+}
+
+.day-circuit-summary span,
+.day-place-availability {
+  border-radius: 999px;
+  padding: .18rem .42rem;
+  font-size: .5rem;
+  font-weight: 700;
+}
+
+.day-circuit-summary .is-open,
+.day-place-availability--open {
+  color: #123844;
+  background: rgba(220, 232, 235, .72);
+}
+
+.day-circuit-summary .is-confirm,
+.day-place-availability--confirm {
+  color: #6c5635;
+  background: rgba(215, 180, 131, .20);
+}
+
+.day-circuit-summary .is-closed,
+.day-place-availability--closed {
+  color: #7a3e28;
+  background: rgba(122, 62, 40, .10);
+}
+
+.day-place-availability {
+  display: inline-block !important;
+  width: fit-content;
+  margin-top: .2rem !important;
+}
+
+.day-idea-row--closed {
+  opacity: .68;
+}
+
+.day-idea-row--closed .day-circuit-order {
+  color: #7a3e28;
+  background: rgba(122, 62, 40, .10);
+}
+
+@media (max-width: 430px) {
+  .day-circuit-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .day-circuit-summary {
+    justify-content: flex-start;
+  }
+}
