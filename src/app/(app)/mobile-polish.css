@@ -1,8 +1,46 @@
+.hero-brand-lockup {
+  color: #17282e;
+}
+
+#hospedagem > .mt-3 > .\-mt-11 {
+  margin-top: .75rem !important;
+  margin-bottom: .75rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.luggage-grid,
+.luggage-item,
+.accommodation-panel,
+.operational-strip,
+.settings-record,
+.expense-row {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.luggage-item,
+.accommodation-panel {
+  width: 100%;
+}
+
+.operational-strip .mt-2.flex,
+.accommodation-panel .mt-3.flex {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.luggage-item--actionable > .min-w-0 > .flex {
+  flex-wrap: wrap;
+  row-gap: .35rem;
+}
+
 @media (max-width: 640px) {
   .record-actions-trigger,
   .settings-record a,
   .map-external-link,
-  .luggage-edit-button {
+  .luggage-edit-button,
+  .add-icon-button {
     width: 2.5rem;
     height: 2.5rem;
     min-width: 2.5rem;
@@ -16,6 +54,51 @@
   .record-actions-menu button,
   .restore-record button {
     min-height: 40px;
+  }
+
+  .operational-strip {
+    align-items: flex-start;
+  }
+
+  .accommodation-panel {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 540px) {
+  .luggage-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: .65rem;
+  }
+
+  .luggage-item {
+    min-height: 0;
+  }
+
+  #hospedagem > .mt-3 > .\-mt-11 {
+    margin-top: .65rem !important;
+  }
+}
+
+@media (max-width: 460px) {
+  .operational-strip,
+  .accommodation-panel {
+    gap: .7rem;
+  }
+
+  .operational-strip .mt-2.flex,
+  .accommodation-panel .mt-3.flex {
+    gap: .45rem;
+  }
+
+  .operational-strip .record-status,
+  .accommodation-panel .record-status {
+    max-width: 100%;
+  }
+
+  .operational-strip .record-status select,
+  .accommodation-panel .record-status select {
+    max-width: min(100%, 12rem);
   }
 }
 
@@ -34,5 +117,12 @@
 
   .settings-record {
     align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .settings-record > .flex,
+  .pending-manage-row > .flex {
+    max-width: 100%;
+    flex-wrap: wrap;
   }
 }
