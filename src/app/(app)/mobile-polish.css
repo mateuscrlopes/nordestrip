@@ -14,7 +14,9 @@
 .accommodation-panel,
 .operational-strip,
 .settings-record,
-.expense-row {
+.expense-row,
+.participant-row,
+.participant-split {
   min-width: 0;
   max-width: 100%;
 }
@@ -33,6 +35,10 @@
 .luggage-item--actionable > .min-w-0 > .flex {
   flex-wrap: wrap;
   row-gap: .35rem;
+}
+
+.section-heading > * {
+  min-width: 0;
 }
 
 @media (max-width: 640px) {
@@ -56,10 +62,7 @@
     min-height: 40px;
   }
 
-  .operational-strip {
-    align-items: flex-start;
-  }
-
+  .operational-strip,
   .accommodation-panel {
     align-items: flex-start;
   }
@@ -100,6 +103,17 @@
   .accommodation-panel .record-status select {
     max-width: min(100%, 12rem);
   }
+
+  .participant-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .participant-row > .participant-split {
+    width: 100%;
+    justify-content: flex-end;
+    padding-left: 2.95rem;
+  }
 }
 
 @media (max-width: 420px) {
@@ -124,5 +138,9 @@
   .pending-manage-row > .flex {
     max-width: 100%;
     flex-wrap: wrap;
+  }
+
+  .section-heading {
+    gap: .65rem;
   }
 }
