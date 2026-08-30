@@ -415,6 +415,7 @@ export function TripMap({
       signal: controller.signal,
     })
       .then(async (response) => {
+        if (response.status === 401) throw new Error("session-expired");
         if (!response.ok) throw new Error("route-unavailable");
         return response.json() as Promise<RouteResponse>;
       })
@@ -476,6 +477,11 @@ export function TripMap({
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
+        if (error instanceof Error && error.message === "session-expired") {
+          const next = window.location.pathname + window.location.search;
+          window.location.assign(`/login?next=${encodeURIComponent(next)}`);
+          return;
+        }
         setRouteState("unavailable");
         if (error instanceof Error && error.message !== "route-unavailable") {
           console.warn("Falha ao renderizar rota do circuito.", error);
