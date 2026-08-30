@@ -113,12 +113,20 @@ export type ItineraryItem = Record<string, unknown> & {
   id: string;
   trip_id?: string;
   stop_id?: string | null;
+  place_id?: string | null;
   activity_date?: string | null;
   title?: string | null;
   name?: string | null;
+  item_type?: string | null;
+  priority?: string | null;
+  period?: string | null;
   start_time?: string | null;
+  end_time?: string | null;
   schedule_type?: ScheduleType | null;
   is_anchor?: boolean | null;
+  status?: string | null;
+  notes?: string | null;
+  sequence?: number | null;
 };
 
 
