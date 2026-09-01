@@ -256,7 +256,6 @@ select
   fs.discovery_budget,
   f.fund_balance,
   coalesce(c.future_commitments, 0::numeric) as future_commitments,
-  coalesce(c.fund_commitments, 0::numeric) as fund_commitments,
   case
     when coalesce(f.fund_sources, 0) = 0 then null::numeric
     else greatest(
@@ -268,7 +267,8 @@ select
   end as available_to_use,
   coalesce(s.gross_spent, 0::numeric) - coalesce(s.refunds, 0::numeric) as net_spent,
   coalesce(cards.allocated_card_limit, 0::numeric) as allocated_card_limit,
-  coalesce(h.active_holds, 0::numeric) as active_card_holds
+  coalesce(h.active_holds, 0::numeric) as active_card_holds,
+  coalesce(c.fund_commitments, 0::numeric) as fund_commitments
 from public.trips t
 left join public.trip_finance_settings fs on fs.trip_id = t.id
 left join fund f on f.trip_id = t.id
