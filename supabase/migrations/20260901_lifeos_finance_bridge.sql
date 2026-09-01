@@ -268,28 +268,50 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public, pg_temp
-as $$
+as $
+declare
+  v_expense_id uuid;
 begin
-  perform public.queue_lifeos_expense_sync(coalesce(new.expense_id, old.expense_id), 'upsert');
-  return coalesce(new, old);
+  if tg_op = 'DELETE' then
+    v_expense_id := old.expense_id;
+  else
+    v_expense_id := new.expense_id;
+  end if;
+
+  perform public.queue_lifeos_expense_sync(v_expense_id, 'upsert');
+
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
+  return new;
 end;
-$$;
+$;
 
 create or replace function public.lifeos_sync_commitment_trigger()
 returns trigger
 language plpgsql
 security definer
 set search_path = public, pg_temp
-as $$
+as $
 declare
-  v_expense_id uuid := coalesce(new.source_expense_id, old.source_expense_id);
+  v_expense_id uuid;
 begin
+  if tg_op = 'DELETE' then
+    v_expense_id := old.source_expense_id;
+  else
+    v_expense_id := new.source_expense_id;
+  end if;
+
   if v_expense_id is not null then
     perform public.queue_lifeos_expense_sync(v_expense_id, 'upsert');
   end if;
-  return coalesce(new, old);
+
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
+  return new;
 end;
-$$;
+$;
 
 drop trigger if exists lifeos_sync_expense_after_change on public.expenses;
 create trigger lifeos_sync_expense_after_change
@@ -314,9 +336,6 @@ drop trigger if exists lifeos_sync_commitment_after_change on public.financial_c
 create trigger lifeos_sync_commitment_after_change
 after insert or update or delete on public.financial_commitments
 for each row
-when (
-  coalesce(new.source_expense_id, old.source_expense_id) is not null
-)
 execute function public.lifeos_sync_commitment_trigger();
 
 create or replace function public.dispatch_lifeos_sync_queue(
