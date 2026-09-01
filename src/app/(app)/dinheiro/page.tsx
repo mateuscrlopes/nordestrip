@@ -115,10 +115,14 @@ export default async function MoneyPage() {
             </div>
           </div>
 
-          <div className="finance-metrics">
+          <div className="finance-metrics finance-metrics--fund">
             <div>
               <span>Fundo no Mercado Pago</span>
               <strong>{finance?.fund_balance == null ? "—" : formatMoney(finance.fund_balance)}</strong>
+            </div>
+            <div>
+              <span>Reservado no Fundo</span>
+              <strong>{formatMoney(finance?.fund_commitments ?? 0)}</strong>
             </div>
             <div>
               <span>Disponível para usar</span>
