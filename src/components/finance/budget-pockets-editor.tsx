@@ -14,6 +14,7 @@ export type BudgetPocket = {
   spentAmount: number;
   availableAmount: number;
   sortOrder: number;
+  linkedUserId?: string | null;
 };
 
 export function BudgetPocketsEditor({ pockets }: { pockets: BudgetPocket[] }) {
