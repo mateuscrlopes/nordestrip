@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { readContributionProofPdf } from "@/lib/finance/contribution-proof";
 import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +36,7 @@ export async function POST(request: Request) {
   const contributorUserId = String(form.get("contributorUserId") || user.id).trim();
   const informedAmountRaw = String(form.get("amount") || "").replace(",", ".");
   const informedAmount = informedAmountRaw ? Number(informedAmountRaw) : null;
+  const informedDate = String(form.get("date") || "").trim() || null;
   const file = form.get("file");
 
   if (!tripId || !(file instanceof File)) {
@@ -81,19 +81,19 @@ export async function POST(request: Request) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const extraction = file.type === "application/pdf"
-    ? await readContributionProofPdf(buffer)
-    : { amount: null, date: null, status: "image_manual", charactersRead: 0 };
-
-  const amount =
-    extraction.amount ??
-    (informedAmount != null && Number.isFinite(informedAmount) && informedAmount > 0
+  const extraction = {
+    amount: informedAmount != null && Number.isFinite(informedAmount) && informedAmount > 0
       ? Number(informedAmount.toFixed(2))
-      : null);
+      : null,
+    date: informedDate,
+    status: "manual",
+  };
+
+  const amount = extraction.amount;
 
   if (amount == null) {
     return Response.json(
-      { error: "Não consegui identificar o valor. Informe o valor do aporte para continuar.", extraction },
+      { error: "Informe o valor do aporte para continuar.", extraction },
       { status: 422 }
     );
   }
@@ -143,9 +143,9 @@ export async function POST(request: Request) {
     .filter((row) => Math.abs(Math.abs(Number(row.amount || 0)) - amount) <= 0.01)
     .map((row) => ({
       ...row,
-      distance: dateDistanceDays(extraction.date, row.occurred_at),
+      distance: dateDistanceDays(informedDate, row.occurred_at),
     }))
-    .filter((row) => !extraction.date || row.distance <= 3)
+    .filter((row) => !informedDate || row.distance <= 3)
     .sort((a, b) => a.distance - b.distance);
 
   const matched = candidates.length === 1
@@ -206,8 +206,8 @@ export async function POST(request: Request) {
       trip_id: tripId,
       user_id: contributorUserId,
       amount,
-      contribution_at: extraction.date
-        ? new Date(extraction.date + "T12:00:00-03:00").toISOString()
+      contribution_at: informedDate
+        ? new Date(informedDate + "T12:00:00-03:00").toISOString()
         : new Date().toISOString(),
       status: "pending_match",
       source: "receipt",
