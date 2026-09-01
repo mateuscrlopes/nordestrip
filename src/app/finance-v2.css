@@ -507,12 +507,22 @@
   width: fit-content;
   min-height: 24px;
   align-items: center;
+  justify-content: center;
   gap: .3rem;
   margin-top: .35rem;
   border-radius: 999px;
   padding: 0 .55rem;
   font-size: .55rem;
   font-weight: 650;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.lifeos-sync-badge svg,
+.lifeos-sync-line button svg,
+.personal-commitment-remove svg {
+  display: block;
+  flex: 0 0 auto;
 }
 
 .lifeos-sync-badge.is-sent {
@@ -551,6 +561,7 @@
   display: inline-flex;
   min-height: 24px;
   align-items: center;
+  justify-content: center;
   gap: .28rem;
   border-radius: 999px;
   padding: 0 .5rem;
@@ -558,6 +569,7 @@
   background: rgba(220, 232, 235, .5);
   font-size: .54rem;
   font-weight: 650;
+  line-height: 1;
 }
 
 .lifeos-sync-line small {
