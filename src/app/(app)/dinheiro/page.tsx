@@ -2,6 +2,7 @@ import { RecordActions } from "@/components/actions/record-actions";
 import type { BudgetPocket } from "@/components/finance/budget-pockets-editor";
 import { LifeOsSyncStatus } from "@/components/finance/lifeos-sync-status";
 import { ManualCardExpense } from "@/components/finance/manual-card-expense";
+import { PersonalCardCommitmentActions } from "@/components/finance/personal-card-commitment-actions";
 import { TripFundPanel } from "@/components/finance/trip-fund-panel";
 import { TripFundTransactionActions } from "@/components/finance/trip-fund-transaction-actions";
 import { PageHeader } from "@/components/layout/page-header";
@@ -82,6 +83,13 @@ export default async function MoneyPage() {
   const lifeosSyncByExpense = new Map(
     lifeosSync.map((item) => [item.expenseId, item])
   );
+
+  const firstCommitmentIdByExpense = new Map<string, string>();
+  for (const commitment of commitments) {
+    if (commitment.sourceExpenseId && !firstCommitmentIdByExpense.has(commitment.sourceExpenseId)) {
+      firstCommitmentIdByExpense.set(commitment.sourceExpenseId, commitment.id);
+    }
+  }
 
   const commitmentsByPayer = new Map<string, typeof commitments>();
   for (const commitment of commitments) {
@@ -200,7 +208,16 @@ export default async function MoneyPage() {
                                 : ""}
                             </small>
                           </div>
-                          <b>{formatMoney(commitment.remainingAmount)}</b>
+                          <div className="personal-commitment-end">
+                            <b>{formatMoney(commitment.remainingAmount)}</b>
+                            {commitment.sourceExpenseId
+                              && firstCommitmentIdByExpense.get(commitment.sourceExpenseId) === commitment.id && (
+                                <PersonalCardCommitmentActions
+                                  expenseId={commitment.sourceExpenseId}
+                                  title={commitment.title}
+                                />
+                              )}
+                          </div>
                         </div>
                       ))}
                     </div>
