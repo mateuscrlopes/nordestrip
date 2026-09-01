@@ -194,14 +194,21 @@ export function TripFundPanel({
                 <input name="file" type="file" accept="application/pdf,image/png,image/jpeg" required />
               </label>
 
-              <label className="add-field">
-                <span>Valor, se o arquivo não tiver texto legível</span>
-                <input name="amount" type="number" min={0.01} step="0.01" placeholder="Opcional para PDF legível" />
-              </label>
+              <div className="add-grid">
+                <label className="add-field">
+                  <span>Valor do aporte</span>
+                  <input name="amount" type="number" min={0.01} step="0.01" required placeholder="0,00" />
+                </label>
+                <label className="add-field">
+                  <span>Data do Pix</span>
+                  <input name="date" type="date" />
+                </label>
+              </div>
 
               <p className="fund-proof-note">
-                O Nordestrip tenta ler valor e data do PDF sem IA e procura a entrada correspondente no Mercado Pago.
-                O comprovante nunca soma dinheiro duas vezes: ele apenas identifica de quem foi a entrada bancária.
+                O comprovante fica arquivado e o Nordestrip procura no Mercado Pago uma entrada com o mesmo valor
+                e, quando informada, data próxima. Ele nunca soma dinheiro duas vezes: apenas atribui a entrada real
+                a Mateus ou Ghustavo.
               </p>
 
               <div className="add-form-actions">
