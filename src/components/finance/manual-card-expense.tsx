@@ -22,6 +22,7 @@ export function ManualCardExpense({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [total, setTotal] = useState(0);
+  const [equalSplitEnabled, setEqualSplitEnabled] = useState(true);
   const [shares, setShares] = useState<Record<string, number>>(
     Object.fromEntries(members.map((member) => [member.id, 0]))
   );
@@ -45,6 +46,14 @@ export function ManualCardExpense({
     });
 
     setShares(next);
+  }
+
+  function openForm() {
+    setTotal(0);
+    setShares(Object.fromEntries(members.map((member) => [member.id, 0])));
+    setEqualSplitEnabled(true);
+    setMessage("");
+    setOpen(true);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -94,12 +103,13 @@ export function ManualCardExpense({
     setOpen(false);
     setTotal(0);
     setShares(Object.fromEntries(members.map((member) => [member.id, 0])));
+    setEqualSplitEnabled(true);
     router.refresh();
   }
 
   return (
     <>
-      <button type="button" className="personal-card-add" onClick={() => setOpen(true)}>
+      <button type="button" className="personal-card-add" onClick={openForm}>
         <Plus size={14} />
         Registrar compra no cartão
       </button>
@@ -132,19 +142,24 @@ export function ManualCardExpense({
               <div className="add-grid">
                 <label className="add-field">
                   <span>Valor total</span>
-                  <input
-                    name="amount"
-                    type="number"
-                    min={0.01}
-                    step="0.01"
-                    required
-                    value={total || ""}
-                    onChange={(event) => {
-                      const next = Math.max(0, Number(event.target.value) || 0);
-                      setTotal(next);
-                      equalSplit(next);
-                    }}
-                  />
+                  <div className="manual-money-input">
+                    <span>R$</span>
+                    <input
+                      name="amount"
+                      type="number"
+                      min={0.01}
+                      step="0.01"
+                      inputMode="decimal"
+                      required
+                      placeholder="0,00"
+                      value={total || ""}
+                      onChange={(event) => {
+                        const next = Math.max(0, Number(event.target.value) || 0);
+                        setTotal(next);
+                        if (equalSplitEnabled) equalSplit(next);
+                      }}
+                    />
+                  </div>
                 </label>
                 <label className="add-field">
                   <span>Pago por</span>
@@ -156,32 +171,51 @@ export function ManualCardExpense({
                 </label>
               </div>
 
-              <div className="manual-card-split">
+              <div className={`manual-card-split${equalSplitEnabled ? "" : " is-manual"}`}>
                 <div>
                   <strong>Divisão</strong>
-                  <button type="button" onClick={() => equalSplit()}>50% cada</button>
+                  <label className="manual-card-split-toggle">
+                    <input
+                      type="checkbox"
+                      checked={equalSplitEnabled}
+                      onChange={(event) => {
+                        const enabled = event.target.checked;
+                        setEqualSplitEnabled(enabled);
+                        if (enabled) equalSplit();
+                      }}
+                    />
+                    <span>50% para cada</span>
+                  </label>
                 </div>
                 <div className="add-grid">
                   {members.map((member) => (
                     <label className="add-field" key={member.id}>
                       <span>{member.name}</span>
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        value={shares[member.id] ?? 0}
-                        onChange={(event) =>
-                          setShares((current) => ({
-                            ...current,
-                            [member.id]: Math.max(0, Number(event.target.value) || 0),
-                          }))
-                        }
-                      />
+                      <div className="manual-money-input">
+                        <span>R$</span>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          inputMode="decimal"
+                          readOnly={equalSplitEnabled}
+                          value={(shares[member.id] ?? 0) || ""}
+                          onChange={(event) =>
+                            setShares((current) => ({
+                              ...current,
+                              [member.id]: Math.max(0, Number(event.target.value) || 0),
+                            }))
+                          }
+                        />
+                      </div>
                     </label>
                   ))}
                 </div>
                 <small>
-                  Dividido: {divided.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  {equalSplitEnabled
+                    ? "Divisão automática ativa. Desmarque para informar valores diferentes."
+                    : "Divisão manual ativa. Os valores precisam fechar o total."}
+                  {" · "}Dividido: {divided.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </small>
               </div>
 
