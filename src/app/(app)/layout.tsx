@@ -4,7 +4,7 @@ import { BottomNav } from "@/components/navigation/bottom-nav";
 import { GlobalAdd } from "@/components/navigation/global-add";
 import { ContextBackButton } from "@/components/navigation/context-back-button";
 import { getCurrentTrip } from "@/lib/queries/current-trip";
-import { getCurrentUser, getTripStops } from "@/lib/queries/trips";
+import { getCurrentUser, getTripMembersForFinance, getTripStops } from "@/lib/queries/trips";
 import { redirect } from "next/navigation";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -14,7 +14,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ]);
   if (!user) redirect("/login");
 
-  const stops = trip ? await getTripStops(trip.id) : [];
+  const [stops, financeMembers] = trip
+    ? await Promise.all([
+        getTripStops(trip.id),
+        getTripMembersForFinance(trip.id),
+      ])
+    : [[], []];
 
   return (
     <div className="mx-auto min-h-screen w-full max-w-[720px] px-5 pb-44 pt-5 md:px-8 md:pt-8">
@@ -31,6 +36,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               name: stop.city || stop.name || "Cidade",
               startDate: stop.start_date,
               endDate: stop.end_date,
+            }))}
+            members={financeMembers.map((member) => ({
+              id: member.id,
+              name: member.name.split(".")[0],
             }))}
           />
         }
