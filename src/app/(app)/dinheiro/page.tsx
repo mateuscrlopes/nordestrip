@@ -1,5 +1,6 @@
 import { RecordActions } from "@/components/actions/record-actions";
 import type { BudgetPocket } from "@/components/finance/budget-pockets-editor";
+import { LifeOsSyncStatus } from "@/components/finance/lifeos-sync-status";
 import { ManualCardExpense } from "@/components/finance/manual-card-expense";
 import { TripFundPanel } from "@/components/finance/trip-fund-panel";
 import { TripFundTransactionActions } from "@/components/finance/trip-fund-transaction-actions";
@@ -11,6 +12,7 @@ import {
   getTripFinancialTransactions,
   getTripFundAccount,
   getTripFundPersonBalances,
+  getTripLifeOsSyncStatuses,
   getTripMembersForFinance,
   getTripPersonalCardCommitments,
 } from "@/lib/queries/trips";
@@ -49,7 +51,7 @@ function shortName(name: string | null | undefined) {
 export default async function MoneyPage() {
   const { trip } = await getCurrentTrip();
 
-  const [finance, expenses, fundAccount, balances, transactions, members, commitments, pockets] = trip
+  const [finance, expenses, fundAccount, balances, transactions, members, commitments, pockets, lifeosSync] = trip
     ? await Promise.all([
         getTripFinanceSummary(trip.id),
         getTripExpenses(trip.id, 12),
@@ -59,8 +61,9 @@ export default async function MoneyPage() {
         getTripMembersForFinance(trip.id),
         getTripPersonalCardCommitments(trip.id),
         getPersonPockets(trip.id),
+        getTripLifeOsSyncStatuses(trip.id),
       ])
-    : [null, [], null, [], [], [], [], [] as BudgetPocket[]];
+    : [null, [], null, [], [], [], [], [] as BudgetPocket[], []];
 
   const fundTransactions = fundAccount
     ? transactions.filter((transaction) => transaction.financialAccountId === fundAccount.id)
@@ -74,6 +77,10 @@ export default async function MoneyPage() {
   const personalCardTotal = commitments.reduce(
     (sum, commitment) => sum + commitment.remainingAmount,
     0
+  );
+
+  const lifeosSyncByExpense = new Map(
+    lifeosSync.map((item) => [item.expenseId, item])
   );
 
   const commitmentsByPayer = new Map<string, typeof commitments>();
@@ -320,6 +327,16 @@ export default async function MoneyPage() {
                           ? " · Cartão pessoal"
                           : ""}
                     </span>
+                    {expense.payment_method === "credit_card" && (() => {
+                      const sync = lifeosSyncByExpense.get(expense.id);
+                      return (
+                        <LifeOsSyncStatus
+                          expenseId={expense.id}
+                          status={sync?.status ?? null}
+                          lastError={sync?.lastError ?? null}
+                        />
+                      );
+                    })()}
                   </div>
                   <div className="expense-row-actions">
                     <strong>{formatMoney(expense.amount)}</strong>
