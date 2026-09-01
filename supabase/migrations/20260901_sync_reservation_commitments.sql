@@ -17,14 +17,18 @@ declare
   v_lifecycle text;
   v_kind text;
 begin
-  -- Remove somente projeções derivadas desta reserva.
-  delete from public.financial_commitments
-  where reservation_id = coalesce(new.id, old.id)
-    and source = 'reservation_auto';
-
+  -- Em DELETE, NEW não existe. Limpa a projeção usando OLD e encerra.
   if tg_op = 'DELETE' then
+    delete from public.financial_commitments
+    where reservation_id = old.id
+      and source = 'reservation_auto';
     return old;
   end if;
+
+  -- Em INSERT/UPDATE, a projeção é totalmente derivada da reserva atual.
+  delete from public.financial_commitments
+  where reservation_id = new.id
+    and source = 'reservation_auto';
 
   if new.archived_at is not null
      or new.status in ('paid', 'cancelled')
