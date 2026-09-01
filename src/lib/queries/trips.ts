@@ -448,7 +448,7 @@ export async function getTripFinancialTransactions(tripId: string, limit = 80) {
   const rows = checked(
     await supabase
       .from("financial_transactions")
-      .select("id,description,custom_description,amount,currency,occurred_at,direction,posting_status,review_status,matched_expense_id,financial_account:financial_accounts(display_name,account_type)")
+      .select("id,financial_account_id,description,custom_description,amount,currency,occurred_at,direction,posting_status,review_status,matched_expense_id,financial_account:financial_accounts(display_name,account_type)")
       .eq("trip_id", tripId)
       .order("occurred_at", { ascending: false, nullsFirst: false })
       .limit(limit),
@@ -463,6 +463,7 @@ export async function getTripFinancialTransactions(tripId: string, limit = 80) {
 
     return {
       id: String(row.id),
+      financialAccountId: typeof row.financial_account_id === "string" ? row.financial_account_id : null,
       originalDescription: typeof row.description === "string" ? row.description : null,
       customDescription: typeof row.custom_description === "string" ? row.custom_description : null,
       amount: Number(row.amount ?? 0),
@@ -493,4 +494,134 @@ export async function getTripPlaceCatalog(tripId: string) {
       .order("name"),
     "Não foi possível carregar o catálogo de locais"
   ) as Record<string, unknown>[];
+}
+
+
+export async function getTripFundAccount(tripId: string) {
+  const supabase = await createClient();
+  const links = await supabase
+    .from("trip_financial_accounts")
+    .select("financial_account_id")
+    .eq("trip_id", tripId)
+    .eq("purpose", "trip_fund")
+    .eq("include_balance_in_available", true)
+    .is("archived_at", null)
+    .limit(1);
+
+  if (links.error) throw new Error(`Não foi possível localizar o Fundo da Viagem: ${links.error.message}`);
+  const accountId = links.data?.[0]?.financial_account_id;
+  if (!accountId) return null;
+
+  const account = await supabase
+    .from("financial_accounts")
+    .select("id,display_name,account_type,current_balance,last_synced_at,metadata")
+    .eq("id", accountId)
+    .is("archived_at", null)
+    .maybeSingle();
+
+  if (account.error) throw new Error(`Não foi possível carregar o Fundo da Viagem: ${account.error.message}`);
+  if (!account.data) return null;
+
+  const metadata =
+    account.data.metadata && typeof account.data.metadata === "object" && !Array.isArray(account.data.metadata)
+      ? account.data.metadata as Record<string, unknown>
+      : {};
+
+  return {
+    id: account.data.id,
+    displayName: account.data.display_name,
+    accountType: account.data.account_type,
+    balance: account.data.current_balance == null ? null : Number(account.data.current_balance),
+    lastSyncedAt: account.data.last_synced_at ?? null,
+    pluggyItemId:
+      typeof metadata.pluggy_item_id === "string" && metadata.pluggy_item_id.trim()
+        ? metadata.pluggy_item_id.trim()
+        : null,
+  };
+}
+
+export async function getTripFundPersonBalances(tripId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("v_trip_fund_person_balances")
+    .select("trip_id,user_id,name,contributed_amount,spent_amount,available_amount")
+    .eq("trip_id", tripId)
+    .order("name");
+
+  if (error) throw new Error(`Não foi possível carregar os saldos pessoais do Fundo: ${error.message}`);
+
+  return (data ?? []).map((row) => ({
+    tripId: row.trip_id,
+    userId: row.user_id,
+    name: row.name,
+    contributedAmount: Number(row.contributed_amount ?? 0),
+    spentAmount: Number(row.spent_amount ?? 0),
+    availableAmount: Number(row.available_amount ?? 0),
+  }));
+}
+
+export async function getTripPersonalCardCommitments(tripId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("v_trip_personal_card_commitments")
+    .select("*")
+    .eq("trip_id", tripId)
+    .order("due_at", { ascending: true, nullsFirst: false });
+
+  if (error) throw new Error(`Não foi possível carregar os compromissos dos cartões: ${error.message}`);
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    tripId: row.trip_id,
+    payerUserId: row.payer_user_id,
+    payerName: row.payer_name,
+    title: row.title,
+    amount: Number(row.amount ?? 0),
+    paidAmount: Number(row.paid_amount ?? 0),
+    remainingAmount: Number(row.remaining_amount ?? 0),
+    dueAt: row.due_at,
+    installmentNumber: row.installment_number,
+    installmentsTotal: row.installments_total,
+    sourceExpenseId: row.source_expense_id,
+    lifecycleStatus: row.lifecycle_status,
+  }));
+}
+
+export async function getTripMembersForFinance(tripId: string) {
+  const supabase = await createClient();
+  const memberships = await supabase
+    .from("trip_members")
+    .select("user_id,default_split_percentage")
+    .eq("trip_id", tripId);
+
+  if (memberships.error) throw new Error(`Não foi possível carregar os participantes: ${memberships.error.message}`);
+  const ids = (memberships.data ?? []).map((row) => row.user_id);
+  if (!ids.length) return [];
+
+  const profiles = await supabase
+    .from("profiles")
+    .select("id,name")
+    .in("id", ids);
+
+  if (profiles.error) throw new Error(`Não foi possível carregar os participantes: ${profiles.error.message}`);
+  const splitById = new Map((memberships.data ?? []).map((row) => [row.user_id, row.default_split_percentage]));
+
+  return (profiles.data ?? []).map((profile) => ({
+    id: profile.id,
+    name: String(profile.name || "Participante").split(".")[0],
+    defaultSplitPercentage:
+      splitById.get(profile.id) == null ? null : Number(splitById.get(profile.id)),
+  })).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+}
+
+export async function getTripFundContributions(tripId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("trip_fund_contributions")
+    .select("id,user_id,financial_transaction_id,amount,contribution_at,status,source,receipt_filename")
+    .eq("trip_id", tripId)
+    .order("contribution_at", { ascending: false });
+
+  if (error) throw new Error(`Não foi possível carregar os aportes: ${error.message}`);
+  return data ?? [];
 }
