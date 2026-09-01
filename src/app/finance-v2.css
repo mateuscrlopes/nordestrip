@@ -500,3 +500,67 @@
 .manual-money-input > input[readonly] {
   background: rgba(220, 232, 235, .24) !important;
 }
+
+
+.lifeos-sync-badge {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 24px;
+  align-items: center;
+  gap: .3rem;
+  margin-top: .35rem;
+  border-radius: 999px;
+  padding: 0 .55rem;
+  font-size: .55rem;
+  font-weight: 650;
+}
+
+.lifeos-sync-badge.is-sent {
+  color: #376f58;
+  background: rgba(218, 236, 225, .72);
+}
+
+.lifeos-sync-badge.is-pending {
+  color: #536b73;
+  background: rgba(220, 232, 235, .62);
+}
+
+.lifeos-sync-badge.is-warning {
+  color: #7a5b1d;
+  background: rgba(246, 232, 192, .66);
+}
+
+.lifeos-sync-badge.is-error {
+  color: #8a3f3f;
+  background: rgba(246, 218, 218, .65);
+}
+
+.lifeos-sync-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .4rem;
+  margin-top: .35rem;
+}
+
+.lifeos-sync-line .lifeos-sync-badge {
+  margin-top: 0;
+}
+
+.lifeos-sync-line button {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  gap: .28rem;
+  border-radius: 999px;
+  padding: 0 .5rem;
+  color: #123844;
+  background: rgba(220, 232, 235, .5);
+  font-size: .54rem;
+  font-weight: 650;
+}
+
+.lifeos-sync-line small {
+  color: #70787a;
+  font-size: .52rem;
+}
