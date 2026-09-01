@@ -88,6 +88,7 @@ export type FinanceSummary = {
   discovery_budget: number | null;
   fund_balance: number | null;
   future_commitments: number | null;
+  fund_commitments?: number | null;
   available_to_use: number | null;
   net_spent: number | null;
   allocated_card_limit: number | null;

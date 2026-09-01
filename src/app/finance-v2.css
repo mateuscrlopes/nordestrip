@@ -417,3 +417,31 @@
     white-space: nowrap;
   }
 }
+
+
+.finance-metrics--fund {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.finance-metrics--fund > div:nth-child(3) {
+  border-top: 1px solid rgba(18, 56, 68, .08);
+  border-left: 0;
+}
+
+.finance-metrics--fund > div:nth-child(4) {
+  border-top: 1px solid rgba(18, 56, 68, .08);
+}
+
+@media (max-width: 390px) {
+  .finance-metrics--fund {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .finance-metrics--fund > div + div {
+    border-left: 1px solid rgba(18, 56, 68, .08);
+  }
+
+  .finance-metrics--fund > div:nth-child(3) {
+    border-left: 0;
+  }
+}
