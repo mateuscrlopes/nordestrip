@@ -61,6 +61,22 @@ const changeActionLabel: Record<string, string> = {
   structural_change: "Estrutura alterada",
 };
 
+const paymentTimingLabel: Record<string, string> = {
+  pay_now: "Pago na reserva",
+  prepaid: "Cobrança antecipada",
+  at_property: "Pago no local",
+  partial: "Pagamento parcial",
+};
+
+const paymentMethodLabel: Record<string, string> = {
+  credit_card: "Cartão pessoal",
+  trip_fund: "Fundo da viagem",
+  pix: "Pix",
+  debit_card: "Débito",
+  cash: "Dinheiro",
+  other: "Outro",
+};
+
 type MorePageProps = {
   searchParams: Promise<{ section?: string | string[] }>;
 };
@@ -84,6 +100,9 @@ export default async function MorePage({ searchParams }: MorePageProps) {
     : [[], { reservations: [], documents: [], members: [], integrations: [] }, [], [], null, null, [], { currentRole: "member", members: [], invites: [] }];
 
   const stopById = new Map(stops.map((stop) => [stop.id, stop.city || stop.name || "Cidade"]));
+  const participantNameById = new Map(
+    participants.members.map((member) => [member.userId, member.name.split(".")[0]])
+  );
 
   return (
     <>
@@ -162,6 +181,27 @@ export default async function MorePage({ searchParams }: MorePageProps) {
                               {[reservation.supplier, reservation.confirmation_code ? `Localizador ${String(reservation.confirmation_code)}` : null]
                                 .filter(Boolean).join(" · ") || "Reserva"}
                             </small>
+                            {(reservation.payment_timing || reservation.payment_method || reservation.payment_due_at) && (
+                              <small className="reservation-payment-summary">
+                                {[
+                                  reservation.payment_timing
+                                    ? paymentTimingLabel[String(reservation.payment_timing)] || String(reservation.payment_timing)
+                                    : null,
+                                  reservation.payment_method
+                                    ? paymentMethodLabel[String(reservation.payment_method)] || String(reservation.payment_method)
+                                    : null,
+                                  reservation.payer_user_id
+                                    ? participantNameById.get(String(reservation.payer_user_id)) || null
+                                    : null,
+                                  reservation.payment_due_at
+                                    ? `cobrança ${formatDateTime(String(reservation.payment_due_at))}`
+                                    : null,
+                                  Number(reservation.planned_installments || 1) > 1
+                                    ? `${Number(reservation.planned_installments)}x previstas`
+                                    : null,
+                                ].filter(Boolean).join(" · ")}
+                              </small>
+                            )}
                             <div className="mt-2">
                               <RecordStatus
                                 table="reservations"
