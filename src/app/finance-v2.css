@@ -277,14 +277,31 @@
   font-size: .68rem;
 }
 
-.manual-card-split > div:first-child button {
-  min-height: 30px;
+.manual-card-split-toggle {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: .42rem;
   border-radius: 11px;
   padding: 0 .65rem;
   color: #123844;
   background: rgba(220, 232, 235, .62);
+  cursor: pointer;
   font-size: .6rem;
   font-weight: 650;
+  user-select: none;
+}
+
+.manual-card-split-toggle input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #123844;
+}
+
+.manual-card-split.is-manual .manual-card-split-toggle {
+  color: #70787a;
+  background: rgba(247, 243, 236, .9);
 }
 
 .manual-card-split > small {
@@ -444,4 +461,42 @@
   .finance-metrics--fund > div:nth-child(3) {
     border-left: 0;
   }
+}
+
+
+.manual-money-input {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(18, 56, 68, .1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .78);
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+
+.manual-money-input:focus-within {
+  border-color: rgba(18, 56, 68, .38);
+  box-shadow: 0 0 0 3px rgba(220, 232, 235, .55);
+}
+
+.manual-money-input > span {
+  flex: 0 0 auto;
+  padding-left: .8rem;
+  color: #70787a;
+  font-size: .66rem;
+  font-weight: 650;
+}
+
+.manual-money-input > input {
+  min-height: 42px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.manual-money-input > input[readonly] {
+  background: rgba(220, 232, 235, .24) !important;
 }
