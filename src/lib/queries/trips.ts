@@ -625,3 +625,26 @@ export async function getTripFundContributions(tripId: string) {
   if (error) throw new Error(`Não foi possível carregar os aportes: ${error.message}`);
   return data ?? [];
 }
+
+
+export async function getTripLifeOsSyncStatuses(tripId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("lifeos_sync_queue")
+    .select("external_expense_id,status,last_error,last_http_status,sent_at,updated_at")
+    .eq("trip_id", tripId)
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    throw new Error(`Não foi possível carregar o estado da integração com o LifeOS: ${error.message}`);
+  }
+
+  return (data ?? []).map((row) => ({
+    expenseId: row.external_expense_id,
+    status: row.status as "pending" | "dispatched" | "sent" | "error" | "conflict" | "ignored",
+    lastError: row.last_error ?? null,
+    lastHttpStatus: row.last_http_status ?? null,
+    sentAt: row.sent_at ?? null,
+    updatedAt: row.updated_at ?? null,
+  }));
+}
