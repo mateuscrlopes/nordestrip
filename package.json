@@ -15,8 +15,7 @@
     "next": "15.5.24",
     "react": "19.1.1",
     "react-dom": "19.1.1",
-    "maplibre-gl": "^6.6.0",
-    "pdf-parse": "^2.4.5"
+    "maplibre-gl": "^6.6.0"
   },
   "devDependencies": {
     "@types/node": "^22",
