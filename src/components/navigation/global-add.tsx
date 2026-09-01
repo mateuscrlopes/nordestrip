@@ -23,6 +23,11 @@ type StopOption = {
   endDate?: string | null;
 };
 
+type MemberOption = {
+  id: string;
+  name: string;
+};
+
 type AddKind =
   | "place"
   | "activity"
@@ -105,10 +110,12 @@ export function GlobalAdd({
   tripId,
   userId,
   stops,
+  members = [],
 }: {
   tripId: string | null;
   userId: string;
   stops: StopOption[];
+  members?: MemberOption[];
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -267,6 +274,8 @@ export function GlobalAdd({
       table = "reservations";
       const totalAmount = numberOrNull(form, "total_amount");
       const paidAmount = numberOrNull(form, "paid_amount") ?? 0;
+      const paymentDueAt = nullable(form, "payment_due_at");
+      const firstCardDueAt = nullable(form, "first_card_due_at");
       if (totalAmount != null && paidAmount > totalAmount) {
         setError("O valor pago não pode ser maior que o valor total.");
         setSaving(false);
@@ -282,7 +291,12 @@ export function GlobalAdd({
         confirmation_code: nullable(form, "confirmation_code"),
         total_amount: totalAmount,
         paid_amount: paidAmount,
+        payment_timing: nullable(form, "payment_timing"),
+        payment_due_at: paymentDueAt ? new Date(paymentDueAt).toISOString() : null,
+        payer_user_id: nullable(form, "payer_user_id"),
         payment_method: nullable(form, "payment_method"),
+        planned_installments: numberOrNull(form, "planned_installments") ?? 1,
+        first_card_due_at: firstCardDueAt ? new Date(firstCardDueAt).toISOString() : null,
         source_url: nullable(form, "source_url"),
         notes: nullable(form, "notes"),
       };
@@ -609,8 +623,50 @@ export function GlobalAdd({
                       <label className="add-field"><span>Valor total</span><input name="total_amount" inputMode="decimal" placeholder="0,00" /></label>
                       <label className="add-field"><span>Já pago</span><input name="paid_amount" inputMode="decimal" placeholder="0,00" /></label>
                     </div>
+                    <div className="add-grid">
+                      <label className="add-field">
+                        <span>Quando será pago</span>
+                        <select name="payment_timing" defaultValue="">
+                          <option value="">Definir depois</option>
+                          <option value="pay_now">Pago na reserva</option>
+                          <option value="prepaid">Cobrança antecipada</option>
+                          <option value="at_property">Pago na acomodação/local</option>
+                          <option value="partial">Pagamento parcial</option>
+                        </select>
+                      </label>
+                      <label className="add-field"><span>Próxima cobrança</span><input name="payment_due_at" type="datetime-local" /></label>
+                    </div>
+                    <div className="add-grid">
+                      <label className="add-field">
+                        <span>Quem vai pagar</span>
+                        <select name="payer_user_id" defaultValue={userId}>
+                          {members.map((member) => (
+                            <option key={member.id} value={member.id}>{member.name}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="add-field">
+                        <span>Forma prevista</span>
+                        <select name="payment_method" defaultValue="credit_card">
+                          <option value="credit_card">Cartão pessoal</option>
+                          <option value="trip_fund">Fundo da viagem</option>
+                          <option value="pix">Pix</option>
+                          <option value="debit_card">Débito</option>
+                          <option value="cash">Dinheiro</option>
+                          <option value="other">Outro</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div className="add-grid">
+                      <label className="add-field"><span>Parcelas previstas</span><input name="planned_installments" type="number" min="1" max="60" step="1" defaultValue="1" /></label>
+                      <label className="add-field"><span>1ª fatura</span><input name="first_card_due_at" type="datetime-local" /></label>
+                    </div>
                     <label className="add-field"><span>Localizador</span><input name="confirmation_code" /></label>
                     <label className="add-field"><span>Link</span><input name="source_url" type="url" inputMode="url" /></label>
+                    <p className="finance-note">
+                      A condição de pagamento fica separada do Fundo. Uma hospedagem paga no local,
+                      por exemplo, não reduz o Mercado Pago antes da cobrança real.
+                    </p>
                     <label className="add-field"><span>Nota</span><textarea name="notes" rows={3} /></label>
                   </>
                 )}
