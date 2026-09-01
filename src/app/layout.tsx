@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./globals.css";
 import "./refinements.css";
+import "./finance-v2.css";
 
 export const metadata: Metadata = {
   title: { default: "Nordestrip", template: "%s | Nordestrip" },
