@@ -268,7 +268,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public, pg_temp
-as $
+as $$
 declare
   v_expense_id uuid;
 begin
@@ -285,14 +285,14 @@ begin
   end if;
   return new;
 end;
-$;
+$$;
 
 create or replace function public.lifeos_sync_commitment_trigger()
 returns trigger
 language plpgsql
 security definer
 set search_path = public, pg_temp
-as $
+as $$
 declare
   v_expense_id uuid;
 begin
@@ -311,7 +311,7 @@ begin
   end if;
   return new;
 end;
-$;
+$$;
 
 drop trigger if exists lifeos_sync_expense_after_change on public.expenses;
 create trigger lifeos_sync_expense_after_change
