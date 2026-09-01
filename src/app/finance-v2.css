@@ -1,0 +1,419 @@
+/* Nordestrip — Dinheiro v2
+   Fundo Mercado Pago + saldos virtuais + compromissos nos cartões pessoais. */
+
+.trip-fund-panel {
+  overflow: hidden;
+  border: 1px solid rgba(215, 180, 131, .20);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(255, 255, 255, .58), transparent 46%),
+    rgba(215, 180, 131, .22);
+  box-shadow: 0 14px 36px rgba(23, 40, 46, .055);
+}
+
+.trip-fund-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.3rem 1.3rem 1rem;
+}
+
+.trip-fund-heading p {
+  margin: 0;
+  color: #6c5635;
+  font-size: .67rem;
+  font-weight: 650;
+}
+
+.trip-fund-heading h2 {
+  margin: .22rem 0 0;
+  color: #17282e;
+  font-size: 1.7rem;
+  line-height: 1.08;
+  font-weight: 650;
+  letter-spacing: -.045em;
+}
+
+.trip-fund-heading > div > span {
+  display: block;
+  margin-top: .42rem;
+  color: #70787a;
+  font-size: .66rem;
+  line-height: 1.45;
+}
+
+.trip-fund-icon {
+  display: grid;
+  width: 2.7rem;
+  height: 2.7rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 17px;
+  color: #123844;
+  background: rgba(255, 253, 252, .78);
+  box-shadow: 0 6px 18px rgba(23, 40, 46, .05);
+}
+
+.trip-fund-balances {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid rgba(18, 56, 68, .07);
+  border-bottom: 1px solid rgba(18, 56, 68, .07);
+  background: rgba(255, 253, 252, .36);
+}
+
+.trip-fund-balances > div {
+  min-width: 0;
+  padding: .9rem 1rem;
+}
+
+.trip-fund-balances > div + div {
+  border-left: 1px solid rgba(18, 56, 68, .07);
+}
+
+.trip-fund-balances span {
+  display: block;
+  color: #526268;
+  font-size: .62rem;
+  font-weight: 650;
+}
+
+.trip-fund-balances strong {
+  display: block;
+  margin-top: .22rem;
+  color: #17282e;
+  font-size: 1rem;
+  font-weight: 680;
+  letter-spacing: -.025em;
+}
+
+.trip-fund-balances small {
+  display: block;
+  margin-top: .28rem;
+  color: #70787a;
+  font-size: .57rem;
+  line-height: 1.45;
+}
+
+.trip-fund-reconciliation,
+.trip-fund-message {
+  margin: 0;
+  padding: .7rem 1rem;
+  color: #6c5635;
+  background: rgba(255, 253, 252, .38);
+  font-size: .61rem;
+  line-height: 1.45;
+}
+
+.trip-fund-message {
+  color: #123844;
+  background: rgba(220, 232, 235, .46);
+}
+
+.trip-fund-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .55rem;
+  padding: .8rem 1rem 1rem;
+}
+
+.trip-fund-actions button,
+.personal-card-add {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: .42rem;
+  border-radius: 14px;
+  color: #123844;
+  background: rgba(255, 253, 252, .74);
+  font-size: .66rem;
+  font-weight: 650;
+  box-shadow: 0 4px 14px rgba(23, 40, 46, .025);
+}
+
+.trip-fund-actions button:disabled {
+  opacity: .45;
+}
+
+.spin {
+  animation: fund-spin .9s linear infinite;
+}
+
+@keyframes fund-spin {
+  to { transform: rotate(360deg); }
+}
+
+.fund-proof-note,
+.manual-card-note {
+  margin: 0;
+  border-radius: 16px;
+  padding: .78rem .85rem;
+  color: #526268;
+  background: rgba(220, 232, 235, .42);
+  font-size: .66rem;
+  line-height: 1.52;
+}
+
+.manual-card-note {
+  display: flex;
+  align-items: flex-start;
+  gap: .55rem;
+}
+
+.manual-card-note svg {
+  flex: 0 0 auto;
+  margin-top: .1rem;
+  color: #123844;
+}
+
+.manual-card-note p {
+  margin: 0;
+}
+
+.personal-card-add {
+  min-height: 34px;
+  padding: 0 .7rem;
+  background: rgba(220, 232, 235, .58);
+}
+
+.personal-commitments {
+  display: grid;
+  gap: .7rem;
+}
+
+.personal-commitment-group {
+  overflow: hidden;
+  border: 1px solid rgba(18, 56, 68, .065);
+  border-radius: 22px;
+  background: rgba(255, 253, 252, .72);
+  box-shadow: 0 7px 22px rgba(23, 40, 46, .025);
+}
+
+.personal-commitment-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .85rem 1rem;
+  background: rgba(220, 232, 235, .34);
+}
+
+.personal-commitment-heading span {
+  display: block;
+  color: #70787a;
+  font-size: .56rem;
+}
+
+.personal-commitment-heading strong {
+  display: block;
+  margin-top: .12rem;
+  color: #17282e;
+  font-size: .78rem;
+  font-weight: 680;
+}
+
+.personal-commitment-heading b {
+  color: #123844;
+  font-size: .82rem;
+  font-weight: 680;
+}
+
+.personal-commitment-list {
+  padding: 0 .85rem;
+}
+
+.personal-commitment-list > div {
+  display: flex;
+  min-height: 62px;
+  align-items: center;
+  gap: .65rem;
+  padding: .6rem 0;
+}
+
+.personal-commitment-list > div + div {
+  border-top: 1px solid rgba(18, 56, 68, .06);
+}
+
+.personal-commitment-list strong {
+  display: block;
+  color: #17282e;
+  font-size: .7rem;
+  font-weight: 650;
+}
+
+.personal-commitment-list small {
+  display: block;
+  margin-top: .15rem;
+  color: #70787a;
+  font-size: .58rem;
+}
+
+.personal-commitment-list b {
+  flex: 0 0 auto;
+  color: #17282e;
+  font-size: .7rem;
+  font-weight: 680;
+}
+
+.manual-card-split {
+  display: grid;
+  gap: .7rem;
+  border-radius: 18px;
+  padding: .8rem;
+  background: rgba(247, 243, 236, .62);
+}
+
+.manual-card-split > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .7rem;
+}
+
+.manual-card-split > div:first-child strong {
+  color: #17282e;
+  font-size: .68rem;
+}
+
+.manual-card-split > div:first-child button {
+  min-height: 30px;
+  border-radius: 11px;
+  padding: 0 .65rem;
+  color: #123844;
+  background: rgba(220, 232, 235, .62);
+  font-size: .6rem;
+  font-weight: 650;
+}
+
+.manual-card-split > small {
+  color: #70787a;
+  font-size: .58rem;
+}
+
+.fund-transaction-list,
+.fund-statement {
+  overflow: hidden;
+  border-top: 1px solid rgba(18, 56, 68, .08);
+  border-bottom: 1px solid rgba(18, 56, 68, .08);
+}
+
+.fund-transaction-row,
+.fund-statement-row {
+  display: flex;
+  align-items: flex-start;
+  gap: .7rem;
+  padding: .78rem 0;
+}
+
+.fund-transaction-row + .fund-transaction-row,
+.fund-statement-row + .fund-statement-row {
+  border-top: 1px solid rgba(18, 56, 68, .06);
+}
+
+.fund-transaction-row > div > strong,
+.fund-statement-row > div > strong {
+  display: block;
+  color: #17282e;
+  font-size: .73rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.fund-transaction-row > div > small,
+.fund-statement-row > div > small {
+  display: block;
+  margin-top: .14rem;
+  color: #70787a;
+  font-size: .58rem;
+  line-height: 1.4;
+}
+
+.fund-transaction-row > b,
+.fund-statement-row > b {
+  flex: 0 0 auto;
+  padding-top: .28rem;
+  color: #17282e;
+  font-size: .7rem;
+  font-weight: 680;
+}
+
+.fund-transaction-row > b.is-credit,
+.fund-statement-row > b.is-credit {
+  color: #376f58;
+}
+
+.fund-transaction-actions {
+  display: grid;
+  gap: .35rem;
+  margin-top: .55rem;
+}
+
+.fund-transaction-actions > span {
+  color: #526268;
+  font-size: .56rem;
+  font-weight: 650;
+}
+
+.fund-transaction-actions > small {
+  color: #8a3f3f;
+  font-size: .55rem;
+}
+
+.fund-transaction-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+}
+
+.fund-transaction-buttons button {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  gap: .3rem;
+  border-radius: 11px;
+  padding: 0 .55rem;
+  color: #123844;
+  background: rgba(220, 232, 235, .52);
+  font-size: .58rem;
+  font-weight: 650;
+}
+
+.fund-transaction-buttons button:disabled {
+  opacity: .45;
+}
+
+.fund-custom-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .65rem;
+}
+
+.fund-custom-total {
+  margin: .8rem 0;
+  color: #526268;
+  font-size: .65rem;
+}
+
+@media (max-width: 430px) {
+  .trip-fund-balances,
+  .trip-fund-actions,
+  .fund-custom-split {
+    grid-template-columns: 1fr;
+  }
+
+  .trip-fund-balances > div + div {
+    border-top: 1px solid rgba(18, 56, 68, .07);
+    border-left: 0;
+  }
+
+  .section-heading {
+    align-items: flex-start;
+  }
+
+  .personal-card-add {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}
