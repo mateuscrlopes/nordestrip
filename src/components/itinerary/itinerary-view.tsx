@@ -656,7 +656,7 @@ export function ItineraryView({
                   </div>
 
                   <div className="route-stop-card-wrap">
-                    <Link href={`/cidade/${stop.id}`} className="route-stop-card group">
+                    <Link href={`/cidade/${stop.id}?from=${encodeURIComponent("/roteiro")}`} className="route-stop-card group">
                       {cover ? (
                         <div
                           className="route-stop-image"
